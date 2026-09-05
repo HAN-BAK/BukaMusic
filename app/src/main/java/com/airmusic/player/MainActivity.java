@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.graphics.Bitmap;
+import android.graphics.drawable.AnimatedVectorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -73,6 +75,10 @@ public class MainActivity extends BaseActivity {
     private View seekRow;
 
     private boolean seeking;
+    /** The play/pause glyph state currently shown on the button. */
+    private Boolean playGlyphPlaying;
+    /** False while a receiver transport spinner replaces the play glyph. */
+    private boolean playGlyphVisible = true;
     private PlayerUiState lastState;
     /** True while a receiver transport command is waiting on the master. */
     private boolean controlPending;
@@ -306,6 +312,7 @@ public class MainActivity extends BaseActivity {
         if (icon == btnPlay) {
             // Keep the circular sky-blue frame visible; hide only the glyph.
             btnPlay.setImageResource(android.R.color.transparent);
+            playGlyphVisible = false;
         } else {
             icon.setVisibility(View.INVISIBLE);
         }
@@ -324,12 +331,52 @@ public class MainActivity extends BaseActivity {
         if (btnPlay != null) {
             btnPlay.setVisibility(View.VISIBLE);
             if (lastState != null) {
-                btnPlay.setImageResource(
-                        lastState.playing ? R.drawable.ic_pause : R.drawable.ic_play);
+                updatePlayIcon(lastState.playing, true);
             }
         }
         if (btnNext != null) btnNext.setVisibility(View.VISIBLE);
         if (btnPrev != null) btnPrev.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Shows the play/pause glyph, morphing between the two icon shapes when
+     * the transport state changes (morphicons-style animation).
+     */
+    private void updatePlayIcon(boolean playing, boolean animate) {
+        boolean changed = playGlyphPlaying == null || playGlyphPlaying != playing;
+        if (playGlyphPlaying == null) {
+            btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
+            playGlyphPlaying = playing;
+            playGlyphVisible = true;
+            return;
+        }
+        if (!changed) {
+            if (!playGlyphVisible) {
+                btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
+                playGlyphVisible = true;
+            }
+            return;
+        }
+        if (!animate) {
+            btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
+            playGlyphPlaying = playing;
+            playGlyphVisible = true;
+            return;
+        }
+        int morphRes = playing ? R.drawable.avd_play_to_pause : R.drawable.avd_pause_to_play;
+        btnPlay.setImageResource(morphRes);
+        Drawable d = btnPlay.getDrawable();
+        if (d instanceof AnimatedVectorDrawable) {
+            ((AnimatedVectorDrawable) d).start();
+        } else {
+            // Some ImageButton implementations wrap the drawable; re-apply the
+            // animated vector directly so the morph still runs.
+            AnimatedVectorDrawable avd = (AnimatedVectorDrawable) getResources().getDrawable(morphRes, getTheme());
+            btnPlay.setImageDrawable(avd);
+            avd.start();
+        }
+        playGlyphPlaying = playing;
+        playGlyphVisible = true;
     }
 
     /** Binds the bottom-bar slider to the system media volume. */
@@ -568,7 +615,7 @@ public class MainActivity extends BaseActivity {
         }
 
         if (!(controlPending && playProgress.getVisibility() == View.VISIBLE)) {
-            btnPlay.setImageResource(s.playing ? R.drawable.ic_pause : R.drawable.ic_play);
+            updatePlayIcon(s.playing, true);
         }
         btnPlay.setContentDescription(getString(s.playing ? R.string.pause : R.string.play));
 

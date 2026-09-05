@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/vd_play_morph">
+    <target
+        android:name="seg_top"
+        android:animation="@animator/morph_pause_to_play_top" />
+    <target
+        android:name="seg_bottom"
+        android:animation="@animator/morph_pause_to_play_bottom" />
+</animated-vector>

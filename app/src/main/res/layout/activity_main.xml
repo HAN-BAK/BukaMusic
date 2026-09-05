@@ -192,8 +192,7 @@
                             android:background="@drawable/bg_play"
                             android:contentDescription="@string/play"
                             android:padding="16dp"
-                            android:src="@drawable/ic_play"
-                            android:tint="@color/background" />
+                            android:src="@drawable/vd_play_morph" />
 
                         <ProgressBar
                             android:id="@+id/play_progress"
