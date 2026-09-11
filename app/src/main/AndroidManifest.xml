@@ -52,6 +52,11 @@
             android:screenOrientation="sensorLandscape" />
 
         <activity
+            android:name=".LyricsActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape" />
+
+        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:screenOrientation="sensorLandscape" />

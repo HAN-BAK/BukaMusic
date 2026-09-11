@@ -158,4 +158,7 @@
     <string name="export_logs_failed">Failed to export logs</string>
     <string name="export_logs_share">Share Diagnostic Logs</string>
     <string name="volume">Volume</string>
+    <string name="lyrics">Lyrics</string>
+    <string name="lyrics_back">Back</string>
+    <string name="lyrics_empty">No lyrics yet\nPut a .lrc file with the same name next to the song, or add embedded lyrics.</string>
 </resources>

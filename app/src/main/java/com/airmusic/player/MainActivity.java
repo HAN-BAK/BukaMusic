@@ -63,6 +63,7 @@ public class MainActivity extends BaseActivity {
     private ImageButton btnNext;
     private ImageButton btnPrev;
     private ImageButton btnMulticast;
+    private ImageButton btnLyrics;
     private ImageButton btnLibrary;
     private ImageButton btnApps;
     private ProgressBar multicastProgress;
@@ -137,6 +138,7 @@ public class MainActivity extends BaseActivity {
         btnNext = findViewById(R.id.btn_next);
         btnPrev = findViewById(R.id.btn_prev);
         btnMulticast = findViewById(R.id.btn_multicast);
+        btnLyrics = findViewById(R.id.btn_lyrics);
         btnLibrary = findViewById(R.id.btn_library);
         multicastProgress = findViewById(R.id.multicast_progress);
         playProgress = findViewById(R.id.play_progress);
@@ -170,6 +172,8 @@ public class MainActivity extends BaseActivity {
 
         findViewById(R.id.btn_settings).setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
+        findViewById(R.id.btn_lyrics).setOnClickListener(v ->
+                startActivity(new Intent(this, LyricsActivity.class)));
         findViewById(R.id.btn_library).setOnClickListener(v ->
                 startActivity(new Intent(this, LibraryActivity.class)));
         findViewById(R.id.btn_apps).setOnClickListener(v ->

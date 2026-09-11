@@ -158,4 +158,7 @@
     <string name="export_logs_failed">로그 내보내기 실패</string>
     <string name="export_logs_share">진단 로그 공유</string>
     <string name="volume">볼륨</string>
+    <string name="lyrics">가사</string>
+    <string name="lyrics_back">뒤로</string>
+    <string name="lyrics_empty">가사가 없습니다\n같은 이름의 .lrc 파일을 곡 폴더에 두거나 음악에 가사를 포함하세요.</string>
 </resources>
