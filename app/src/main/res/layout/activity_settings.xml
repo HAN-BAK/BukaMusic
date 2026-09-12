@@ -491,6 +491,14 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/about_title"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_show_tour"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_show_tour"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton

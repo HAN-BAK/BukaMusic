@@ -240,15 +240,6 @@
         android:paddingEnd="10dp"
         android:paddingBottom="8dp">
 
-        <ImageButton
-            android:id="@+id/btn_lyrics"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/lyrics"
-            android:src="@drawable/ic_lyrics"
-            android:tint="@color/accent" />
-
         <FrameLayout
             android:layout_width="44dp"
             android:layout_height="44dp">

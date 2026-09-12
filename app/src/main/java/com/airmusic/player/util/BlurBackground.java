@@ -28,6 +28,11 @@ public final class BlurBackground {
     /** Live updates per activity so the background follows track changes. */
     private static final Map<Activity, StateBus.Listener> listeners =
             new WeakHashMap<>();
+    /** What each window currently shows, so a new cover can crossfade in. */
+    private static final Map<Activity, Bitmap> shown =
+            new WeakHashMap<>();
+    /** Crossfade length when the album art changes (track switch). */
+    private static final int FADE_MS = 600;
 
     private BlurBackground() {
     }
@@ -36,6 +41,7 @@ public final class BlurBackground {
     public static void apply(Activity activity, int fallbackRes) {
         try {
             if (Prefs.BLUR_OFF.equals(new Prefs(activity).getBlurMode())) {
+                shown.remove(activity);
                 setFallback(activity, fallbackRes);
                 return;
             }
@@ -43,19 +49,48 @@ public final class BlurBackground {
             if (art == null) art = placeholder(activity);
             Bitmap blurred = build(activity, art);
             if (blurred == null) {
+                shown.remove(activity);
                 setFallback(activity, fallbackRes);
                 return;
             }
-            activity.getWindow().setBackgroundDrawable(
-                    new BitmapDrawable(activity.getResources(), blurred));
+            Bitmap current = shown.get(activity);
+            // Nothing changed: leave a running crossfade (and the window)
+            // untouched, otherwise every state update would cut it short.
+            if (current == blurred) return;
+            shown.put(activity, blurred);
+            setBackground(activity, current, blurred);
             attachLiveUpdates(activity, fallbackRes);
         } catch (Throwable t) {
+            shown.remove(activity);
             setFallback(activity, fallbackRes);
         }
     }
 
+    /**
+     * Swaps the window background, crossfading from the previous blurred
+     * cover so a track change does not snap between two pictures.
+     */
+    private static void setBackground(Activity activity, Bitmap from, Bitmap to) {
+        android.content.res.Resources res = activity.getResources();
+        if (from == null || from.isRecycled() || from == to) {
+            activity.getWindow().setBackgroundDrawable(new BitmapDrawable(res, to));
+            return;
+        }
+        BitmapDrawable oldLayer = new BitmapDrawable(res, from);
+        BitmapDrawable newLayer = new BitmapDrawable(res, to);
+        oldLayer.setGravity(android.view.Gravity.FILL);
+        newLayer.setGravity(android.view.Gravity.FILL);
+        android.graphics.drawable.TransitionDrawable transition =
+                new android.graphics.drawable.TransitionDrawable(
+                        new android.graphics.drawable.Drawable[]{oldLayer, newLayer});
+        transition.setCrossFadeEnabled(true);
+        activity.getWindow().setBackgroundDrawable(transition);
+        transition.startTransition(FADE_MS);
+    }
+
     /** Stops live updates (call from the activity's onDestroy). */
     public static void detach(Activity activity) {
+        shown.remove(activity);
         StateBus.Listener l = listeners.remove(activity);
         if (l != null) {
             StateBus.get().removeListener(l);

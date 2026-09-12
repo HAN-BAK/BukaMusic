@@ -33,6 +33,9 @@ import com.airmusic.player.airplay.AirPlayController;
 import com.airmusic.player.airplay.DacpClient;
 import com.airmusic.player.library.MusicLibrary;
 import com.airmusic.player.library.Track;
+import com.airmusic.player.lyrics.LyricRepository;
+import com.airmusic.player.lyrics.LyricWire;
+import com.airmusic.player.lyrics.Lyrics;
 import com.airmusic.player.multicast.MultiRoomDiscovery;
 import com.airmusic.player.multicast.MultiRoomAudioPlayer;
 import com.airmusic.player.multicast.MultiRoomManager;
@@ -147,6 +150,34 @@ public class PlaybackService extends Service {
     private Bitmap multiRoomMetaArt;
     private long multiRoomMetaDurationMs;
     private Runnable multiRoomFadeRunnable;
+    /** Track key of the lyrics already pushed to the receivers. */
+    private String multiRoomLyricsKey = "";
+    /** Lyrics pushed by the multi-room master (receiver side). */
+    private volatile RemoteLyrics remoteLyrics = RemoteLyrics.EMPTY;
+
+    /** Parsed lyrics received from the multi-room master, plus its seed. */
+    public static final class RemoteLyrics {
+        public static final RemoteLyrics EMPTY = new RemoteLyrics(Lyrics.EMPTY, "sonnet",
+                java.util.Collections.<String>emptyList(), 0L);
+
+        public final Lyrics lyrics;
+        public final String seed;
+        public final java.util.List<String> hints;
+        /** Bumped on every update so the UI can tell packets apart. */
+        public final long version;
+
+        RemoteLyrics(Lyrics lyrics, String seed, java.util.List<String> hints, long version) {
+            this.lyrics = lyrics;
+            this.seed = seed;
+            this.hints = hints;
+            this.version = version;
+        }
+    }
+
+    /** Lyrics for the multi-room stream currently playing, if any. */
+    public RemoteLyrics getRemoteLyrics() {
+        return remoteLyrics;
+    }
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -288,6 +319,7 @@ public class PlaybackService extends Service {
             if (multiRoomManager != null && multiRoomManager.hasTargets()) {
                 multiRoomManager.sendMeta(
                         track.displayTitle(), track.displayArtist(), track.displayAlbum(), track.durationMs);
+                pushMultiRoomLyrics();
             }
             syncMultiRoomStreamer();
             scheduleMultiRoomCalibration();
@@ -340,12 +372,50 @@ public class PlaybackService extends Service {
         if (lastArtBytes != null && lastArtBytes.length > 0) {
             m.sendArt(lastArtBytes);
         }
+        pushMultiRoomLyrics();
         if (state.source == PlayerUiState.Source.LOCAL && state.playing) {
             m.sendPlay(localPlayer.getPosition());
         } else if (state.source == PlayerUiState.Source.LOCAL) {
             m.sendPause();
         }
         syncMultiRoomStreamer();
+    }
+
+    /**
+     * Master side: hands the parsed lyrics of the current track to the
+     * receivers so their lyric screen shows exactly the same lines. The file
+     * is only parsed once per track, and the packet is re-sent whenever a new
+     * receiver joins.
+     */
+    private void pushMultiRoomLyrics() {
+        final MultiRoomManager m = multiRoomManager;
+        if (m == null || !m.hasTargets()) return;
+        final Track track = localPlayer == null ? null : localPlayer.getCurrentTrack();
+        if (track == null) {
+            if (!"none".equals(multiRoomLyricsKey)) {
+                multiRoomLyricsKey = "none";
+                m.sendLyrics(LyricWire.encode("sonnet", null, Lyrics.EMPTY));
+            }
+            return;
+        }
+        String uri = track.uri == null ? String.valueOf(track.filePath) : track.uri.toString();
+        final long duration = track.durationMs > 0 ? track.durationMs : state.durationMs;
+        final String key = uri + "#" + duration;
+        if (key.equals(multiRoomLyricsKey)) return;
+        multiRoomLyricsKey = key;
+
+        // Same seed / hints the master's own lyric screen uses, so both
+        // devices build an identical shot plan.
+        final String seed = LyricWire.seedFor(track.title, track.artist, track.album);
+        final List<String> hints = LyricWire.hintsFor(track.title, track.artist, track.album);
+        metadataExecutor.execute(() -> {
+            Lyrics lyrics = LyricRepository.load(this, track, duration);
+            if (!key.equals(multiRoomLyricsKey)) return; // track moved on
+            MultiRoomManager manager = multiRoomManager;
+            if (manager != null && manager.hasTargets()) {
+                manager.sendLyrics(LyricWire.encode(seed, hints, lyrics));
+            }
+        });
     }
 
     /**
@@ -382,6 +452,9 @@ public class PlaybackService extends Service {
         final boolean restoreAirPlay = resumeAirPlayAfterMultiRoom && airPlaySessionActive;
         resumeLocalAfterMultiRoom = false;
         resumeAirPlayAfterMultiRoom = false;
+        // The stream is gone: the lyric screen must not keep showing the
+        // master's lyrics.
+        remoteLyrics = RemoteLyrics.EMPTY;
 
         // 2500 ms fade-out of the multi-room audio, then hand back to the
         // previous source with its own fade-in.
@@ -737,6 +810,18 @@ public class PlaybackService extends Service {
         }
 
         @Override
+        public void onRemoteLyrics(String json) {
+            if (json == null) return;
+            // JSON parsing happens on the socket thread; the UI only gets the
+            // finished packet.
+            final LyricWire.Packet packet = LyricWire.decode(json);
+            main.post(() -> {
+                remoteLyrics = new RemoteLyrics(packet.lyrics, packet.seed,
+                        packet.hints, remoteLyrics.version + 1);
+            });
+        }
+
+        @Override
         public void onRemotePlay(int positionMs) {
             main.post(() -> {
                 notifyControlAck();
@@ -862,6 +947,7 @@ public class PlaybackService extends Service {
 
         @Override
         public void onRemoteDisconnect() {
+            remoteLyrics = RemoteLyrics.EMPTY;
             main.post(() -> {
                 if (state.source != PlayerUiState.Source.REMOTE) {
                     // AirPlay may be occupying the UI; the multi-room session
@@ -884,6 +970,9 @@ public class PlaybackService extends Service {
                 if (count > 0) {
                     // A receiver just connected while playback was already
                     // running: push the current track + state immediately.
+                    // The lyric cache key is cleared so the new device also
+                    // receives the lyrics of the track already playing.
+                    multiRoomLyricsKey = "";
                     pushMultiRoomState();
                     // Receiver-side correction: pull the tablet ~80 ms ahead
                     // (it was audibly late with master-only compensation).

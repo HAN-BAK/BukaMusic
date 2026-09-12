@@ -14,7 +14,8 @@ import java.io.OutputStream;
  *
  *   [1 byte type][4 byte big-endian length][payload]
  *
- * Types: 1 = JSON control, 2 = PCM audio chunk (reserved), 3 = cover art.
+ * Types: 1 = JSON control, 2 = PCM audio chunk, 3 = cover art,
+ * 4 = parsed lyrics for the current track.
  */
 public final class MultiRoomProtocol {
 
@@ -24,6 +25,7 @@ public final class MultiRoomProtocol {
     public static final byte TYPE_JSON = 1;
     public static final byte TYPE_AUDIO = 2;
     public static final byte TYPE_ART = 3;
+    public static final byte TYPE_LYRICS = 4;
 
     private MultiRoomProtocol() {
     }

@@ -4,21 +4,33 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <com.airmusic.player.view.SonnetLyricsView
+    <com.airmusic.player.sonnet.LyricsGlView
         android:id="@+id/lyrics_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <LinearLayout
-        android:id="@+id/lyrics_header"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="24dp">
+    <!-- The GL layer fills the whole window (the scene letterboxes itself to
+         the reference 16:9 box); the header stays inside that box so it keeps
+         the same proportions on every screen. -->
+    <com.airmusic.player.view.BoxAspectFrameLayout
+        android:id="@+id/lyrics_box"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        <LinearLayout
+            android:id="@+id/lyrics_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="24dp">
 
         <ImageButton
             android:id="@+id/btn_lyrics_back"
@@ -55,19 +67,8 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
         </LinearLayout>
-    </LinearLayout>
+        </LinearLayout>
+        </FrameLayout>
+    </com.airmusic.player.view.BoxAspectFrameLayout>
 
-    <TextView
-        android:id="@+id/lyrics_empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:lineSpacingExtra="6dp"
-        android:paddingStart="60dp"
-        android:paddingEnd="60dp"
-        android:text="@string/lyrics_empty"
-        android:textColor="@color/text_secondary"
-        android:textSize="16sp"
-        android:visibility="gone" />
 </FrameLayout>

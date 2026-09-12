@@ -28,6 +28,8 @@ public class MultiRoomServer {
 
         void onArt(byte[] imageData);
 
+        void onLyrics(byte[] lyricsJson);
+
         void onAudio(byte[] pcm, long posMs);
 
         /** The master closed the connection (device deselected / went away). */
@@ -193,6 +195,8 @@ public class MultiRoomServer {
                     if (listener != null) listener.onMessage(json);
                 } else if (frame.type == MultiRoomProtocol.TYPE_ART) {
                     if (listener != null) listener.onArt(frame.payload);
+                } else if (frame.type == MultiRoomProtocol.TYPE_LYRICS) {
+                    if (listener != null) listener.onLyrics(frame.payload);
                 } else if (frame.type == MultiRoomProtocol.TYPE_AUDIO && frame.payload.length >= 4) {
                     long posMs = ((long) (frame.payload[0] & 0xff) << 24)
                             | ((long) (frame.payload[1] & 0xff) << 16)

@@ -227,6 +227,13 @@ public class SettingsActivity extends BaseActivity {
         setupLanguageButton();
         findViewById(R.id.btn_about).setOnClickListener(v ->
                 startActivity(new Intent(this, AboutActivity.class)));
+        // Replays the spotlight tour; it highlights the playback screen, so it
+        // closes settings first.
+        findViewById(R.id.btn_show_tour).setOnClickListener(v -> {
+            startActivity(new Intent(this, MainActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    .putExtra(MainActivity.EXTRA_SHOW_TOUR, true));
+        });
         refreshStorageInfo();
     }
 

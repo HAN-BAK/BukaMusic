@@ -17,11 +17,19 @@ public class BoxAspectFrameLayout extends FrameLayout {
 
     /** Reference box ratio: 1920x1080. */
     private static final float REF_ASPECT = 16f / 9f;
+    /**
+     * The reference UI stays readable from 4:3 to 21:9; outside that range we
+     * still letterbox rather than distorting the composition.
+     */
+    private static final float MIN_ASPECT = 1.45f;
+    private static final float MAX_ASPECT = 1.85f;
 
     private int insetLeft;
     private int insetTop;
     private int insetRight;
     private int insetBottom;
+    /** When > 0 the box always uses this exact ratio (the lyric stage). */
+    private float forcedAspect;
 
     public BoxAspectFrameLayout(Context context) {
         super(context);
@@ -39,11 +47,18 @@ public class BoxAspectFrameLayout extends FrameLayout {
         requestLayout();
     }
 
+    /** Locks the content to exactly this ratio instead of the screen's. */
+    public void setForcedAspect(float aspect) {
+        forcedAspect = aspect;
+        requestLayout();
+    }
+
     private int contentWidth(int totalW, int totalH) {
         int availW = Math.max(1, totalW - insetLeft - insetRight);
         int availH = Math.max(1, totalH - insetTop - insetBottom);
-        if (availW / (float) availH > REF_ASPECT) {
-            return Math.round(availH * REF_ASPECT);
+        float target = targetAspect(availW, availH);
+        if (availW / (float) availH > target) {
+            return Math.round(availH * target);
         }
         return availW;
     }
@@ -51,10 +66,18 @@ public class BoxAspectFrameLayout extends FrameLayout {
     private int contentHeight(int totalW, int totalH) {
         int availW = Math.max(1, totalW - insetLeft - insetRight);
         int availH = Math.max(1, totalH - insetTop - insetBottom);
-        if (availW / (float) availH > REF_ASPECT) {
+        float target = targetAspect(availW, availH);
+        if (availW / (float) availH > target) {
             return availH;
         }
-        return Math.round(availW / REF_ASPECT);
+        return Math.round(availW / target);
+    }
+
+    /** Fills the screen for common tablet/TV ratios, clamps extreme ones. */
+    private float targetAspect(int availW, int availH) {
+        if (forcedAspect > 0f) return forcedAspect;
+        float screenAspect = availW / (float) Math.max(1, availH);
+        return Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, screenAspect));
     }
 
     @Override

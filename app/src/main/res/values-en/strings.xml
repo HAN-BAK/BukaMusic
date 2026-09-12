@@ -161,4 +161,25 @@
     <string name="lyrics">Lyrics</string>
     <string name="lyrics_back">Back</string>
     <string name="lyrics_empty">No lyrics yet\nPut a .lrc file with the same name next to the song, or add embedded lyrics.</string>
+    <string name="lyrics_not_found">No lyrics found</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="about_show_tour">View the feature tour</string>
+    <string name="settings_show_tour">View the feature tour</string>
+    <string name="copied_link">Link copied: %1$s</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="ob_lyrics_title">Full-screen lyrics</string>
+    <string name="ob_lyrics_body">Tap the cover for the lyric screen; double-tap left / centre / right = previous / pause / next.</string>
+    <string name="ob_multicast_title">Multi-room sync</string>
+    <string name="ob_multicast_body">Pick other devices on the same WiFi and they play the same song in sync.</string>
+    <string name="ob_airplay_title">AirPlay receiver</string>
+    <string name="ob_airplay_body">This device shows up in your phone\'s AirPlay list — just play to it.</string>
+    <string name="ob_volume_title">System volume</string>
+    <string name="ob_volume_body">Drag this slider to change this device\'s system volume.</string>
+    <string name="ob_library_title">Library</string>
+    <string name="ob_library_body">Long-press a song to select and delete several at once.</string>
+    <string name="ob_apps_title">Open other apps</string>
+    <string name="ob_apps_body">Launch apps installed on this device from here.</string>
+    <string name="ob_settings_title">Settings</string>
+    <string name="ob_settings_body">AirPlay name, equalizer, channel balance, background blur, language and browser uploads.</string>
 </resources>

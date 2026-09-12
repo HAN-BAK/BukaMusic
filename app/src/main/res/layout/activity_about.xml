@@ -227,8 +227,9 @@
                 android:layout_marginTop="4dp"
                 android:clickable="false"
                 android:focusable="false"
-                android:text="@string/os_androidx"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    android:text="@string/os_androidx"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

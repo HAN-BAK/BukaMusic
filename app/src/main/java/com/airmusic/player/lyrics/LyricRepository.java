@@ -81,7 +81,8 @@ public final class LyricRepository {
                 raw = EmbeddedLyricReader.read(context, track);
             }
             if (raw != null && !raw.trim().isEmpty()) {
-                lyrics = LrcParser.parse(raw, durationMs);
+                lyrics = LyricTiming.fit(LyricTranslations.resolve(
+                        LrcParser.resolveTranslations(LrcParser.parse(raw, durationMs))));
             }
         } catch (Throwable ignored) {
             lyrics = Lyrics.EMPTY;

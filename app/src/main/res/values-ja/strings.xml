@@ -161,4 +161,25 @@
     <string name="lyrics">歌詞</string>
     <string name="lyrics_back">戻る</string>
     <string name="lyrics_empty">歌詞がありません\n同じ名前の .lrc ファイルを曲と同じフォルダに置くか、楽曲に歌詞を埋め込んでください。</string>
+    <string name="lyrics_not_found">歌詞が見つかりません</string>
+    <string name="onboarding_skip">スキップ</string>
+    <string name="about_show_tour">機能ガイドを見る</string>
+    <string name="settings_show_tour">機能ガイドを見る</string>
+    <string name="copied_link">リンクをコピーしました：%1$s</string>
+    <string name="onboarding_next">次へ</string>
+    <string name="onboarding_start">はじめる</string>
+    <string name="ob_lyrics_title">全画面の歌詞</string>
+    <string name="ob_lyrics_body">ジャケットをタップで歌詞画面。ダブルタップは左 / 中央 / 右 = 前の曲 / 一時停止 / 次の曲。</string>
+    <string name="ob_multicast_title">マルチルーム同期</string>
+    <string name="ob_multicast_body">同じ WiFi の他の端末を選ぶと、同じ曲を同時に再生します。</string>
+    <string name="ob_airplay_title">AirPlay 受信</string>
+    <string name="ob_airplay_body">スマホやタブレットの AirPlay 一覧に表示され、そのまま再生できます。</string>
+    <string name="ob_volume_title">システム音量</string>
+    <string name="ob_volume_body">このスライダーで本機のシステム音量を直接調整します。</string>
+    <string name="ob_library_title">ライブラリ</string>
+    <string name="ob_library_body">長押しで複数の曲を選んで削除できます。</string>
+    <string name="ob_apps_title">他のアプリを開く</string>
+    <string name="ob_apps_body">ここから本機にインストールされたアプリを起動できます。</string>
+    <string name="ob_settings_title">設定</string>
+    <string name="ob_settings_body">AirPlay 名、イコライザー、左右バランス、背景ぼかし、言語、ブラウザからの曲転送。</string>
 </resources>

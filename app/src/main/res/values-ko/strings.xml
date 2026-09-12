@@ -161,4 +161,25 @@
     <string name="lyrics">가사</string>
     <string name="lyrics_back">뒤로</string>
     <string name="lyrics_empty">가사가 없습니다\n같은 이름의 .lrc 파일을 곡 폴더에 두거나 음악에 가사를 포함하세요.</string>
+    <string name="lyrics_not_found">가사를 찾을 수 없습니다</string>
+    <string name="onboarding_skip">건너뛰기</string>
+    <string name="about_show_tour">기능 안내 보기</string>
+    <string name="settings_show_tour">기능 안내 보기</string>
+    <string name="copied_link">링크를 복사했습니다: %1$s</string>
+    <string name="onboarding_next">다음</string>
+    <string name="onboarding_start">시작하기</string>
+    <string name="ob_lyrics_title">전체 화면 가사</string>
+    <string name="ob_lyrics_body">커버를 누르면 가사 화면. 두 번 누르면 왼쪽 / 가운데 / 오른쪽 = 이전 / 일시정지 / 다음.</string>
+    <string name="ob_multicast_title">멀티룸 동기화</string>
+    <string name="ob_multicast_body">같은 WiFi의 다른 기기를 선택하면 같은 곡을 함께 재생합니다.</string>
+    <string name="ob_airplay_title">AirPlay 수신</string>
+    <string name="ob_airplay_body">휴대폰이나 태블릿의 AirPlay 목록에 나타나 바로 재생할 수 있습니다.</string>
+    <string name="ob_volume_title">시스템 볼륨</string>
+    <string name="ob_volume_body">이 슬라이더로 이 기기의 시스템 볼륨을 직접 조절합니다.</string>
+    <string name="ob_library_title">라이브러리</string>
+    <string name="ob_library_body">길게 누르면 여러 곡을 선택해 삭제할 수 있습니다.</string>
+    <string name="ob_apps_title">다른 앱 열기</string>
+    <string name="ob_apps_body">여기에서 이 기기에 설치된 앱을 실행할 수 있습니다.</string>
+    <string name="ob_settings_title">설정</string>
+    <string name="ob_settings_body">AirPlay 이름, 이퀄라이저, 채널 밸런스, 배경 흐림, 언어, 브라우저 업로드.</string>
 </resources>

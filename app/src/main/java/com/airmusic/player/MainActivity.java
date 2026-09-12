@@ -49,6 +49,9 @@ import java.util.Locale;
 
 public class MainActivity extends BaseActivity {
 
+    /** Set by the settings screen to replay the first-run feature tour. */
+    public static final String EXTRA_SHOW_TOUR = "com.airmusic.player.SHOW_TOUR";
+
     private static final String ACTION_CAPTURE_START = "com.airmusic.player.CAPTURE_START";
     private static final String ACTION_CAPTURE_STOP = "com.airmusic.player.CAPTURE_STOP";
 
@@ -63,7 +66,6 @@ public class MainActivity extends BaseActivity {
     private ImageButton btnNext;
     private ImageButton btnPrev;
     private ImageButton btnMulticast;
-    private ImageButton btnLyrics;
     private ImageButton btnLibrary;
     private ImageButton btnApps;
     private ProgressBar multicastProgress;
@@ -126,6 +128,12 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
         BlurBackground.apply(this, R.drawable.bg_main_gradient);
         handleCaptureIntent(getIntent());
+        // First launch: introduce the features that are easy to miss.
+        OnboardingOverlay.showIfNeeded(this);
+        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_SHOW_TOUR, false)) {
+            getIntent().removeExtra(EXTRA_SHOW_TOUR);
+            findViewById(android.R.id.content).post(() -> OnboardingOverlay.show(this));
+        }
 
         albumArt = findViewById(R.id.album_art);
         trackTitle = findViewById(R.id.track_title);
@@ -138,7 +146,6 @@ public class MainActivity extends BaseActivity {
         btnNext = findViewById(R.id.btn_next);
         btnPrev = findViewById(R.id.btn_prev);
         btnMulticast = findViewById(R.id.btn_multicast);
-        btnLyrics = findViewById(R.id.btn_lyrics);
         btnLibrary = findViewById(R.id.btn_library);
         multicastProgress = findViewById(R.id.multicast_progress);
         playProgress = findViewById(R.id.play_progress);
@@ -172,7 +179,7 @@ public class MainActivity extends BaseActivity {
 
         findViewById(R.id.btn_settings).setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
-        findViewById(R.id.btn_lyrics).setOnClickListener(v ->
+        albumArt.setOnClickListener(v ->
                 startActivity(new Intent(this, LyricsActivity.class)));
         findViewById(R.id.btn_library).setOnClickListener(v ->
                 startActivity(new Intent(this, LibraryActivity.class)));
@@ -477,6 +484,10 @@ public class MainActivity extends BaseActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         handleCaptureIntent(intent);
+        if (intent != null && intent.getBooleanExtra(EXTRA_SHOW_TOUR, false)) {
+            intent.removeExtra(EXTRA_SHOW_TOUR);
+            findViewById(android.R.id.content).post(() -> OnboardingOverlay.show(this));
+        }
     }
 
     /** Debug-only PCM capture toggle driven from adb intents. */

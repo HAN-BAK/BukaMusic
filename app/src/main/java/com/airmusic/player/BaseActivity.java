@@ -105,6 +105,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     private void wrapContentToBoxAspect() {
         if (boxAspectWrapped) return;
+        if (!keepBoxAspectWrapper()) return;
         ViewGroup content = findViewById(android.R.id.content);
         if (content == null || content.getChildCount() == 0) return;
         View child = content.getChildAt(0);
@@ -128,6 +129,16 @@ public abstract class BaseActivity extends AppCompatActivity {
                     insets.getSystemWindowInsetBottom());
             return insets;
         });
+    }
+
+    /**
+     * Screens that letterbox inside their own renderer (the lyric stage draws
+     * the letterbox area itself) opt out of the automatic 16:9 wrapper and
+     * add a {@link BoxAspectFrameLayout} around the parts that must keep the
+     * reference proportions.
+     */
+    protected boolean keepBoxAspectWrapper() {
+        return true;
     }
 
     @Override

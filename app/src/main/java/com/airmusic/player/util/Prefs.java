@@ -31,6 +31,7 @@ public final class Prefs {
     private static final String KEY_SHOW_APPS_BUTTON = "show_apps_button";
     private static final String KEY_BLUR_MODE = "blur_mode";
     private static final String KEY_LANGUAGE = "language";
+    private static final String KEY_ONBOARDING_DONE = "onboarding_done";
     private static final String KEY_EQ_GAINS = "eq_gains";
     private static final String KEY_EQ_PRESETS = "eq_presets";
 
@@ -165,6 +166,15 @@ public final class Prefs {
 
     public void setLanguage(String lang) {
         sp.edit().putString(KEY_LANGUAGE, lang).apply();
+    }
+
+    /** True once the first-run feature tour has been shown and dismissed. */
+    public boolean isOnboardingDone() {
+        return sp.getBoolean(KEY_ONBOARDING_DONE, false);
+    }
+
+    public void setOnboardingDone(boolean done) {
+        sp.edit().putBoolean(KEY_ONBOARDING_DONE, done).apply();
     }
 
     // ------------------------------------------------------------------

@@ -23,6 +23,9 @@ public class MultiRoomManager {
 
         void onRemoteArt(byte[] imageData);
 
+        /** Parsed lyrics JSON for the track the master is currently playing. */
+        void onRemoteLyrics(String json);
+
         void onRemotePlay(int positionMs);
 
         void onRemotePause();
@@ -89,6 +92,14 @@ public class MultiRoomManager {
             public void onArt(byte[] imageData) {
                 Events e = MultiRoomManager.this.events;
                 if (e != null) e.onRemoteArt(imageData);
+            }
+
+            @Override
+            public void onLyrics(byte[] lyricsJson) {
+                Events e = MultiRoomManager.this.events;
+                if (e != null && lyricsJson != null) {
+                    e.onRemoteLyrics(new String(lyricsJson, java.nio.charset.StandardCharsets.UTF_8));
+                }
             }
 
             @Override
@@ -307,6 +318,17 @@ public class MultiRoomManager {
         sendExecutor.execute(() -> {
             for (MultiRoomClient c : targets) {
                 c.sendArt(data);
+            }
+        });
+    }
+
+    /** Pushes the parsed lyrics of the current track (JSON, see LyricWire). */
+    public void sendLyrics(String json) {
+        if (json == null) return;
+        final byte[] data = json.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        sendExecutor.execute(() -> {
+            for (MultiRoomClient c : targets) {
+                c.send(MultiRoomProtocol.TYPE_LYRICS, data);
             }
         });
     }

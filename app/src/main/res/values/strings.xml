@@ -161,4 +161,25 @@
     <string name="lyrics">歌词</string>
     <string name="lyrics_back">返回</string>
     <string name="lyrics_empty">暂无歌词\n请将同名 .lrc 文件放到歌曲文件夹，或为音乐写入内嵌歌词</string>
+    <string name="lyrics_not_found">暂未找到歌词</string>
+    <string name="onboarding_skip">跳过</string>
+    <string name="about_show_tour">查看功能引导</string>
+    <string name="settings_show_tour">查看功能引导</string>
+    <string name="copied_link">已复制链接：%1$s</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_start">开始使用</string>
+    <string name="ob_lyrics_title">全屏歌词</string>
+    <string name="ob_lyrics_body">点专辑封面进入歌词画面；双击屏幕左 / 中 / 右 = 上一曲 / 暂停 / 下一曲。</string>
+    <string name="ob_multicast_title">多房间同步</string>
+    <string name="ob_multicast_body">选择同一 WiFi 下的其他设备，多台同步播放同一首歌。</string>
+    <string name="ob_airplay_title">AirPlay 接收</string>
+    <string name="ob_airplay_body">本机会出现在手机 / 平板的隔空播放列表里，直接投音即可。</string>
+    <string name="ob_volume_title">系统音量</string>
+    <string name="ob_volume_body">这条滑条直接调节本机的系统音量。</string>
+    <string name="ob_library_title">曲库</string>
+    <string name="ob_library_body">长按歌曲可多选删除，删除后立即刷新列表。</string>
+    <string name="ob_apps_title">打开本机应用</string>
+    <string name="ob_apps_body">在这里打开设备上安装的其他应用。</string>
+    <string name="ob_settings_title">设置</string>
+    <string name="ob_settings_body">改 AirPlay 名称、均衡器、声道平衡、背景模糊、语言，以及用浏览器上传歌曲。</string>
 </resources>
