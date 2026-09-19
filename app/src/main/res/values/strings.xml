@@ -162,6 +162,8 @@
     <string name="lyrics_back">返回</string>
     <string name="lyrics_empty">暂无歌词\n请将同名 .lrc 文件放到歌曲文件夹，或为音乐写入内嵌歌词</string>
     <string name="lyrics_not_found">暂未找到歌词</string>
+    <string name="pref_online_lyrics">自动在线获取歌词与歌曲信息</string>
+    <string name="pref_online_lyrics_hint">本地歌词没有词级时间戳、或歌曲缺少标签/封面时自动补全（来源：网易云音乐 / LRCLIB，仅用于显示，不改动歌曲文件）</string>
     <string name="onboarding_skip">跳过</string>
     <string name="about_show_tour">查看功能引导</string>
     <string name="settings_show_tour">查看功能引导</string>

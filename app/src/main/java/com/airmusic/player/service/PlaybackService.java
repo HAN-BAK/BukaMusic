@@ -32,6 +32,7 @@ import com.airmusic.player.R;
 import com.airmusic.player.airplay.AirPlayController;
 import com.airmusic.player.airplay.DacpClient;
 import com.airmusic.player.library.MusicLibrary;
+import com.airmusic.player.library.OnlineMetadata;
 import com.airmusic.player.library.Track;
 import com.airmusic.player.lyrics.LyricRepository;
 import com.airmusic.player.lyrics.LyricWire;
@@ -1936,6 +1937,10 @@ public class PlaybackService extends Service {
     // Metadata loading
     // ------------------------------------------------------------------
 
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
     private void loadMetadata(Track track) {
         if (track == null) return;
         // Only clear the previous cover once this track is actually the one
@@ -1988,13 +1993,44 @@ public class PlaybackService extends Service {
                 }
             }
 
-            final Bitmap art = artBytes == null ? null : BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
-            final String fTitle = title;
-            final String fArtist = artist;
-            final String fAlbum = album;
+            Bitmap localArt = artBytes == null ? null
+                    : BitmapFactory.decodeByteArray(artBytes, 0, artBytes.length);
+
+            // Anything the file does not carry (no title tag, no artist, no
+            // album, no embedded cover) is looked up online and used for
+            // display only - the music file itself is never modified.
+            String displayTitle = title;
+            String displayArtist = artist;
+            String displayAlbum = album;
+            Bitmap displayArt = localArt;
+            byte[] displayArtBytes = artBytes;
+            boolean missingSomething = isBlank(title) || isBlank(artist)
+                    || isBlank(album) || artBytes == null;
+            if (missingSomething && prefs.isOnlineLyrics()) {
+                OnlineMetadata.Info info = OnlineMetadata.fetchBlocking(this,
+                        target.displayTitle(), target.displayArtist(), duration);
+                if (info != null && !info.isEmpty()) {
+                    if (isBlank(displayTitle) && info.title != null) displayTitle = info.title;
+                    if (isBlank(displayArtist) && info.artist != null) displayArtist = info.artist;
+                    if (isBlank(displayAlbum) && info.album != null) displayAlbum = info.album;
+                    if (artBytes == null && info.cover != null) {
+                        Bitmap online = BitmapFactory.decodeByteArray(
+                                info.cover, 0, info.cover.length);
+                        if (online != null) {
+                            displayArt = online;
+                            displayArtBytes = info.cover;
+                        }
+                    }
+                }
+            }
+
+            final Bitmap art = displayArt;
+            final String fTitle = displayTitle;
+            final String fArtist = displayArtist;
+            final String fAlbum = displayAlbum;
             final long fDuration = duration;
-            final byte[] fArtBytes = artBytes;
-            lastArtBytes = artBytes;
+            final byte[] fArtBytes = displayArtBytes;
+            lastArtBytes = displayArtBytes;
 
             // Push metadata to multi-room receivers (master role).
             if (multiRoomManager != null && multiRoomManager.hasTargets()) {

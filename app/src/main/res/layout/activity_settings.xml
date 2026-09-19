@@ -229,6 +229,26 @@
                     android:thumbTint="@color/accent"
                     android:trackTint="@color/surface_light" />
 
+                <Switch
+                    android:id="@+id/switch_online_lyrics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/pref_online_lyrics"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:thumbTint="@color/accent"
+                    android:trackTint="@color/surface_light" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/pref_online_lyrics_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

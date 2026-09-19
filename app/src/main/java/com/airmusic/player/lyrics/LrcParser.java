@@ -51,7 +51,11 @@ public final class LrcParser {
                 starts.add((min * 60_000L) + (sec * 1_000L) + frac);
             }
             String content = TIME.matcher(line).replaceAll("").trim();
-            content = WORD_TAG.matcher(content).replaceAll("").trim();
+            // Enhanced LRC marks each word with its own timestamp:
+            //   [00:12.00]<00:12.00>Hel<00:12.30>lo
+            // Keep both the plain text and the per-word timings.
+            List<LyricLine.Word> words = new ArrayList<>();
+            content = parseWordTags(content, words).trim();
             if (content.isEmpty()) continue;
             String[] split = splitInlineTranslation(content);
             String mainText = split[0];
@@ -62,9 +66,11 @@ public final class LrcParser {
                         : mainText + "\u0000" + inlineTranslation);
             } else {
                 for (long start : starts) {
+                    long timeline = Math.max(0, start + offsetMs);
                     timed.add(new LyricLine(Math.max(0, start + offsetMs),
-                            Math.max(0, start + offsetMs) + 4_000L,
-                            mainText, inlineTranslation));
+                            timeline + 4_000L,
+                            mainText, inlineTranslation,
+                            shiftWords(words, start + offsetMs, start)));
                 }
             }
         }
@@ -90,6 +96,78 @@ public final class LrcParser {
             estimated.add(new LyricLine(start, start + slot, main, translation));
         }
         return new Lyrics(withEndTimes(mergeTranslations(estimated), fallbackDurationMs), false);
+    }
+
+    /**
+     * Extracts the per-word timings from an enhanced-LRC line, returning the
+     * line text with the tags removed. Word end times are filled in from the
+     * following word (or the line end) by {@link #shiftWords}.
+     */
+    static String parseWordTags(String content, List<LyricLine.Word> out) {
+        if (content == null || content.isEmpty()) return "";
+        Matcher m = WORD_TAG.matcher(content);
+        if (!m.find()) return content;
+        StringBuilder text = new StringBuilder();
+        m.reset();
+        long pendingTime = -1L;
+        int pendingEnd = -1;
+        while (m.find()) {
+            String tag = m.group();
+            long time = parseTagTime(tag);
+            if (pendingTime >= 0 && pendingEnd >= 0 && m.start() > pendingEnd) {
+                String body = content.substring(pendingEnd, m.start());
+                if (!body.isEmpty()) {
+                    out.add(new LyricLine.Word(pendingTime, time, body));
+                    text.append(body);
+                }
+            } else if (pendingTime < 0 && m.start() > 0) {
+                // Text before the first tag has no timing of its own.
+                text.append(content, 0, m.start());
+            }
+            pendingTime = time;
+            pendingEnd = m.end();
+        }
+        if (pendingTime >= 0 && pendingEnd >= 0 && pendingEnd < content.length()) {
+            String tail = content.substring(pendingEnd);
+            if (!tail.isEmpty()) {
+                out.add(new LyricLine.Word(pendingTime, pendingTime, tail));
+                text.append(tail);
+            }
+        }
+        return text.toString();
+    }
+
+    /** Parses {@code <mm:ss.xx>} into milliseconds, or -1 when malformed. */
+    private static long parseTagTime(String chunk) {
+        int open = chunk.lastIndexOf('<');
+        int close = chunk.lastIndexOf('>');
+        if (open < 0 || close <= open) return -1L;
+        String body = chunk.substring(open + 1, close);
+        Matcher m = Pattern.compile("(\\d{1,3}):(\\d{1,2})(?:[.:](\\d{1,3}))?")
+                .matcher(body);
+        if (!m.find()) return -1L;
+        return parseLong(m.group(1)) * 60_000L + parseLong(m.group(2)) * 1_000L
+                + parseFraction(m.group(3));
+    }
+
+    /**
+     * Clones the word list onto the timestamp of one occurrence of the line and
+     * closes each word with the start of the next one.
+     */
+    private static List<LyricLine.Word> shiftWords(List<LyricLine.Word> words,
+                                                   long lineStart, long originalStart) {
+        if (words == null || words.isEmpty()) return null;
+        long delta = lineStart - originalStart;
+        List<LyricLine.Word> out = new ArrayList<>(words.size());
+        for (int i = 0; i < words.size(); i++) {
+            LyricLine.Word word = words.get(i);
+            long start = word.startMs + delta;
+            long end = i + 1 < words.size()
+                    ? words.get(i + 1).startMs + delta
+                    : start + 400L;
+            out.add(new LyricLine.Word(start, end, word.text));
+        }
+        return out;
     }
 
     /**
@@ -130,7 +208,7 @@ public final class LrcParser {
                     continue;
                 }
                 out.add(new LyricLine(current.startMs, Math.max(current.endMs, next.endMs),
-                        current.text, next.text));
+                        current.text, next.text, current.words));
                 i += 2;
             } else {
                 out.add(current);
@@ -209,7 +287,7 @@ public final class LrcParser {
                 end = durationMs + 1;
             }
             end = Math.max(end, line.startMs + 1);
-            out.add(new LyricLine(line.startMs, end, line.text, line.translation));
+            out.add(new LyricLine(line.startMs, end, line.text, line.translation, line.words));
         }
         return out;
     }

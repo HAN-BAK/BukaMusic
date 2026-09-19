@@ -86,6 +86,17 @@ public final class LyricWire {
                     if (line.translation != null && !line.translation.isEmpty()) {
                         item.put("tr", line.translation);
                     }
+                    if (line.hasWordTiming()) {
+                        JSONArray words = new JSONArray();
+                        for (LyricLine.Word word : line.words) {
+                            JSONObject entry = new JSONObject();
+                            entry.put("s", word.startMs);
+                            entry.put("e", word.endMs);
+                            entry.put("t", word.text == null ? "" : word.text);
+                            words.put(entry);
+                        }
+                        item.put("w", words);
+                    }
                     lines.put(item);
                 }
             }
@@ -112,7 +123,18 @@ public final class LyricWire {
                     if (text.isEmpty() && (translation == null || translation.isEmpty())) {
                         continue;
                     }
-                    lines.add(new LyricLine(start, end, text, translation));
+                    List<LyricLine.Word> words = null;
+                    JSONArray wordArray = item.optJSONArray("w");
+                    if (wordArray != null && wordArray.length() > 0) {
+                        words = new ArrayList<>(wordArray.length());
+                        for (int w = 0; w < wordArray.length(); w++) {
+                            JSONObject entry = wordArray.optJSONObject(w);
+                            if (entry == null) continue;
+                            words.add(new LyricLine.Word(entry.optLong("s", 0L),
+                                    entry.optLong("e", 0L), entry.optString("t", "")));
+                        }
+                    }
+                    lines.add(new LyricLine(start, end, text, translation, words));
                 }
             }
             List<String> hints = new ArrayList<>();

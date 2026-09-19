@@ -49,7 +49,8 @@ public final class LyricTranslations {
             LyricLine next = index + 1 < input.size() ? input.get(index + 1) : null;
             if (next != null && next.translation == null && isTranslationOf(current, next)) {
                 out.add(new LyricLine(current.startMs,
-                        Math.max(current.endMs, next.endMs), current.text, next.text));
+                        Math.max(current.endMs, next.endMs), current.text, next.text,
+                        current.words));
                 index += 2;
                 changed = true;
                 continue;
@@ -89,7 +90,7 @@ public final class LyricTranslations {
         String translation = text.substring(boundary).trim();
         if (main.isEmpty() || translation.isEmpty()) return line;
         if (translation.startsWith("(") || translation.startsWith("\uFF08")) return line;
-        return new LyricLine(line.startMs, line.endMs, main, translation);
+        return new LyricLine(line.startMs, line.endMs, main, translation, line.words);
     }
 
     private static int scriptBucket(char c) {

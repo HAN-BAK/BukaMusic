@@ -184,6 +184,12 @@ public final class SonnetDirector {
             }
             List<Segment> segments = splitSegments(line.text, line.startMs,
                     Math.max(lineEnd, line.startMs + 250L), hints, wordPaceMs, onsetsMs);
+            if (line.hasWordTiming()) {
+                // Karaoke sources (NetEase YRC, enhanced LRC) already know when
+                // every word is sung - use that instead of estimating.
+                List<Segment> exact = segmentsFromWords(line);
+                if (!exact.isEmpty()) segments = exact;
+            }
             compiled.add(new LineDraft(line, segments));
         }
 
@@ -301,6 +307,8 @@ public final class SonnetDirector {
     private static final long INTERLUDE_MIN_MS = 6_000L;
     /** Lyrics appear this much before the detected onset, to match the voice. */
     private static final long LYRIC_LEAD_MS = 200L;
+    /** Visual lead for word timings that come from a karaoke source. */
+    private static final long REAL_WORD_LEAD_MS = 120L;
 
     /**
      * Long lines are split into several shots of at most seven words, so the
@@ -486,6 +494,30 @@ public final class SonnetDirector {
             }
         }
         return Math.max(1, count == 0 ? Math.max(1, text.length() / 3) : count);
+    }
+
+    /**
+     * Builds the word segments straight from a karaoke source. The provider
+     * timings are already aligned with the singing, so only a small visual
+     * lead is applied instead of the estimation lead used elsewhere.
+     */
+    private static List<Segment> segmentsFromWords(com.airmusic.player.lyrics.LyricLine line) {
+        List<Segment> out = new ArrayList<>();
+        if (line == null || line.words.isEmpty()) return out;
+        for (int i = 0; i < line.words.size(); i++) {
+            com.airmusic.player.lyrics.LyricLine.Word word = line.words.get(i);
+            String text = word.text == null ? "" : word.text.trim();
+            if (text.isEmpty()) continue;
+            long start = Math.max(0L, word.startMs - REAL_WORD_LEAD_MS);
+            long end = Math.max(start + 60L, word.endMs - REAL_WORD_LEAD_MS);
+            if (i + 1 < line.words.size()) {
+                long next = Math.max(start + 60L,
+                        line.words.get(i + 1).startMs - REAL_WORD_LEAD_MS);
+                if (next > end) end = next;
+            }
+            out.add(buildSegment(text, start, end));
+        }
+        return out;
     }
 
     private static Segment buildSegment(String text, long startMs, long endMs) {

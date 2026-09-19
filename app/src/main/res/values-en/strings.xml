@@ -162,6 +162,8 @@
     <string name="lyrics_back">Back</string>
     <string name="lyrics_empty">No lyrics yet\nPut a .lrc file with the same name next to the song, or add embedded lyrics.</string>
     <string name="lyrics_not_found">No lyrics found</string>
+    <string name="pref_online_lyrics">Fetch lyrics and song info online</string>
+    <string name="pref_online_lyrics_hint">Used when local lyrics have no word timing, or tags / cover art are missing (sources: NetEase / LRCLIB; display only, the music file is never changed)</string>
     <string name="onboarding_skip">Skip</string>
     <string name="about_show_tour">View the feature tour</string>
     <string name="settings_show_tour">View the feature tour</string>

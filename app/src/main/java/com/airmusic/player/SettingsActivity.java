@@ -35,6 +35,7 @@ public class SettingsActivity extends BaseActivity {
     private TextView pathDisplay;
     private RadioGroup radioMode;
     private Switch switchAutoPlay;
+    private Switch switchOnlineLyrics;
     private Switch switchShowApps;
     private com.google.android.material.button.MaterialButton btnBlurMode;
     private SeekBar seekBalance;
@@ -71,6 +72,7 @@ public class SettingsActivity extends BaseActivity {
         pathDisplay = findViewById(R.id.path_display);
         radioMode = findViewById(R.id.radio_mode);
         switchAutoPlay = findViewById(R.id.switch_auto_play);
+        switchOnlineLyrics = findViewById(R.id.switch_online_lyrics);
         switchShowApps = findViewById(R.id.switch_show_apps);
         btnBlurMode = findViewById(R.id.btn_blur_mode);
         seekBalance = findViewById(R.id.seek_balance);
@@ -106,6 +108,9 @@ public class SettingsActivity extends BaseActivity {
         switchAutoPlay.setChecked(prefs.isAutoPlayOnStart());
         switchAutoPlay.setOnCheckedChangeListener((b, checked) ->
                 prefs.setAutoPlayOnStart(checked));
+        switchOnlineLyrics.setChecked(prefs.isOnlineLyrics());
+        switchOnlineLyrics.setOnCheckedChangeListener((b, checked) ->
+                prefs.setOnlineLyrics(checked));
         switchShowApps.setChecked(prefs.isShowAppsButton());
         switchShowApps.setOnCheckedChangeListener((b, checked) ->
                 prefs.setShowAppsButton(checked));

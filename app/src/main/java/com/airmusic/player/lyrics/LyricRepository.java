@@ -74,24 +74,60 @@ public final class LyricRepository {
             if (cached != null) return cached;
         }
 
-        Lyrics lyrics = Lyrics.EMPTY;
+        Lyrics local = Lyrics.EMPTY;
         try {
             String raw = readSidecar(context, track);
             if (raw == null || raw.trim().isEmpty()) {
                 raw = EmbeddedLyricReader.read(context, track);
             }
             if (raw != null && !raw.trim().isEmpty()) {
-                lyrics = LyricTiming.fit(LyricTranslations.resolve(
-                        LrcParser.resolveTranslations(LrcParser.parse(raw, durationMs))));
+                local = parseLocal(raw, durationMs);
             }
         } catch (Throwable ignored) {
-            lyrics = Lyrics.EMPTY;
+            local = Lyrics.EMPTY;
+        }
+
+        // Local lyrics win only when they carry real per-word timings. A plain
+        // line-timed .lrc (or no lyrics at all) is replaced by the online
+        // lookup, which for Chinese and most international songs returns
+        // word-level timing (NetEase) - cached, so it is fetched just once.
+        Lyrics lyrics = local;
+        if (!hasWordTiming(local) && new Prefs(context).isOnlineLyrics()) {
+            try {
+                OnlineLyrics.Result result = OnlineLyrics.fetchBlocking(context,
+                        track.title, track.artist, track.album, durationMs);
+                if (result != null && !result.isEmpty()) {
+                    lyrics = result.lyrics;
+                }
+            } catch (Throwable ignored) {
+                // Offline or provider failure: keep whatever is local.
+            }
         }
 
         synchronized (CACHE) {
             CACHE.put(key, lyrics);
         }
+        android.util.Log.i("Lyrics", "loaded \"" + track.title + "\": lines="
+                + lyrics.lines.size() + " wordTimed=" + hasWordTiming(lyrics)
+                + " local=" + (!local.isEmpty()));
         return lyrics;
+    }
+
+    private static boolean hasWordTiming(Lyrics lyrics) {
+        if (lyrics == null || lyrics.isEmpty()) return false;
+        for (LyricLine line : lyrics.lines) {
+            if (line.hasWordTiming()) return true;
+        }
+        return false;
+    }
+
+    /** Parses a local .lrc / embedded payload, including word-level tags. */
+    private static Lyrics parseLocal(String raw, long durationMs) {
+        if (YrcParser.looksLikeYrc(raw)) {
+            return YrcParser.parse(raw, null, durationMs);
+        }
+        return LyricTiming.fit(LyricTranslations.resolve(
+                LrcParser.resolveTranslations(LrcParser.parse(raw, durationMs))));
     }
 
     // ------------------------------------------------------------------

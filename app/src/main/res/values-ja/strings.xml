@@ -162,6 +162,8 @@
     <string name="lyrics_back">戻る</string>
     <string name="lyrics_empty">歌詞がありません\n同じ名前の .lrc ファイルを曲と同じフォルダに置くか、楽曲に歌詞を埋め込んでください。</string>
     <string name="lyrics_not_found">歌詞が見つかりません</string>
+    <string name="pref_online_lyrics">歌詞と曲情報をオンラインで自動取得</string>
+    <string name="pref_online_lyrics_hint">ローカル歌詞に単語タイミングが無い場合や、タグ・ジャケットが無い場合に補完します（提供元：NetEase・LRCLIB／表示のみで楽曲ファイルは変更しません）</string>
     <string name="onboarding_skip">スキップ</string>
     <string name="about_show_tour">機能ガイドを見る</string>
     <string name="settings_show_tour">機能ガイドを見る</string>

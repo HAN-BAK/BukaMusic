@@ -54,7 +54,7 @@ public final class LyricTiming {
             }
             end = Math.max(end, line.startMs + 250L);
             if (end != line.endMs) changed = true;
-            output.add(new LyricLine(line.startMs, end, line.text, line.translation));
+            output.add(new LyricLine(line.startMs, end, line.text, line.translation, line.words));
         }
         return changed ? new Lyrics(output, lyrics.synced) : lyrics;
     }

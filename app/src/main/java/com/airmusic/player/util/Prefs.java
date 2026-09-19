@@ -32,6 +32,7 @@ public final class Prefs {
     private static final String KEY_BLUR_MODE = "blur_mode";
     private static final String KEY_LANGUAGE = "language";
     private static final String KEY_ONBOARDING_DONE = "onboarding_done";
+    private static final String KEY_ONLINE_LYRICS = "online_lyrics";
     private static final String KEY_EQ_GAINS = "eq_gains";
     private static final String KEY_EQ_PRESETS = "eq_presets";
 
@@ -175,6 +176,15 @@ public final class Prefs {
 
     public void setOnboardingDone(boolean done) {
         sp.edit().putBoolean(KEY_ONBOARDING_DONE, done).apply();
+    }
+
+    /** Look lyrics up online (by title) when nothing is stored locally. */
+    public boolean isOnlineLyrics() {
+        return sp.getBoolean(KEY_ONLINE_LYRICS, true);
+    }
+
+    public void setOnlineLyrics(boolean enabled) {
+        sp.edit().putBoolean(KEY_ONLINE_LYRICS, enabled).apply();
     }
 
     // ------------------------------------------------------------------
