@@ -62,6 +62,13 @@ public final class ControlApi {
     /** Handles the request; returns false when the path is not an API route. */
     public static boolean handle(Context context, String method, String path,
                                  byte[] body, OutputStream out) throws IOException {
+        return handle(context, method, path, body, out, null);
+    }
+
+    /** Same as above, with the request's Range header (used by /api/file). */
+    public static boolean handle(Context context, String method, String path,
+                                 byte[] body, OutputStream out, String rangeHeader)
+            throws IOException {
         if (path == null || !path.startsWith("/api/")) return false;
         String route = path.substring(5);
         String query = "";
@@ -106,6 +113,9 @@ public final class ControlApi {
                     return true;
                 case "cover":
                     sendCover(context, out, query);
+                    return true;
+                case "file":
+                    sendFile(context, out, query, rangeHeader);
                     return true;
                 default:
                     sendJson(out, 404, error("unknown route"));
@@ -378,6 +388,90 @@ public final class ControlApi {
      * {@code ?path=} - the embedded art of any library file (used by the album
      * and artist tiles on both clients).
      */
+    /**
+     * Streams one song file, honouring a Range header so the desktop console can
+     * play and seek without downloading the whole file first.
+     */
+    private static void sendFile(Context context, OutputStream out, String query,
+                                 String rangeHeader) throws IOException {
+        String requested = queryParameter(query, "path");
+        if (requested == null || requested.isEmpty()) {
+            sendJson(out, 400, error("no path"));
+            return;
+        }
+        File file = new File(requested);
+        String root = new Prefs(context).getMusicFolderPath();
+        if (!file.isFile()
+                || (root != null && !root.isEmpty()
+                    && !file.getAbsolutePath().startsWith(root))) {
+            sendJson(out, 404, error("no such file"));
+            return;
+        }
+
+        long total = file.length();
+        long start = 0;
+        long end = total - 1;
+        boolean partial = false;
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            String spec = rangeHeader.substring(6).trim();
+            int dash = spec.indexOf('-');
+            if (dash >= 0) {
+                String from = spec.substring(0, dash).trim();
+                String to = spec.substring(dash + 1).trim();
+                try {
+                    if (!from.isEmpty()) start = Long.parseLong(from);
+                    if (!to.isEmpty()) end = Long.parseLong(to);
+                } catch (NumberFormatException ignored) {
+                    start = 0;
+                    end = total - 1;
+                }
+                if (start < 0) start = 0;
+                if (end > total - 1) end = total - 1;
+                if (end < start) end = start;
+                partial = true;
+            }
+        }
+        long length = Math.max(0, end - start + 1);
+
+        StringBuilder head = new StringBuilder();
+        head.append("HTTP/1.1 ").append(partial ? "206 Partial Content" : "200 OK").append("\r\n");
+        head.append("Content-Type: ").append(mimeOf(file.getName())).append("\r\n");
+        head.append("Content-Length: ").append(length).append("\r\n");
+        head.append("Accept-Ranges: bytes\r\n");
+        if (partial) {
+            head.append("Content-Range: bytes ").append(start).append('-').append(end)
+                    .append('/').append(total).append("\r\n");
+        }
+        head.append("Connection: close\r\n");
+        head.append("Access-Control-Allow-Origin: *\r\n\r\n");
+        out.write(head.toString().getBytes(StandardCharsets.ISO_8859_1));
+
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(file, "r")) {
+            raf.seek(start);
+            byte[] buffer = new byte[64 * 1024];
+            long remaining = length;
+            while (remaining > 0) {
+                int read = raf.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+                if (read <= 0) break;
+                out.write(buffer, 0, read);
+                remaining -= read;
+            }
+        }
+        out.flush();
+    }
+
+    /** Content type for the supported audio containers. */
+    private static String mimeOf(String name) {
+        String lower = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".mp3")) return "audio/mpeg";
+        if (lower.endsWith(".flac")) return "audio/flac";
+        if (lower.endsWith(".m4a") || lower.endsWith(".aac")) return "audio/mp4";
+        if (lower.endsWith(".ogg") || lower.endsWith(".opus")) return "audio/ogg";
+        if (lower.endsWith(".wav")) return "audio/wav";
+        if (lower.endsWith(".wma")) return "audio/x-ms-wma";
+        if (lower.endsWith(".ape")) return "audio/x-ape";
+        return "application/octet-stream";
+    }
     private static void sendCover(Context context, OutputStream out, String query)
             throws IOException {
         PlayerUiState state = StateBus.get().getState();

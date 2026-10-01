@@ -177,6 +177,7 @@ public final class MusicTransferServer {
 
             long contentLength = -1;
             String fileName = null;
+            String range = null;
             String line;
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 String lower = line.toLowerCase();
@@ -184,12 +185,15 @@ public final class MusicTransferServer {
                     contentLength = Long.parseLong(line.substring(15).trim());
                 } else if (lower.startsWith("x-file-name:")) {
                     fileName = URLDecoder.decode(line.substring(13).trim(), "UTF-8");
+                } else if (lower.startsWith("range:")) {
+                    // Needed by the desktop console to seek inside a streamed song.
+                    range = line.substring(6).trim();
                 }
             }
 
             OutputStream out = socket.getOutputStream();
             if ("GET".equals(method)) {
-                if (ControlApi.handle(context, method, path, null, out)) {
+                if (ControlApi.handle(context, method, path, null, out, range)) {
                     // handled by the JSON API
                 } else if ("/icon.png".equals(path)) {
                     serveIcon(out);
@@ -205,7 +209,7 @@ public final class MusicTransferServer {
                 byte[] body = contentLength > 0
                         ? readBody(reader, (int) contentLength)
                         : new byte[0];
-                if (!ControlApi.handle(context, method, path, body, out)) {
+                if (!ControlApi.handle(context, method, path, body, out, range)) {
                     sendResponse(out, 404, "text/plain",
                             "Not found".getBytes(StandardCharsets.UTF_8));
                 }
