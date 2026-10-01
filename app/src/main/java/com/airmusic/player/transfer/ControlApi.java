@@ -288,7 +288,10 @@ public final class ControlApi {
                 // parsed lyrics (and the metadata) over, so serve those instead.
                 PlaybackService.RemoteLyrics remote =
                         service == null ? null : service.getRemoteLyrics();
-                if (remote != null && remote.lyrics != null && !remote.lyrics.isEmpty()) {
+                boolean receiving = state != null
+                        && state.source == PlayerUiState.Source.REMOTE;
+                if (receiving && remote != null && remote.lyrics != null
+                        && !remote.lyrics.isEmpty()) {
                     JSONObject pushed = new JSONObject(
                             com.airmusic.player.lyrics.LyricWire.encode(
                                     remote.seed, remote.hints, remote.lyrics));
