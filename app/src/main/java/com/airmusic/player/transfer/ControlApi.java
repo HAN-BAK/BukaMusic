@@ -284,6 +284,20 @@ public final class ControlApi {
             Track track = service == null ? null : service.getCurrentTrack();
             PlayerUiState state = StateBus.get().getState();
             if (track == null) {
+                // A multi-room receiver has no local file: the master pushed the
+                // parsed lyrics (and the metadata) over, so serve those instead.
+                PlaybackService.RemoteLyrics remote =
+                        service == null ? null : service.getRemoteLyrics();
+                if (remote != null && remote.lyrics != null && !remote.lyrics.isEmpty()) {
+                    JSONObject pushed = new JSONObject(
+                            com.airmusic.player.lyrics.LyricWire.encode(
+                                    remote.seed, remote.hints, remote.lyrics));
+                    json.put("available", true);
+                    json.put("title", state == null ? "" : nullToEmpty(state.title));
+                    json.put("artist", state == null ? "" : nullToEmpty(state.artist));
+                    json.put("lyrics", pushed);
+                    return json;
+                }
                 json.put("available", false);
                 json.put("source", state == null ? "IDLE" : state.source.name());
                 return json;
