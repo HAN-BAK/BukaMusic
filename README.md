@@ -10,6 +10,9 @@
 同一播放界面同时承接 **本地音乐（含 USB 设备）**、**AirPlay 投送** 与 **多房间同步** 三种播放任务。
 应用还可以被设置为设备默认“桌面”，开机直接进入播放界面。
 
+> 配套的 **Windows 桌面控制台**（在电脑上发现并控制这些设备：播放、曲库、均衡器、多房间同步、歌词画面）
+> 已经独立成一个仓库：[HAN-BAK/BukaMusicDesktop](https://github.com/HAN-BAK/BukaMusicDesktop)。
+
 ## 下载
 
 最新正式版见 [Releases](https://github.com/HAN-BAK/BukaMusic/releases)：
