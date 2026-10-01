@@ -40,7 +40,13 @@ public final class MusicTransferServer {
     private final String musicFolderPath;
     private final byte[] iconPng;
     private final String language;
-    private final Listener listener;
+    /**
+     * Everyone who wants to hear about finished uploads. The background service
+     * registers the "refresh the library" listener and the transfer screen adds
+     * its toast on top, so an upload from the desktop console or from the web
+     * page always refreshes the library on the device.
+     */
+    private final java.util.List<Listener> listeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private ServerSocket serverSocket;
     private ExecutorService executor;
@@ -53,7 +59,22 @@ public final class MusicTransferServer {
         this.musicFolderPath = musicFolderPath;
         this.iconPng = iconPng;
         this.language = language == null ? "zh" : language;
-        this.listener = listener;
+        addListener(listener);
+    }
+
+    /** Registers an upload listener (the same listener twice is ignored). */
+    public void addListener(Listener value) {
+        if (value != null && !listeners.contains(value)) listeners.add(value);
+    }
+
+    private void notifyUploaded(String fileName, boolean success, String message) {
+        for (Listener target : listeners) {
+            try {
+                target.onUploaded(fileName, success, message);
+            } catch (Throwable t) {
+                Log.w(TAG, "upload listener failed", t);
+            }
+        }
     }
 
     /** Shared instance used by the background service and the transfer screen. */
@@ -208,14 +229,14 @@ public final class MusicTransferServer {
             String msg = t(language, "文件名或内容为空", "File name or content is empty",
                     "ファイル名または内容が空です", "파일 이름 또는 내용이 비어 있습니다");
             sendJson(out, 400, "ERR:" + msg);
-            if (listener != null) listener.onUploaded(cleanName, false, msg);
+            notifyUploaded(cleanName, false, msg);
             return;
         }
         if (!AudioExt.isAudio(cleanName)) {
             String msg = t(language, "仅支持音乐文件：", "Music files only: ",
                     "音楽ファイルのみ：", "음악 파일만 지원: ") + AudioExt.supportedList();
             sendJson(out, 415, "ERR:" + msg);
-            if (listener != null) listener.onUploaded(cleanName, false,
+            notifyUploaded(cleanName, false,
                     t(language, "不支持的文件格式", "Unsupported file format",
                             "未対応のファイル形式", "지원하지 않는 파일 형식"));
             return;
@@ -228,7 +249,7 @@ public final class MusicTransferServer {
             String msg = t(language, "无法创建音乐目录", "Cannot create the music folder",
                     "音楽フォルダを作成できません", "음악 폴더를 만들 수 없습니다");
             sendJson(out, 500, "ERR:" + msg);
-            if (listener != null) listener.onUploaded(cleanName, false, msg);
+            notifyUploaded(cleanName, false, msg);
             return;
         }
         // Refuse the upload when the music disk would drop below 80 MB free.
@@ -239,7 +260,7 @@ public final class MusicTransferServer {
                     "このファイルをアップロードすると空き容量が80MB未満になるため、アップロードをキャンセルしました",
                     "이 파일을 업로드하면 남은 공간이 80MB 미만이 되어 업로드가 취소되었습니다");
             sendJson(out, 507, "ERR:" + msg);
-            if (listener != null) listener.onUploaded(cleanName, false, msg);
+            notifyUploaded(cleanName, false, msg);
             return;
         }
         File target = new File(dir, cleanName);
@@ -250,7 +271,7 @@ public final class MusicTransferServer {
         String msg = t(language, "上传成功：", "Upload succeeded: ",
                 "アップロード成功：", "업로드 성공: ") + target.getName();
         sendJson(out, 200, "OK:" + msg);
-        if (listener != null) listener.onUploaded(target.getName(), true,
+        notifyUploaded(target.getName(), true,
                 t(language, "上传成功", "Upload succeeded", "アップロード成功", "업로드 성공"));
     }
 

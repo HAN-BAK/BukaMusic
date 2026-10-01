@@ -725,8 +725,10 @@ public final class ControlApi {
             if (service != null && deleted > 0) {
                 final PlaybackService rescan = service;
                 runOnMain(() -> {
-                    MusicLibrary.getInstance().clearCache();
-                    rescan.rescanLibrary();
+                            // No clearCache() here: the scan swaps the list when it
+                            // finishes, so /api/library never reports an empty
+                            // library while the desktop is deleting files.
+                            rescan.rescanLibrary();
                 });
             }
             result.put("ok", true);

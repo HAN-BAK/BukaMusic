@@ -63,8 +63,10 @@ public class TransferActivity extends BaseActivity {
         String folder = new Prefs(this).getMusicFolderPath();
         // The background service already runs the shared server (web page +
         // control API + discovery); reuse it so the address stays stable.
-        server = MusicTransferServer.shared(this, readIcon(), new Prefs(this).getLanguage(),
-                (name, success, message) ->
+        server = MusicTransferServer.shared(this, readIcon(), new Prefs(this).getLanguage(), null);
+        // Subscribed on top of the service's listener, so both the toast and the
+        // library refresh happen no matter who started the server first.
+        server.addListener((name, success, message) ->
                 runOnUiThread(() -> {
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     if (success) {

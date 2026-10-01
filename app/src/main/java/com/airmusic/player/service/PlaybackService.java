@@ -1254,6 +1254,22 @@ public class PlaybackService extends Service {
         return server == null ? 0 : server.getPort();
     }
 
+    /** Merged library refresh after uploads (several files may arrive at once). */
+    private final Runnable libraryRefreshTask = () -> {
+        try {
+            rescanLibrary();
+            Log.i(TAG, "library refreshed after upload");
+        } catch (Throwable t) {
+            Log.w(TAG, "library refresh after upload failed", t);
+        }
+    };
+
+    /** Queues a library refresh shortly after the last uploaded file. */
+    private void scheduleLibraryRefresh() {
+        main.removeCallbacks(libraryRefreshTask);
+        main.postDelayed(libraryRefreshTask, 1200);
+    }
+
     // ------------------------------------------------------------------
     // Multi-room helpers for the desktop control API
     // ------------------------------------------------------------------
@@ -1319,7 +1335,12 @@ public class PlaybackService extends Service {
             }
             com.airmusic.player.transfer.MusicTransferServer server =
                     com.airmusic.player.transfer.MusicTransferServer.shared(
-                            this, icon, prefs.getLanguage(), null);
+                            this, icon, prefs.getLanguage(), (name, uploaded, message) -> {
+                                // Any upload - from the web page or from the desktop
+                                // console - has to refresh the library, otherwise the
+                                // new files stay invisible until a manual rescan.
+                                if (uploaded) scheduleLibraryRefresh();
+                            });
             int port = server.start();
             Log.i(TAG, "control server on port " + port);
         } catch (Throwable t) {
@@ -1631,7 +1652,8 @@ public class PlaybackService extends Service {
     }
 
     public void rescanLibrary() {
-        MusicLibrary.getInstance().clearCache();
+        // The scan replaces the cached list when it finishes; clearing it up front
+        // would make /api/library report an empty library for a few seconds.
         MusicLibrary.getInstance().rescan(this, (tracks, error) -> {
             this.tracks = tracks;
             publish();
