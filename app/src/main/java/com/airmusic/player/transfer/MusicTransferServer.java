@@ -1,8 +1,10 @@
 package com.airmusic.player.transfer;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.airmusic.player.library.AudioExt;
+import com.airmusic.player.util.Prefs;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +30,8 @@ public final class MusicTransferServer {
 
     private static final String TAG = "MusicTransferServer";
     private static final int DEFAULT_PORT = 8080;
+    /** One server per process; the background service keeps it alive. */
+    private static MusicTransferServer shared;
 
     public interface Listener {
         void onUploaded(String fileName, boolean success, String message);
@@ -41,6 +45,8 @@ public final class MusicTransferServer {
     private ServerSocket serverSocket;
     private ExecutorService executor;
     private int port = DEFAULT_PORT;
+    private Context context;
+    private DeviceDiscovery discovery;
 
     public MusicTransferServer(String musicFolderPath, byte[] iconPng, String language,
                                Listener listener) {
@@ -48,6 +54,29 @@ public final class MusicTransferServer {
         this.iconPng = iconPng;
         this.language = language == null ? "zh" : language;
         this.listener = listener;
+    }
+
+    /** Shared instance used by the background service and the transfer screen. */
+    public static synchronized MusicTransferServer shared(Context context, byte[] iconPng,
+                                                         String language, Listener listener) {
+        if (shared == null) {
+            shared = new MusicTransferServer(new Prefs(context).getMusicFolderPath(),
+                    iconPng, language, listener);
+        }
+        shared.context = context.getApplicationContext();
+        return shared;
+    }
+
+    public static synchronized MusicTransferServer sharedOrNull() {
+        return shared;
+    }
+
+    public String getMusicFolderPath() {
+        if (context != null) {
+            String current = new Prefs(context).getMusicFolderPath();
+            if (current != null && !current.isEmpty()) return current;
+        }
+        return musicFolderPath;
     }
 
     /** Starts listening; returns the actual port (0 on failure). */
@@ -70,6 +99,10 @@ public final class MusicTransferServer {
         running.set(true);
         executor = Executors.newCachedThreadPool();
         executor.execute(this::acceptLoop);
+        if (context != null) {
+            discovery = new DeviceDiscovery(context, this);
+            discovery.start();
+        }
         Log.i(TAG, "transfer server listening on " + port);
         return port;
     }
@@ -86,6 +119,10 @@ public final class MusicTransferServer {
         if (executor != null) {
             executor.shutdownNow();
             executor = null;
+        }
+        if (discovery != null) {
+            discovery.stop();
+            discovery = null;
         }
     }
 
@@ -131,7 +168,9 @@ public final class MusicTransferServer {
 
             OutputStream out = socket.getOutputStream();
             if ("GET".equals(method)) {
-                if ("/icon.png".equals(path)) {
+                if (ControlApi.handle(context, method, path, null, out)) {
+                    // handled by the JSON API
+                } else if ("/icon.png".equals(path)) {
                     serveIcon(out);
                 } else {
                     servePage(out);
@@ -141,6 +180,14 @@ public final class MusicTransferServer {
                         ? readBody(reader, (int) contentLength)
                         : new byte[0];
                 handleUpload(fileName, body, out);
+            } else if ("POST".equals(method) && path != null && path.startsWith("/api/")) {
+                byte[] body = contentLength > 0
+                        ? readBody(reader, (int) contentLength)
+                        : new byte[0];
+                if (!ControlApi.handle(context, method, path, body, out)) {
+                    sendResponse(out, 404, "text/plain",
+                            "Not found".getBytes(StandardCharsets.UTF_8));
+                }
             } else {
                 sendResponse(out, 404, "text/plain", "Not found".getBytes(StandardCharsets.UTF_8));
             }
@@ -173,9 +220,10 @@ public final class MusicTransferServer {
                             "未対応のファイル形式", "지원하지 않는 파일 형식"));
             return;
         }
-        File dir = musicFolderPath == null || musicFolderPath.isEmpty()
+        String folder = getMusicFolderPath();
+        File dir = folder == null || folder.isEmpty()
                 ? new File(android.os.Environment.getExternalStorageDirectory(), "Music")
-                : new File(musicFolderPath);
+                : new File(folder);
         if (!dir.exists() && !dir.mkdirs()) {
             String msg = t(language, "无法创建音乐目录", "Cannot create the music folder",
                     "音楽フォルダを作成できません", "음악 폴더를 만들 수 없습니다");

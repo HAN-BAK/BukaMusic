@@ -71,7 +71,9 @@ public class SonnetStageView extends View {
     private boolean canvasPostEffects = true;
     private boolean glMode;
     private int frameIntervalMs = 16;
-    private Scene noLyricsScene;
+   private Scene noLyricsScene;
+    /** Wording the cached "no lyrics" scene was built with. */
+    private String noLyricsText;
     private long noLyricsStartMs = SystemClock.uptimeMillis();
 
     private final Map<Integer, Scene> sceneCache = new HashMap<>();
@@ -1788,9 +1790,12 @@ public class SonnetStageView extends View {
      * a virtual shot of one segment per character, entering one after another
      * and drifting with a gentle camera sway.
      */
-    private Scene ensureNoLyricsScene() {
-        if (noLyricsScene != null) return noLyricsScene;
+   private Scene ensureNoLyricsScene() {
         String text = getResources().getString(R.string.lyrics_not_found);
+        // The scene is cached, but the wording follows the app language: rebuild
+        // it when that changed since it was built.
+        if (noLyricsScene != null && text.equals(noLyricsText)) return noLyricsScene;
+        noLyricsText = text;
         Scene scene = new Scene();
         scene.shot = new SonnetDirector.Shot(-1, SonnetDirector.Kind.QUIET_TABLEAU,
                 0L, 600_000L, new ArrayList<SonnetDirector.Segment>(),

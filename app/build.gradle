@@ -10,8 +10,8 @@ android {
         applicationId "com.airmusic.player"
         minSdk 23
         targetSdk 34
-    versionCode 61
-    versionName "2.61"
+    versionCode 70
+    versionName "2.70"
     }
 
     signingConfigs {

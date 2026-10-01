@@ -163,6 +163,11 @@
     <string name="lyrics_empty">No lyrics yet\nPut a .lrc file with the same name next to the song, or add embedded lyrics.</string>
     <string name="lyrics_not_found">No lyrics found</string>
     <string name="pref_online_lyrics">Fetch lyrics and song info online</string>
+    <string name="group_title">Library grouping</string>
+    <string name="group_default">Default order</string>
+    <string name="group_by_album">By album</string>
+    <string name="group_by_artist">By artist</string>
+    <string name="group_track_count">%1$d songs</string>
     <string name="pref_online_lyrics_hint">Used when local lyrics have no word timing, or tags / cover art are missing (sources: NetEase / LRCLIB; display only, the music file is never changed)</string>
     <string name="onboarding_skip">Skip</string>
     <string name="about_show_tour">View the feature tour</string>
@@ -184,4 +189,5 @@
     <string name="ob_apps_body">Launch apps installed on this device from here.</string>
     <string name="ob_settings_title">Settings</string>
     <string name="ob_settings_body">AirPlay name, equalizer, channel balance, background blur, language and browser uploads.</string>
+    <string name="album_art">Album art</string>
 </resources>

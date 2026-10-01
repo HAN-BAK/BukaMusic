@@ -61,7 +61,10 @@ public class TransferActivity extends BaseActivity {
         txtFormats.setText(getString(R.string.transfer_supported, AudioExt.supportedList()));
 
         String folder = new Prefs(this).getMusicFolderPath();
-        server = new MusicTransferServer(folder, readIcon(), new Prefs(this).getLanguage(), (name, success, message) ->
+        // The background service already runs the shared server (web page +
+        // control API + discovery); reuse it so the address stays stable.
+        server = MusicTransferServer.shared(this, readIcon(), new Prefs(this).getLanguage(),
+                (name, success, message) ->
                 runOnUiThread(() -> {
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                     if (success) {
@@ -112,10 +115,8 @@ public class TransferActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (server != null) {
-            server.stop();
-            server = null;
-        }
+        // The shared server belongs to the background service; leave it running.
+        server = null;
         handler.removeCallbacks(refreshLibrary);
         super.onDestroy();
     }

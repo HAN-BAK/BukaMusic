@@ -40,6 +40,7 @@ public final class Prefs {
 
     private static final String KEY_LAST_TRACK_URI = "last_track_uri";
     private static final String KEY_LAST_TRACK_POSITION = "last_track_position";
+    private static final String KEY_LIBRARY_GROUP = "library_group";
 
     private final Context context;
     private final SharedPreferences sp;
@@ -119,6 +120,15 @@ public final class Prefs {
 
     public void setPlayMode(String mode) {
         sp.edit().putString(KEY_PLAY_MODE, mode).apply();
+    }
+
+    /** Library presentation remembered from last time (NONE / ALBUM / ARTIST). */
+    public String getLibraryGroup() {
+        return sp.getString(KEY_LIBRARY_GROUP, "NONE");
+    }
+
+    public void setLibraryGroup(String mode) {
+        sp.edit().putString(KEY_LIBRARY_GROUP, mode == null ? "NONE" : mode).apply();
     }
 
     public boolean isAutoPlayOnStart() {

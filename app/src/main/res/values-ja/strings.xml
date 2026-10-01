@@ -163,6 +163,11 @@
     <string name="lyrics_empty">歌詞がありません\n同じ名前の .lrc ファイルを曲と同じフォルダに置くか、楽曲に歌詞を埋め込んでください。</string>
     <string name="lyrics_not_found">歌詞が見つかりません</string>
     <string name="pref_online_lyrics">歌詞と曲情報をオンラインで自動取得</string>
+    <string name="group_title">ライブラリの分類</string>
+    <string name="group_default">既定の順序</string>
+    <string name="group_by_album">アルバム別</string>
+    <string name="group_by_artist">アーティスト別</string>
+    <string name="group_track_count">%1$d 曲</string>
     <string name="pref_online_lyrics_hint">ローカル歌詞に単語タイミングが無い場合や、タグ・ジャケットが無い場合に補完します（提供元：NetEase・LRCLIB／表示のみで楽曲ファイルは変更しません）</string>
     <string name="onboarding_skip">スキップ</string>
     <string name="about_show_tour">機能ガイドを見る</string>
@@ -184,4 +189,5 @@
     <string name="ob_apps_body">ここから本機にインストールされたアプリを起動できます。</string>
     <string name="ob_settings_title">設定</string>
     <string name="ob_settings_body">AirPlay 名、イコライザー、左右バランス、背景ぼかし、言語、ブラウザからの曲転送。</string>
+    <string name="album_art">アルバムアート</string>
 </resources>

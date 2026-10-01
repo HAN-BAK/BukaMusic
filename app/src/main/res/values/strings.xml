@@ -163,6 +163,11 @@
     <string name="lyrics_empty">暂无歌词\n请将同名 .lrc 文件放到歌曲文件夹，或为音乐写入内嵌歌词</string>
     <string name="lyrics_not_found">暂未找到歌词</string>
     <string name="pref_online_lyrics">自动在线获取歌词与歌曲信息</string>
+    <string name="group_title">曲库分类</string>
+    <string name="group_default">默认顺序</string>
+    <string name="group_by_album">按专辑</string>
+    <string name="group_by_artist">按歌手</string>
+    <string name="group_track_count">%1$d 首</string>
     <string name="pref_online_lyrics_hint">本地歌词没有词级时间戳、或歌曲缺少标签/封面时自动补全（来源：网易云音乐 / LRCLIB，仅用于显示，不改动歌曲文件）</string>
     <string name="onboarding_skip">跳过</string>
     <string name="about_show_tour">查看功能引导</string>
@@ -184,4 +189,5 @@
     <string name="ob_apps_body">在这里打开设备上安装的其他应用。</string>
     <string name="ob_settings_title">设置</string>
     <string name="ob_settings_body">改 AirPlay 名称、均衡器、声道平衡、背景模糊、语言，以及用浏览器上传歌曲。</string>
+    <string name="album_art">专辑封面</string>
 </resources>

@@ -36,3 +36,14 @@ libavutil/
 doc/
 c11test.obj
 nul
+# 桌面控制台是独立仓库，不放在这里
+/desktop/
+# 调试时留下的截图与界面转储
+/bad*.png
+/shot_*.png
+/probe.png
+/cur1.png
+/lock1.png
+/codex_shot*.png
+/ui.xml
+/ui2.xml

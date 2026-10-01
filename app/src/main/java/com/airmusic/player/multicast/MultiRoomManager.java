@@ -147,6 +147,15 @@ public class MultiRoomManager {
         discovery.rescan();
     }
 
+    /**
+     * Watchdog used by the playback service: keeps mDNS discovery alive when the
+     * box boots before its network (or after the AirPlay stack was rebuilt).
+     */
+    public void ensureDiscovery() {
+        if (!started) return;
+        discovery.ensureRegistered();
+    }
+
     public String getDeviceName() {
         return lastDeviceName;
     }
@@ -159,6 +168,43 @@ public class MultiRoomManager {
 
     public boolean hasTargets() {
         return !targets.isEmpty();
+    }
+
+    /** Devices currently receiving the stream (names as advertised). */
+    public List<String> getTargetNames() {
+        List<String> names = new ArrayList<>();
+        for (MultiRoomClient client : targets) {
+            String name = client.getName();
+            if (name != null && !name.isEmpty() && !names.contains(name)) names.add(name);
+        }
+        return names;
+    }
+
+    /** Devices found by mDNS on this LAN (may include devices not selected). */
+    public List<MultiRoomDiscovery.DeviceInfo> getDiscoveredDevices() {
+        return discovery.getDevices();
+    }
+
+    /**
+     * Selects receivers by advertised name - the same operation the in-app
+     * device dialog performs. Names that are unknown or offline are ignored,
+     * an empty list disconnects every receiver.
+     */
+    public void selectTargetsByNames(List<String> names) {
+        List<MultiRoomDiscovery.DeviceInfo> selected = new ArrayList<>();
+        List<MultiRoomDiscovery.DeviceInfo> available = discovery.getDevices();
+        if (names != null) {
+            for (String wanted : names) {
+                if (wanted == null) continue;
+                for (MultiRoomDiscovery.DeviceInfo device : available) {
+                    if (device.name != null && device.name.equalsIgnoreCase(wanted.trim())) {
+                        selected.add(device);
+                        break;
+                    }
+                }
+            }
+        }
+        updateTargets(selected);
     }
 
     public int targetCount() {

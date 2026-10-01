@@ -125,6 +125,10 @@ public class PlaybackService extends Service {
     private UsbMediaReceiver usbMediaReceiver;
 
     private List<Track> tracks = new java.util.ArrayList<>();
+    /** The full scanned library; {@link #tracks} may be a smaller album queue. */
+    private List<Track> libraryTracks = new java.util.ArrayList<>();
+    /** True when the playlist is one album / artist instead of the library. */
+    private boolean groupPlaylist;
     private PlayerUiState state = new PlayerUiState();
 
     // Source-switching state machine
@@ -215,6 +219,21 @@ public class PlaybackService extends Service {
     private long lastTrackSaveTime;
     private long lastTickerWall;
     private long lastTickerPos = -1;
+
+    /** How often the multi-room mDNS watchdog checks that discovery is alive. */
+    private static final long MULTIROOM_DISCOVERY_CHECK_MS = 15_000L;
+
+    private final Runnable multiRoomDiscoveryWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                if (multiRoomManager != null) multiRoomManager.ensureDiscovery();
+            } catch (Throwable t) {
+                Log.w(TAG, "multi-room discovery watchdog failed", t);
+            }
+            main.postDelayed(this, MULTIROOM_DISCOVERY_CHECK_MS);
+        }
+    };
 
     /**
      * Keeps the app in sync with phone-side play/pause:
@@ -1080,6 +1099,16 @@ public class PlaybackService extends Service {
 
         multiRoomManager = new MultiRoomManager();
         multiRoomManager.start(prefs.getAirPlayName(), multiRoomEvents);
+        // The box usually boots before its network is ready, so the mDNS
+        // registration above can fail; this watcher keeps retrying until the
+        // multi-room service is actually announced (otherwise the desktop sees
+        // an empty device list until someone opens the dialog on the box).
+        main.postDelayed(multiRoomDiscoveryWatchdog, MULTIROOM_DISCOVERY_CHECK_MS);
+
+        // HTTP control API + web upload page + UDP discovery stay available
+        // while the service lives, so the desktop companion can connect at any
+        // time (not only while the transfer screen is open).
+        startControlServer();
 
         localPlayer = new LocalPlayer(this, localListener, new AudioProcessor[]{eqProcessor});
         // Skip the 1000 ms local song-switch fade while multi-room is active:
@@ -1201,12 +1230,101 @@ public class PlaybackService extends Service {
         return tracks;
     }
 
+    /**
+     * The whole scanned library. The library screen must use this instead of
+     * {@link #getTracks()}: while one album / artist is playing the playlist is
+     * only that group, but the browser still has to show every song.
+     */
+    public List<Track> getLibraryTracks() {
+        return libraryTracks.isEmpty() ? tracks : libraryTracks;
+    }
+
     /** The local track currently being played, or null outside local mode. */
     public Track getCurrentTrack() {
         if (state.source == PlayerUiState.Source.LOCAL && localPlayer != null) {
             return localPlayer.getCurrentTrack();
         }
         return null;
+    }
+
+    /** Port of the embedded control server (0 when it is not running). */
+    public int getControlServerPort() {
+        com.airmusic.player.transfer.MusicTransferServer server =
+                com.airmusic.player.transfer.MusicTransferServer.sharedOrNull();
+        return server == null ? 0 : server.getPort();
+    }
+
+    // ------------------------------------------------------------------
+    // Multi-room helpers for the desktop control API
+    // ------------------------------------------------------------------
+
+    public boolean hasMultiRoomTargets() {
+        return multiRoomManager != null && multiRoomManager.hasTargets();
+    }
+
+    public java.util.List<String> getMultiRoomTargetNames() {
+        return multiRoomManager == null ? new java.util.ArrayList<>()
+                : multiRoomManager.getTargetNames();
+    }
+
+    public java.util.List<com.airmusic.player.multicast.MultiRoomDiscovery.DeviceInfo>
+            getMultiRoomDevices() {
+        return multiRoomManager == null
+                ? new java.util.ArrayList<>()
+                : multiRoomManager.getDiscoveredDevices();
+    }
+
+    /** Control-API entry point: re-register mDNS discovery when it looks stale. */
+    public void ensureMultiRoomDiscovery() {
+        if (multiRoomManager == null) return;
+        main.post(() -> {
+            if (multiRoomManager != null) multiRoomManager.ensureDiscovery();
+        });
+    }
+
+    /** Selects the multi-room receivers by advertised device name. */
+    public void selectMultiRoomTargets(java.util.List<String> names) {
+        if (multiRoomManager == null) return;
+        if (names == null || names.isEmpty()) {
+            multiRoomManager.clearTargets();
+        } else {
+            multiRoomManager.selectTargetsByNames(names);
+        }
+        syncMultiRoomStreamer();
+    }
+
+    /**
+     * Brings up the embedded HTTP server: the browser upload page, the JSON
+     * control API used by the desktop companion and the UDP discovery reply.
+     */
+    private void startControlServer() {
+        try {
+            byte[] icon = null;
+            try {
+                android.graphics.drawable.Drawable drawable =
+                        androidx.core.content.ContextCompat.getDrawable(this, R.mipmap.ic_launcher);
+                if (drawable != null) {
+                    Bitmap bitmap = Bitmap.createBitmap(
+                            Math.max(1, drawable.getIntrinsicWidth()),
+                            Math.max(1, drawable.getIntrinsicHeight()),
+                            Bitmap.Config.ARGB_8888);
+                    android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+                    drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                    drawable.draw(canvas);
+                    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer);
+                    icon = buffer.toByteArray();
+                }
+            } catch (Throwable ignored) {
+            }
+            com.airmusic.player.transfer.MusicTransferServer server =
+                    com.airmusic.player.transfer.MusicTransferServer.shared(
+                            this, icon, prefs.getLanguage(), null);
+            int port = server.start();
+            Log.i(TAG, "control server on port " + port);
+        } catch (Throwable t) {
+            Log.w(TAG, "control server failed", t);
+        }
     }
 
     /** True while the library should highlight a local/multi-room track. */
@@ -1230,11 +1348,48 @@ public class PlaybackService extends Service {
         return unknownConst.equals(value) ? getString(fallbackRes) : value;
     }
 
-    /** Replaces the service playlist (used after a library rescan). */
-    public void setTracks(List<Track> tracks) {
-        this.tracks = tracks == null
+    /**
+     * Replaces the scanned library (after a rescan or a folder change). The
+     * playlist follows the library unless one album / artist is currently
+     * playing, in which case only files that disappeared are dropped so the
+     * album queue keeps its order.
+     */
+    public void setTracks(List<Track> refreshed) {
+        libraryTracks = refreshed == null
                 ? new java.util.ArrayList<>()
-                : new java.util.ArrayList<>(tracks);
+                : new java.util.ArrayList<>(refreshed);
+        if (!groupPlaylist) {
+            tracks = new java.util.ArrayList<>(libraryTracks);
+            return;
+        }
+        java.util.Set<android.net.Uri> available = new java.util.HashSet<>();
+        for (Track track : libraryTracks) {
+            if (track != null) available.add(track.uri);
+        }
+        List<Track> kept = new java.util.ArrayList<>();
+        for (Track track : tracks) {
+            if (track != null && available.contains(track.uri)) kept.add(track);
+        }
+        if (kept.isEmpty()) {
+            tracks = new java.util.ArrayList<>(libraryTracks);
+            groupPlaylist = false;
+        } else {
+            tracks = kept;
+        }
+    }
+
+    /**
+     * Plays one track inside its album / artist: the playlist becomes that
+     * group, so 上一首 / 下一首 and every play mode (顺序、顺序循环、随机循环、
+     * 单曲循环) stay inside the album instead of jumping into the whole
+     * library.
+     */
+    public void playTrackInGroup(Track track, List<Track> group) {
+        if (group != null && !group.isEmpty()) {
+            tracks = new java.util.ArrayList<>(group);
+            groupPlaylist = true;
+        }
+        playTrack(track);
     }
 
     /**
@@ -1265,6 +1420,7 @@ public class PlaybackService extends Service {
         int index = tracks.indexOf(track);
         if (index < 0) {
             tracks = new java.util.ArrayList<>(MusicLibrary.getInstance().getCachedTracks());
+            groupPlaylist = false;
             index = tracks.indexOf(track);
         }
         if (index < 0 && track != null) {

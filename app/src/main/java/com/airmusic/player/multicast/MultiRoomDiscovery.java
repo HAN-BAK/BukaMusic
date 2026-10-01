@@ -2,6 +2,7 @@ package com.airmusic.player.multicast;
 
 import android.util.Log;
 
+import com.airmusic.player.util.DiagnosticLog;
 import nz.co.iswe.android.airplay.AirPlayServer;
 
 import java.io.IOException;
@@ -42,13 +43,17 @@ public class MultiRoomDiscovery {
     }
 
     private static final String TAG = "MultiRoomDiscovery";
-    private static final java.util.concurrent.atomic.AtomicBoolean REGISTERED_ONCE =
-            new java.util.concurrent.atomic.AtomicBoolean(false);
 
     private final Map<String, DeviceInfo> devices = new ConcurrentHashMap<>();
     private final List<Listener> listeners = new ArrayList<>();
+    /** JmDNS instances this discovery is already listening on. */
+    private final java.util.Set<JmDNS> attached =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private volatile JmDNS jmdns;
-    private volatile boolean registrationAttempted;
+    /** Name we announced; empty until the registration actually succeeded. */
+    private volatile String registeredName = "";
+    private volatile String lastRequestedName = "";
+    private volatile boolean registering;
     private volatile List<InetAddress> localAddresses;
 
     private boolean isLocalAddress(String host) {
@@ -90,46 +95,98 @@ public class MultiRoomDiscovery {
         }
     }
 
-    /** Registers this device's multi-room service (async). */
+    /**
+     * Registers this device's multi-room service (async).
+     *
+     * <p>Deliberately repeatable: a TV box usually boots before its network is
+     * up, so the first attempts can fail because no JmDNS instance exists yet.
+     * The old code gave up after ten seconds and never tried again, which is why
+     * the desktop only saw multi-room devices after someone opened the device
+     * dialog on the box (that triggered a fresh scan).
+     */
     public void register(final String deviceName) {
-        if (!REGISTERED_ONCE.compareAndSet(false, true)) {
-            Log.i(TAG, "already registered once this process; skipping");
-            return;
-        }
+        lastRequestedName = deviceName == null ? "" : deviceName;
+        if (registering || isHealthy()) return;
+        registering = true;
         Thread t = new Thread(() -> {
-            // The AirPlay server owns the JmDNS instances (one per interface);
-            // register on them so the service is announced on every usable
-            // interface without port-5353 conflicts. The instances appear a
-            // moment after the AirPlay engine starts, so retry briefly.
-            registrationAttempted = true;
-            for (int attempt = 0; attempt < 20; attempt++) {
-                try {
-                    int n = AirPlayServer.getIstance().registerAuxiliaryService(
-                            MultiRoomProtocol.SERVICE_TYPE, deviceName, MultiRoomProtocol.PORT,
-                            java.util.Collections.singletonMap("name", deviceName));
-                    Log.i(TAG, "register attempt " + attempt + " -> " + n + " interface(s)");
-                    if (n > 0) {
-                        Log.i(TAG, "registered multi-room service '" + deviceName + "' on " + n + " interface(s)");
-                        JmDNS j = AirPlayServer.getIstance().getPrimaryJmDNS();
-                        if (j != null && jmdns == null) {
-                            jmdns = j;
-                            j.addServiceListener(MultiRoomProtocol.SERVICE_TYPE, serviceListener);
+            try {
+                // The AirPlay server owns the JmDNS instances (one per interface);
+                // register on them so the service is announced on every usable
+                // interface without port-5353 conflicts. The instances appear a
+                // moment after the AirPlay engine starts, so retry briefly.
+                for (int attempt = 0; attempt < 20; attempt++) {
+                    try {
+                        int n = AirPlayServer.getIstance().registerAuxiliaryService(
+                                MultiRoomProtocol.SERVICE_TYPE, lastRequestedName,
+                                MultiRoomProtocol.PORT,
+                                java.util.Collections.singletonMap("name", lastRequestedName));
+                        Log.i(TAG, "register attempt " + attempt + " -> " + n + " interface(s)");
+                        if (n > 0) {
+                            attachListeners();
+                            registeredName = lastRequestedName;
+                            Log.i(TAG, "registered multi-room service '" + lastRequestedName
+                                    + "' on " + n + " interface(s)");
+                            return;
                         }
+                    } catch (Throwable e) {
+                        Log.w(TAG, "registration failed", e);
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ignored) {
                         return;
                     }
-                } catch (Throwable e) {
-                    Log.w(TAG, "registration failed", e);
                 }
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ignored) {
-                    return;
-                }
+                Log.w(TAG, "multi-room registration: no JmDNS available yet (watcher will retry)");
+            } finally {
+                registering = false;
             }
-            Log.w(TAG, "multi-room registration: no JmDNS available yet");
         }, "mr-register");
         t.setDaemon(true);
         t.start();
+    }
+
+    /** Hooks the service listener onto every live JmDNS instance (once each). */
+    private void attachListeners() {
+        try {
+            for (JmDNS j : AirPlayServer.getIstance().getJmDNSInstances()) {
+                if (j == null || attached.contains(j)) continue;
+                j.addServiceListener(MultiRoomProtocol.SERVICE_TYPE, serviceListener);
+                attached.add(j);
+                jmdns = j;
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** True when our service is announced and the listener is on a live JmDNS. */
+    public boolean isHealthy() {
+        if (registeredName.isEmpty()) return false;
+        JmDNS j = jmdns;
+        if (j == null) return false;
+        try {
+            return AirPlayServer.getIstance().getJmDNSInstances().contains(j);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Watchdog entry point: brings discovery back up when the network appeared
+     * after the app started, or when the AirPlay mDNS stack was rebuilt (the
+     * service restarts it after a late network on boot).
+     */
+    public void ensureRegistered() {
+        if (isHealthy()) return;
+        Log.i(TAG, "multi-room discovery is stale (name='" + lastRequestedName
+                + "') - re-registering");
+        DiagnosticLog.i(TAG, "multi-room discovery stale - re-registering");
+        // The instance we knew about is gone (or never existed): start over.
+        jmdns = null;
+        registeredName = "";
+        attached.clear();
+        register(lastRequestedName);
+        rescan();
     }
 
     private final ServiceListener serviceListener = new ServiceListener() {
@@ -223,6 +280,13 @@ public class MultiRoomDiscovery {
     public void rescan() {
         Thread t = new Thread(() -> {
             try {
+                // Make sure we are listening on whatever mDNS stack is alive now:
+                // this is what makes the list appear when the network came up
+                // late (or after the AirPlay service was restarted).
+                attachListeners();
+                if (jmdns != null && registeredName.isEmpty()) {
+                    registeredName = lastRequestedName;
+                }
                 devices.clear();
                 List<JmDNS> instances = AirPlayServer.getIstance().getJmDNSInstances();
                 for (JmDNS j : instances) {
@@ -251,5 +315,7 @@ public class MultiRoomDiscovery {
 
     public void stop() {
         jmdns = null;
+        registeredName = "";
+        attached.clear();
     }
 }
