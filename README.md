@@ -16,7 +16,7 @@
 ## 下载
 
 最新正式版见 [Releases](https://github.com/HAN-BAK/BukaMusic/releases)：
-`BukaMusic-v2.60-release.apk`（Android 6.0 及以上，直接覆盖安装即可）。
+`BukaMusic-v2.70-release.apk`（Android 6.0 及以上，直接覆盖安装即可）。
 
 ## 功能
 
