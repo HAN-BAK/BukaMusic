@@ -10,8 +10,22 @@
 同一播放界面同时承接 **本地音乐（含 USB 设备）**、**AirPlay 投送** 与 **多房间同步** 三种播放任务。
 应用还可以被设置为设备默认“桌面”，开机直接进入播放界面。
 
-> 配套的 **Windows 桌面控制台**（在电脑上发现并控制这些设备：播放、曲库、均衡器、多房间同步、歌词画面）
-> 已经独立成一个仓库：[HAN-BAK/BukaMusicDesktop](https://github.com/HAN-BAK/BukaMusicDesktop)。
+> 配套的 **Windows 桌面控制台** 已经独立成一个仓库：
+> [HAN-BAK/BukaMusicDesktop](https://github.com/HAN-BAK/BukaMusicDesktop)（提供 MSI 安装包）。
+> 在电脑上自动发现局域网内的设备，可控制播放、浏览曲库（按专辑 / 歌手）、上传与批量删除文件、
+> 调节均衡器（含预设的保存 / 导入 / 导出）、管理多房间同步、预览歌词画面；还可以
+> **直接在电脑上播放设备里的歌曲**，以及**远程切换设备的歌词界面与播放界面**。
+
+### 局域网接口
+
+控制台通过下面这些接口工作（均为 HTTP，端口默认 8080，另用 UDP 47101 做设备发现）：
+
+`GET /api/info`、`GET /api/state`（含 `screen` 字段表示设备当前显示歌词页还是播放页）、
+`GET/POST /api/settings`、`GET /api/library`、`POST /api/control`
+（播放控制、切歌、进度、音量、播放方式、重新扫描、播放指定歌曲、均衡器预设、
+`openLyrics` / `openMain` 切换设备界面）、`POST /api/delete`、`GET /api/cover`、
+`GET /api/file`（支持 Range 的歌曲文件流，供电脑端播放）、`GET/POST /api/multicast`、
+`GET /api/lyrics`、`POST /upload`。
 
 ## 下载
 
