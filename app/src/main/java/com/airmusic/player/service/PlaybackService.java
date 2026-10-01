@@ -157,6 +157,8 @@ public class PlaybackService extends Service {
     private Runnable multiRoomFadeRunnable;
     /** Track key of the lyrics already pushed to the receivers. */
     private String multiRoomLyricsKey = "";
+    /** Signature of the last payload pushed, so a changed version is re-sent. */
+    private volatile String multiRoomLyricsSignature = "";
     /** Lyrics pushed by the multi-room master (receiver side). */
     private volatile RemoteLyrics remoteLyrics = RemoteLyrics.EMPTY;
 
@@ -181,7 +183,16 @@ public class PlaybackService extends Service {
 
     /** Lyrics for the multi-room stream currently playing, if any. */
     public RemoteLyrics getRemoteLyrics() {
-        return remoteLyrics;
+        RemoteLyrics current = remoteLyrics;
+        if (current == null || current.version == 0) return RemoteLyrics.EMPTY;
+        // A pushed packet carries the seed of the song it belongs to. If the
+        // master already moved on (its metadata changed) the old lyrics must not
+        // be shown any more - that used to keep the previous song's lyrics on
+        // screen until the next packet arrived.
+        String expected = com.airmusic.player.lyrics.LyricWire.seedFor(
+                state.title, state.artist, state.album);
+        if (!expected.equals(current.seed)) return RemoteLyrics.EMPTY;
+        return current;
     }
 
     private final Runnable ticker = new Runnable() {
@@ -423,6 +434,8 @@ public class PlaybackService extends Service {
         final String key = uri + "#" + duration;
         if (key.equals(multiRoomLyricsKey)) return;
         multiRoomLyricsKey = key;
+        // A new song: send the first version that comes back, whatever it is.
+        multiRoomLyricsSignature = "";
 
         // Same seed / hints the master's own lyric screen uses, so both
         // devices build an identical shot plan.
@@ -431,9 +444,16 @@ public class PlaybackService extends Service {
         metadataExecutor.execute(() -> {
             Lyrics lyrics = LyricRepository.load(this, track, duration);
             if (!key.equals(multiRoomLyricsKey)) return; // track moved on
+            String payload = LyricWire.encode(seed, hints, lyrics);
+            // The library may answer with a local .lrc first and replace it with
+            // the online lyrics a moment later; without this check the receivers
+            // kept the first (often shorter) version for the whole song.
+            String signature = payload.length() + ":" + payload.hashCode();
+            if (signature.equals(multiRoomLyricsSignature)) return;
+            multiRoomLyricsSignature = signature;
             MultiRoomManager manager = multiRoomManager;
             if (manager != null && manager.hasTargets()) {
-                manager.sendLyrics(LyricWire.encode(seed, hints, lyrics));
+                manager.sendLyrics(payload);
             }
         });
     }
@@ -793,18 +813,15 @@ public class PlaybackService extends Service {
                 notifyControlAck();
                 enterMultiRoomRemoteMode();
                 state.source = PlayerUiState.Source.REMOTE;
-                if (title != null && title.length() > 0) {
-                    state.title = title;
-                    multiRoomMetaTitle = title;
-                }
-                if (artist != null && artist.length() > 0) {
-                    state.artist = artist;
-                    multiRoomMetaArtist = artist;
-                }
-                if (album != null && album.length() > 0) {
-                    state.album = album;
-                    multiRoomMetaAlbum = album;
-                }
+                // Follow the master exactly, including empty tags: the pushed
+                // lyric packet is matched against this metadata, and leftovers
+                // from the previous song made it look out of date.
+                state.title = title == null ? "" : title;
+                multiRoomMetaTitle = state.title;
+                state.artist = artist == null ? "" : artist;
+                multiRoomMetaArtist = state.artist;
+                state.album = album == null ? "" : album;
+                multiRoomMetaAlbum = state.album;
                 if (durationMs > 0) {
                     state.durationMs = (int) durationMs;
                     multiRoomMetaDurationMs = durationMs;
