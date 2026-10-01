@@ -180,6 +180,9 @@ public final class ControlApi {
                     ? "SEQUENCE" : state.mode.key);
             json.put("statusText", state == null ? "" : nullToEmpty(state.statusText));
             json.put("clientName", state == null ? "" : nullToEmpty(state.clientName));
+            // Which screen the device is showing ("lyrics" / "main"), so the
+            // desktop console can offer the matching button.
+            json.put("screen", com.airmusic.player.LyricsActivity.visible ? "lyrics" : "main");
             json.put("hasCover", state != null && state.art != null);
             AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             if (audio != null) {
@@ -671,6 +674,22 @@ public final class ControlApi {
                     // Receiver side: fade the multi-room audio out, then ask the
                     // master to drop this device (same as the in-app button).
                     if (service != null) runOnMain(service::disconnectFromMaster);
+                    break;
+                case "openLyrics":
+                case "openMain":
+                    // Switch the device between the lyric screen and the main
+                    // playback screen (the desktop console's button).
+                    if (context != null) {
+                        final boolean lyrics = "openLyrics".equals(action);
+                        runOnMain(() -> {
+                            android.content.Intent intent = new android.content.Intent(context,
+                                    lyrics ? com.airmusic.player.LyricsActivity.class
+                                           : com.airmusic.player.MainActivity.class);
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                    | android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                            context.startActivity(intent);
+                        });
+                    }
                     break;
                 case "playTrack":
                     // Play one song of the library (used by the desktop library

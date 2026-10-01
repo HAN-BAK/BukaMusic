@@ -38,6 +38,9 @@ import com.airmusic.player.util.StateBus;
  */
 public class LyricsActivity extends BaseActivity {
 
+    /** True while the lyric screen is in front; the desktop console uses it. */
+    public static volatile boolean visible;
+
     private LyricsGlView lyricsView;
 
     /** The lyric stage draws its own letterbox area, so it fills the window. */
@@ -119,11 +122,13 @@ public class LyricsActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        visible = true;
         showHeader();
     }
 
     @Override
     protected void onPause() {
+        visible = false;
         uiHandler.removeCallbacks(hideHeaderRunnable);
         super.onPause();
     }
