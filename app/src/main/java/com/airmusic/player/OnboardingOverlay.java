@@ -273,8 +273,9 @@ public class OnboardingOverlay extends FrameLayout {
         hole.set(left - holePadding, top - holePadding,
                 left + anchor.getWidth() + holePadding,
                 top + anchor.getHeight() + holePadding);
-        float radius = Math.max(12f * getResources().getDisplayMetrics().density,
-                Math.min(hole.width(), hole.height()) * 0.22f);
+        // 高亮统一用圆角矩形（原来按 22% 比例算，小方块看着就成圆形了）
+        float density = getResources().getDisplayMetrics().density;
+        float radius = Math.min(14f * density, Math.min(hole.width(), hole.height()) / 2f);
         rounded.set(hole);
         scrimPath.reset();
         scrimPath.setFillType(Path.FillType.EVEN_ODD);
