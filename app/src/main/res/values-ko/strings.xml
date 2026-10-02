@@ -62,7 +62,7 @@
     <string name="language_en">English</string>
     <string name="language_ja">日本語</string>
     <string name="language_ko">한국어</string>
-    <string name="settings_section_system">시스템</string>
+    <string name="settings_section_system">저장소 및 기기</string>
     <string name="settings_section_about">정보</string>
     <string name="about_title">정보</string>
     <string name="about_version">버전 %1$s</string>

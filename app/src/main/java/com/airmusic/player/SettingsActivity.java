@@ -7,6 +7,8 @@ import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Switch;
@@ -130,11 +132,7 @@ public class SettingsActivity extends BaseActivity {
             }
         });
 
-        setupSection(findViewById(R.id.section_airplay), findViewById(R.id.airplay_content));
-        setupSection(findViewById(R.id.section_local), findViewById(R.id.local_content));
-        setupSection(findViewById(R.id.section_ui), findViewById(R.id.ui_content));
-        setupSection(findViewById(R.id.section_system), findViewById(R.id.system_content));
-        setupSection(findViewById(R.id.section_about), findViewById(R.id.about_content));
+        setupTabs();
         seekBalance.setProgress((int) ((prefs.getBalance() + 1f) * 100f));
         seekBalance.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -239,16 +237,95 @@ public class SettingsActivity extends BaseActivity {
         btnTransfer.setClickable(true);
     }
 
-    /** Makes a section header expand/collapse its content. */
-    private void setupSection(TextView title, View content) {
-        content.setVisibility(View.GONE);
-        title.setText("▸ " + title.getText());
-        title.setOnClickListener(v -> {
-            boolean visible = content.getVisibility() == View.VISIBLE;
-            content.setVisibility(visible ? View.GONE : View.VISIBLE);
-            String name = title.getText().toString().replaceFirst("^[▸▾] ", "");
-            title.setText((visible ? "▸ " : "▾ ") + name);
-        });
+    private static final int[] TAB_TITLES = {
+            R.string.settings_section_airplay,
+            R.string.settings_section_local,
+            R.string.settings_section_ui,
+            R.string.settings_section_system,
+            R.string.settings_section_about,
+    };
+    private static final int[] TAB_SECTIONS = {
+            R.id.section_airplay, R.id.section_local, R.id.section_ui,
+            R.id.section_system, R.id.section_about,
+    };
+    private static final int[] TAB_CONTENTS = {
+            R.id.airplay_content, R.id.local_content, R.id.ui_content,
+            R.id.system_content, R.id.about_content,
+    };
+
+    private final java.util.List<TextView> tabViews = new java.util.ArrayList<>();
+    private int currentTab;
+
+    /**
+     * 设置页改成选项卡：顶部常驻一排标签（不随内容滚动），点哪个显示哪一组；
+     * 原来的分组标题隐掉，内容本身不作改动。
+     */
+    private void setupTabs() {
+        View back = findViewById(R.id.btn_back);
+        if (back == null || !(back.getParent() instanceof View)) return;
+        View topBar = (View) back.getParent();
+        if (!(topBar.getParent() instanceof ViewGroup)) return;
+        ViewGroup page = (ViewGroup) topBar.getParent();
+
+        android.widget.HorizontalScrollView scroller = new android.widget.HorizontalScrollView(this);
+        scroller.setHorizontalScrollBarEnabled(false);
+        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        int pad = Math.round(14f * getResources().getDisplayMetrics().density);
+        bar.setPadding(pad, Math.round(6f * getResources().getDisplayMetrics().density),
+                pad, Math.round(2f * getResources().getDisplayMetrics().density));
+        scroller.addView(bar, new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        for (int i = 0; i < TAB_TITLES.length; i++) {
+            final int index = i;
+            TextView tab = new TextView(this);
+            tab.setText(TAB_TITLES[i]);
+            tab.setTextSize(14f);
+            tab.setGravity(android.view.Gravity.CENTER);
+            int hPad = Math.round(16f * getResources().getDisplayMetrics().density);
+            int vPad = Math.round(9f * getResources().getDisplayMetrics().density);
+            tab.setPadding(hPad, vPad, hPad, vPad);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (i > 0) params.setMarginStart(Math.round(8f * getResources().getDisplayMetrics().density));
+            tab.setLayoutParams(params);
+            tab.setOnClickListener(v -> selectTab(index));
+            com.airmusic.player.ui.PressFx.attach(tab);
+            bar.addView(tab);
+            tabViews.add(tab);
+        }
+        // 插在顶栏下面：滚动内容时标签栏不动
+        page.addView(scroller, Math.min(1, page.getChildCount()));
+        // 原来的分组标题不再需要
+        for (int id : TAB_SECTIONS) {
+            View header = findViewById(id);
+            if (header != null) header.setVisibility(View.GONE);
+        }
+        selectTab(0);
+        com.airmusic.player.ui.BukaTheme.tintButtons(this);
+    }
+
+    private void selectTab(int index) {
+        if (index < 0 || index >= TAB_CONTENTS.length) return;
+        currentTab = index;
+        for (int i = 0; i < TAB_CONTENTS.length; i++) {
+            View content = findViewById(TAB_CONTENTS[i]);
+            if (content != null) {
+                content.setVisibility(i == index ? View.VISIBLE : View.GONE);
+            }
+        }
+        for (int i = 0; i < tabViews.size(); i++) {
+            TextView tab = tabViews.get(i);
+            boolean selected = i == index;
+            tab.setTextColor(selected
+                    ? com.airmusic.player.ui.ColorTheme.accent()
+                    : getResources().getColor(R.color.text_secondary));
+            tab.setBackground(selected
+                    ? com.airmusic.player.ui.ColorTheme.capsule(this)
+                    : null);
+        }
     }
 
     private void refreshAirPlayStatus() {

@@ -62,7 +62,7 @@
     <string name="language_en">English</string>
     <string name="language_ja">日本語</string>
     <string name="language_ko">한국어</string>
-    <string name="settings_section_system">System</string>
+    <string name="settings_section_system">Storage &amp; device</string>
     <string name="settings_section_about">About</string>
     <string name="about_title">About</string>
     <string name="about_version">Version %1$s</string>

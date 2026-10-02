@@ -404,6 +404,15 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <!-- 重新扫描原本孤零零放在最下面，现在归到「存储与设备」里 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_rescan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rescan"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -502,13 +511,6 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_rescan"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/rescan"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

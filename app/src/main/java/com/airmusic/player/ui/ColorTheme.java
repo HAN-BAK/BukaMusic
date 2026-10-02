@@ -20,12 +20,18 @@ import java.util.List;
  */
 public final class ColorTheme {
 
-    /** 默认强调色（没有封面时用，也是应用原来的天蓝）。 */
-    private static final int DEFAULT_ACCENT = 0xFF4FC3F7;
+    /** 默认强调色（没有封面时用）：偏白的浅蓝。 */
+    private static final int DEFAULT_ACCENT = 0xFFCFE2F5;
 
-    private static final float MAX_SATURATION = 0.42f;
-    private static final float MIN_VALUE = 0.58f;
-    private static final float MAX_VALUE = 0.78f;
+    /**
+     * 偏白的彩色：保留封面的色相，饱和度收到中等偏低、明度提到很高，
+     * 得到浅彩（粉彩）色调 —— 一看就是「偏白的那个颜色」，而不是灰白，
+     * 也不会是高饱和的艳色。
+     */
+    private static final float MIN_SATURATION = 0.26f;
+    private static final float MAX_SATURATION = 0.34f;
+    private static final float MIN_VALUE = 0.88f;
+    private static final float MAX_VALUE = 0.94f;
 
     private static int accent = DEFAULT_ACCENT;
     private static Bitmap source;
@@ -141,7 +147,8 @@ public final class ColorTheme {
     private static int mute(int color) {
         float[] hsv = new float[3];
         Color.colorToHSV(color, hsv);
-        hsv[1] = Math.min(hsv[1], MAX_SATURATION);
+        // 饱和度落在浅彩区间（太低会变灰白，太高会刺眼）。
+        hsv[1] = Math.max(MIN_SATURATION, Math.min(hsv[1], MAX_SATURATION));
         hsv[2] = Math.max(MIN_VALUE, Math.min(MAX_VALUE, hsv[2]));
         return Color.HSVToColor(hsv);
     }

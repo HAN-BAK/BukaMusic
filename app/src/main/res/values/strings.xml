@@ -62,7 +62,7 @@
     <string name="language_en">English</string>
     <string name="language_ja">日本語</string>
     <string name="language_ko">한국어</string>
-    <string name="settings_section_system">系统</string>
+    <string name="settings_section_system">存储与设备</string>
     <string name="settings_section_about">关于</string>
     <string name="about_title">关于</string>
     <string name="about_version">版本 %1$s</string>

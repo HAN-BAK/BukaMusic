@@ -67,6 +67,13 @@ public final class BukaTheme {
             } else {
                 view.setBackground(ColorTheme.capsule(activity));
             }
+        } else if (view instanceof android.widget.TextView) {
+            // 所有「主色 / 强调色」的文字也跟着一起变（分组标题、当前值、说明等）。
+            android.widget.TextView text = (android.widget.TextView) view;
+            android.content.res.ColorStateList list = text.getTextColors();
+            if (list != null && isAccentColor(activity, list.getDefaultColor())) {
+                text.setTextColor(ColorTheme.accent());
+            }
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
@@ -74,6 +81,14 @@ public final class BukaTheme {
                 tintButtons(activity, group.getChildAt(i));
             }
         }
+    }
+
+    private static boolean isAccentColor(Activity activity, int color) {
+        // 资源里的强调色，以及布局里写死的旧强调色（天蓝 / 浅蓝）都算，
+        // 统一换成当前主色。
+        return color == activity.getResources().getColor(R.color.accent)
+                || color == 0xFF4FC3F7
+                || color == 0xFF81D4FA;
     }
 
     /**
