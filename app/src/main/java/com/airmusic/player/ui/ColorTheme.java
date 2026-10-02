@@ -218,16 +218,21 @@ public final class ColorTheme {
     // 滑条：两段式粗圆角条（已播放=主色，未播放=主色压暗），无大圆点
     // ------------------------------------------------------------------
 
-    /** SeekBar 的 progressDrawable。 */
+    /**
+     * SeekBar 的 progressDrawable：**已播放段用深色、未播放段用浅色**
+     * （与常见做法相反，这是参考图的效果）。
+     */
     public static android.graphics.drawable.Drawable sliderTrack(Context context) {
         int height = dp(context, 10f);
+        // background = 未播放：浅色
         GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(blend(0xFF0E1620, accent, 0.14f));
+        background.setColor(withAlpha(accent, 0.55f));
         background.setCornerRadius(height / 2f);
+        // progress = 已播放：深色
         GradientDrawable progress = new GradientDrawable();
         progress.setShape(GradientDrawable.RECTANGLE);
-        progress.setColor(accent);
+        progress.setColor(sliderPlayedColor());
         progress.setCornerRadius(height / 2f);
         android.graphics.drawable.LayerDrawable layers =
                 new android.graphics.drawable.LayerDrawable(
@@ -240,6 +245,11 @@ public final class ColorTheme {
                     | android.view.Gravity.CENTER_VERTICAL);
         }
         return layers;
+    }
+
+    /** 已播放段 / 手柄用的深色（主色压暗，保持同色系）。 */
+    private static int sliderPlayedColor() {
+        return blend(0xFF13293D, accent, 0.55f);
     }
 
     /**
@@ -260,8 +270,8 @@ public final class ColorTheme {
 
         GradientDrawable bar = new GradientDrawable();
         bar.setShape(GradientDrawable.RECTANGLE);
-        // 比轨道更深：主色压到很暗的同色系
-        bar.setColor(blend(0xFF0B1119, accent, 0.45f));
+        // 手柄比已播放段再深一点
+        bar.setColor(blend(0xFF0F2436, accent, 0.45f));
         bar.setCornerRadius(barWidth / 2f);
         bar.setSize(barWidth, barHeight);
 
