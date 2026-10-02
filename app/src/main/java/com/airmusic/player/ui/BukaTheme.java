@@ -50,6 +50,17 @@ public final class BukaTheme {
 
     private static void tintButtons(Activity activity, View view) {
         if (view == null) return;
+        if (view.getId() == R.id.volume_icon && view instanceof android.widget.ImageView) {
+            // 图标在浅色胶囊里，用已播放段的深色同色系，保证看得清。
+            ((android.widget.ImageView) view).setImageTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderActive()));
+        }
+        // 底栏四个图标必须永远同一色：以前只有「多房间」在每次刷新时重新上色，
+        // 换歌取到新主色后其余三个还是旧色，看着就是两种颜色。
+        if (view instanceof android.widget.ImageView && isNavIcon(view.getId())) {
+            ((android.widget.ImageView) view).setImageTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.accent()));
+        }
         if (view instanceof com.google.android.material.button.MaterialButton) {
             com.google.android.material.button.MaterialButton button =
                     (com.google.android.material.button.MaterialButton) view;
@@ -74,6 +85,16 @@ public final class BukaTheme {
             if (list != null && isAccentColor(activity, list.getDefaultColor())) {
                 text.setTextColor(ColorTheme.accent());
             }
+            // 行首的线性图标（compound drawable）同样要保持当前主色。
+            if (text.getCompoundDrawableTintList() != null) {
+                text.setCompoundDrawableTintList(
+                        android.content.res.ColorStateList.valueOf(ColorTheme.accent()));
+            }
+        }
+        // 设置页里 OutlinedButton 是白字、TextButton 是主色字，两套看着不一样，
+        // 统一成拖动气泡里那种同色系近白（高对比、带一点封面色）。
+        if (view instanceof android.widget.Button) {
+            ((android.widget.Button) view).setTextColor(ColorTheme.tooltipText());
         }
         if (view instanceof android.widget.SeekBar) {
             // 全部滑条统一成两段式粗圆角条，颜色跟随当前封面主色。
@@ -93,14 +114,25 @@ public final class BukaTheme {
             // 手柄=更深的同色系）。
             com.google.android.material.slider.Slider slider =
                     (com.google.android.material.slider.Slider) view;
-            slider.setTrackActiveTintList(
-                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderActive()));
-            slider.setTrackInactiveTintList(
-                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderInactive()));
+            // 轨道是自绘的圆角矩形（Material 的轨道两端永远半圆），
+            // 所以把 Material 的轨道设成透明，只留手柄 / 光晕 / 拖动气泡。
+            slider.setTrackActiveTintList(android.content.res.ColorStateList.valueOf(
+                    android.graphics.Color.TRANSPARENT));
+            slider.setTrackInactiveTintList(android.content.res.ColorStateList.valueOf(
+                    android.graphics.Color.TRANSPARENT));
+            // 步进刻度（小点）本来被 Material 的轨道挡着，轨道透明后就露出来了，关掉。
+            slider.setTickVisible(false);
+            slider.setTrackStopIndicatorSize(0);
             slider.setThumbTintList(
                     android.content.res.ColorStateList.valueOf(ColorTheme.sliderThumb()));
             slider.setHaloTintList(android.content.res.ColorStateList.valueOf(
                     ColorTheme.withAlpha(ColorTheme.accent(), 0.18f)));
+            // 拖动时上方那个数值气泡也跟着封面主色走（深底 + 近白字）。
+            SliderLabelTint.apply(slider);
+            RoundedTrackView track = trackViewFor(activity, slider);
+            if (track != null) {
+                track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive());
+            }
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
@@ -116,6 +148,23 @@ public final class BukaTheme {
         return color == activity.getResources().getColor(R.color.accent)
                 || color == 0xFF4FC3F7
                 || color == 0xFF81D4FA;
+    }
+
+    /** 底栏四个图标按钮。 */
+    private static boolean isNavIcon(int id) {
+        return id == R.id.btn_library || id == R.id.btn_settings
+                || id == R.id.btn_apps || id == R.id.btn_multicast;
+    }
+
+    /** 自绘轨道与 Material 滑条的配对（轨道是滑条的兄弟层）。 */
+    private static RoundedTrackView trackViewFor(Activity activity, View slider) {
+        if (slider.getId() == R.id.seek_bar) {
+            return activity.findViewById(R.id.seek_track);
+        }
+        if (slider.getId() == R.id.volume_seek) {
+            return activity.findViewById(R.id.volume_track);
+        }
+        return null;
     }
 
     /**

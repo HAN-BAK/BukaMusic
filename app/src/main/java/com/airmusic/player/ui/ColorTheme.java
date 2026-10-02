@@ -244,6 +244,49 @@ public final class ColorTheme {
         return blend(0xFF0F2436, accent, 0.45f);
     }
 
+    /**
+     * 音量条的外框：一根粗胶囊（56dp 的控件里留出 36dp 高），
+     * 用未播放段的浅色，于是嵌在左端的音量图标底下是浅底、轨道接上去毫无接缝。
+     */
+    public static android.graphics.drawable.Drawable volumePill(Context context, int rightInset) {
+        GradientDrawable pill = new GradientDrawable();
+        pill.setShape(GradientDrawable.RECTANGLE);
+        // 不透明：半透明会让模糊封面透出来，和轨道出现色差
+        pill.setColor(0xFF000000 | (sliderInactive() & 0xFFFFFF));
+        // 圆角矩形，不是两头全圆的胶囊
+        pill.setCornerRadius(dp(context, TRACK_CORNER_DP + 4f));
+        int inset = dp(context, 10f);
+        return new android.graphics.drawable.InsetDrawable(pill, 0, inset,
+                Math.max(0, rightInset), inset);
+    }
+
+    /** 滑条轨道 / 音量条的圆角半径（dp）：圆角矩形风格。 */
+    public static final float TRACK_CORNER_DP = 6f;
+
+    /**
+     * 拖动气泡的底色：取当前主色相位的**深色**（明度压到 0.30），
+     * 既跟着封面变色，又和浅色页面拉开距离。
+     */
+    public static int tooltipFill() {
+        float[] hsv = new float[3];
+        Color.colorToHSV(accent, hsv);
+        hsv[1] = Math.max(0.42f, Math.min(0.60f, hsv[1] + 0.22f));
+        hsv[2] = 0.30f;
+        return Color.HSVToColor(0xFF, hsv);
+    }
+
+    /**
+     * 气泡文字：同色相的近白色。底色固定压到明度 0.30、文字固定提到 0.97，
+     * 所以不管封面是什么颜色，对比度都在 8:1 以上（远高于 WCAG AA 的 4.5:1）。
+     */
+    public static int tooltipText() {
+        float[] hsv = new float[3];
+        Color.colorToHSV(accent, hsv);
+        hsv[1] = Math.min(hsv[1], 0.16f);
+        hsv[2] = 0.97f;
+        return Color.HSVToColor(0xFF, hsv);
+    }
+
     private static int sliderPlayedColor() {
         return sliderActive();
     }

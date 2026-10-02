@@ -78,6 +78,10 @@ public class MainActivity extends BaseActivity {
     private ImageView volumeIcon;
     private com.google.android.material.slider.Slider seekBar;
     private com.google.android.material.slider.Slider volumeSeek;
+    private com.airmusic.player.ui.RoundedTrackView seekTrack;
+    private com.airmusic.player.ui.RoundedTrackView volumeTrack;
+    /** 音量胶囊当前用的「主色 + 右侧裁切」组合，避免每次刷新都重画。 */
+    private int volumePillKey = -1;
     private View seekRow;
 
     private boolean seeking;
@@ -158,6 +162,8 @@ public class MainActivity extends BaseActivity {
         btnApps = findViewById(R.id.btn_apps);
         seekBar = findViewById(R.id.seek_bar);
         volumeSeek = findViewById(R.id.volume_seek);
+        seekTrack = findViewById(R.id.seek_track);
+        volumeTrack = findViewById(R.id.volume_track);
         seekRow = findViewById(R.id.seek_row);
         // 播放界面的按钮统一用圆形边框（其它页面是圆角方形）。
         // 播放键保持原来的实心主色圆，不加描边
@@ -171,6 +177,14 @@ public class MainActivity extends BaseActivity {
         View leftPanel = findViewById(R.id.left_panel);
 
         setupVolumeSlider();
+        // 音量轨道的两端要贴着「图标右侧」和「胶囊右端」，等布局完成后再对齐。
+        View volumeBar = findViewById(R.id.volume_bar);
+        if (volumeBar != null) {
+            volumeBar.post(() -> {
+                layoutSliderTracks();
+                applyVolumePill();
+            });
+        }
 
         // Size the album art square and center it in the left panel (same
         // vertical position as the playback controls). The panel wraps around
@@ -238,7 +252,14 @@ public class MainActivity extends BaseActivity {
                 service.togglePlay();
             }
         });
+        // 拖动气泡里显示播放时间（滑条内部是 0~1000 的千分比，要换算成 mm:ss）。
+        seekBar.setLabelFormatter(value -> {
+            long duration = lastState == null ? 0 : lastState.durationMs;
+            if (duration <= 0) return "--:--";
+            return formatTime(Math.round((double) value * duration / 1000d));
+        });
         seekBar.addOnChangeListener((slider, value, fromUser) -> {
+            if (seekTrack != null) seekTrack.setFraction(value / 1000f);
             if (fromUser && lastState != null && lastState.durationMs > 0) {
                 positionText.setText(formatTime((long) value * lastState.durationMs / 1000));
             }
@@ -298,6 +319,22 @@ public class MainActivity extends BaseActivity {
         }
         seekBar.getLayoutParams().height =
                 Math.round((tiny ? 18 : 34) * d);
+        // 粗轨道 / 大手柄在矮屏上要按比例收回来，否则会被裁掉。
+        int seekTrack = Math.round((tiny ? 12 : 18) * d);
+        int seekThumb = Math.round((tiny ? 20 : 28) * d);
+        seekBar.setTrackHeight(seekTrack);
+        seekBar.setThumbHeight(seekThumb);
+        seekBar.setThumbWidth(Math.round((tiny ? 6 : 7) * d));
+        seekBar.setThumbTrackGapSize(Math.round((tiny ? 5 : 6) * d));
+        seekBar.setTrackStopIndicatorSize(seekTrack);
+        if (this.seekTrack != null) {
+            // 自绘轨道的高度跟着一起收（它是独立的一层）
+            this.seekTrack.getLayoutParams().height = seekTrack;
+            this.seekTrack.requestLayout();
+            this.seekTrack.setThumbGapPx(seekBar.getThumbWidth() / 2f
+                    + seekBar.getThumbTrackGapSize());
+        }
+        layoutSliderTracks();
         if (tiny) {
             positionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 8);
             durationText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 8);
@@ -411,10 +448,22 @@ public class MainActivity extends BaseActivity {
         volumeSeek.setValueTo(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
         volumeSeek.setValue(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
         updateVolumeIcon(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+        // 音量条的粗胶囊外框先按当前主色画一次（之后换封面由 render 重刷）。
+        applyVolumePill();
+        // 气泡里显示音量百分比（系统音量档数各机型不同，换算成百分比更直观）。
+        volumeSeek.setLabelFormatter(value -> {
+            float max = volumeSeek.getValueTo();
+            int percent = max <= 0f ? 0 : Math.round(value * 100f / max);
+            return percent + "%";
+        });
         volumeSeek.addOnChangeListener((slider, value, fromUser) -> {
             int volume = Math.round(value);
             if (fromUser) {
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+            }
+            if (volumeTrack != null) {
+                float max = volumeSeek.getValueTo();
+                volumeTrack.setFraction(max <= 0f ? 0f : value / max);
             }
             updateVolumeIcon(volume);
         });
@@ -433,6 +482,11 @@ public class MainActivity extends BaseActivity {
         };
         getContentResolver().registerContentObserver(
                 Settings.System.getUriFor("volume_music"), false, volumeObserver);
+        if (volumeTrack != null) {
+            float max = volumeSeek.getValueTo();
+            volumeTrack.setFraction(max <= 0f ? 0f
+                    : audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) / max);
+        }
     }
 
     private void syncVolumeSlider() {
@@ -445,11 +499,93 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 滑条轨道对齐：自绘的圆角矩形轨道要正好盖在 Material 轨道的位置上。
+     *
+     * <p>音量条的 Slider 现在是整条铺满（不加外边距），所以**整条都能触摸拖动**；
+     * 它内部左右各留 trackSidePadding 才是真正的轨道，自绘轨道就按这段留白对齐，
+     * 音量图标正好嵌在这段留白里（也就是「条的内部左侧」）。
+     */
+    private void layoutSliderTracks() {
+        if (volumeSeek == null || seekBar == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        int gap = Math.round(10 * d);
+
+        int volumePad = trackSidePad(volumeSeek);
+        setTrackMargins(volumeTrack, volumePad, volumePad);
+        // 音量图标嵌在轨道左侧的留白里
+        if (volumeIcon != null && volumeIcon.getLayoutParams()
+                instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) volumeIcon.getLayoutParams();
+            int margin = Math.max(Math.round(2 * d), (volumePad - volumeIcon.getWidth()) / 2);
+            if (lp.getMarginStart() != margin) {
+                lp.setMarginStart(margin);
+                volumeIcon.setLayoutParams(lp);
+            }
+        }
+        setTrackMargins(seekTrack, trackSidePad(seekBar), trackSidePad(seekBar));
+
+        if (seekTrack != null) {
+            seekTrack.setCornerDp(com.airmusic.player.ui.ColorTheme.TRACK_CORNER_DP);
+            seekTrack.setThumbGapPx(seekBar.getThumbWidth() / 2f
+                    + seekBar.getThumbTrackGapSize());
+        }
+        if (volumeTrack != null) {
+            volumeTrack.setCornerDp(com.airmusic.player.ui.ColorTheme.TRACK_CORNER_DP);
+            volumeTrack.setThumbGapPx(volumeSeek.getThumbWidth() / 2f
+                    + volumeSeek.getThumbTrackGapSize());
+        }
+    }
+
+    private void setTrackMargins(View track, int start, int end) {
+        if (track == null) return;
+        ViewGroup.LayoutParams raw = track.getLayoutParams();
+        if (!(raw instanceof ViewGroup.MarginLayoutParams)) return;
+        ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) raw;
+        if (mlp.getMarginStart() == start && mlp.getMarginEnd() == end) return;
+        mlp.setMarginStart(start);
+        mlp.setMarginEnd(end);
+        track.setLayoutParams(mlp);
+    }
+
+    /** 音量条胶囊：右端裁到「轨道末端 + 10dp」，满音量时深色填充才不会差一截。 */
+    private void applyVolumePill() {
+        View bar = findViewById(R.id.volume_bar);
+        if (bar == null || volumeSeek == null) return;
+        int gap = Math.round(10 * getResources().getDisplayMetrics().density);
+        int rightInset = Math.max(0, trackSidePad(volumeSeek) - gap);
+        int key = ColorTheme.accent() * 31 + rightInset;
+        if (key == volumePillKey) return;
+        volumePillKey = key;
+        bar.setBackground(ColorTheme.volumePill(this, rightInset));
+    }
+
+    /**
+     * 轨道在滑条内部的左右留白。Material 会按手柄 / 气泡宽度自己算，
+     * {@code getTrackSidePadding()} 并不总等于实际留白，能用实测宽度差就用它。
+     */
+    private int trackSidePad(View slider) {
+        if (slider == null || !(slider instanceof com.google.android.material.slider.Slider)) {
+            return 0;
+        }
+        com.google.android.material.slider.Slider s =
+                (com.google.android.material.slider.Slider) slider;
+        int trackWidth = s.getTrackWidth();
+        if (trackWidth > 0 && s.getWidth() > trackWidth) {
+            return (s.getWidth() - trackWidth) / 2;
+        }
+        return s.getTrackSidePadding();
+    }
+
     /** Switches the slider's leading icon to the mute glyph at volume 0. */
     private void updateVolumeIcon(int volume) {
         if (volumeIcon != null) {
             volumeIcon.setImageResource(
                     volume <= 0 ? R.drawable.ic_volume_mute : R.drawable.ic_volume);
+            // 图标嵌在浅色胶囊里，跟着动态主色的深色系走。
+            volumeIcon.setImageTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderActive()));
         }
     }
 
@@ -615,6 +751,7 @@ public class MainActivity extends BaseActivity {
         // 动态配色：从当前封面取主色（降饱和）后给按钮 / 滑块上色。
         ColorTheme.update(art);
         BukaTheme.tintButtons(this);
+        applyVolumePill();
         if (s.source == PlayerUiState.Source.AIRPLAY || s.source == PlayerUiState.Source.REMOTE) {
             if (art != null) {
                 albumArt.setImageBitmap(art);
