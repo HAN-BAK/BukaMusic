@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 音量 1 档：只有喇叭，没有声波 -->
+<!-- 音量 1 档：空心喇叭，没有声波（Material outlined volume_mute） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -7,5 +7,5 @@
     android:viewportHeight="24">
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M7,10v4c0,0.55 0.45,1 1,1h3l3.29,3.29c0.63,0.63 1.71,0.18 1.71,-0.71V6.41c0,-0.89 -1.08,-1.34 -1.71,-0.71L11,9H8c-0.55,0 -1,0.45 -1,1z" />
+        android:pathData="M14,8.83v6.34L11.83,13H9v-2h2.83L14,8.83M16,4l-5,5H7v6h4l5,5V4z" />
 </vector>
