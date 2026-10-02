@@ -20,4 +20,36 @@
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:colorAccent">@color/primary</item>
     </style>
+
+    <!-- 全应用按钮统一成对话框那套外观：覆盖 Material 的两个内置样式，
+         这样各处 MaterialButton 不用逐个改布局 -->
+    <style name="Widget.MaterialComponents.Button.OutlinedButton"
+        parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#26FFFFFF</item>
+        <item name="strokeColor">#33FFFFFF</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="rippleColor">@android:color/transparent</item>
+    </style>
+
+    <!-- 覆盖同名样式时不能再把自身当父样式（会形成资源循环），所以父样式取
+         基础 Button，再用属性还原成「文字按钮」的样子 -->
+    <style name="Widget.MaterialComponents.Button.TextButton"
+        parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="rippleColor">@android:color/transparent</item>
+    </style>
 </resources>

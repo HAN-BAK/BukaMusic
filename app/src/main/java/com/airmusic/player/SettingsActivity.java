@@ -28,6 +28,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.io.File;
 import com.airmusic.player.ui.BukaNotice;
 import com.airmusic.player.ui.BukaDialog;
+import com.airmusic.player.ui.BukaTheme;
 
 public class SettingsActivity extends BaseActivity {
 
@@ -66,6 +67,10 @@ public class SettingsActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.soft(this, R.id.section_airplay, R.id.section_local, R.id.section_ui, R.id.section_system, R.id.section_about);
+        BukaTheme.card(this, R.id.airplay_content, R.id.local_content, R.id.ui_content, R.id.system_content, R.id.about_content);
+        BukaTheme.applyTopBar(this);
         BlurBackground.apply(this, R.color.background);
 
         prefs = new Prefs(this);

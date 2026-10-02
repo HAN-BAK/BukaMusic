@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaTheme;
 
 /**
  * Lists all launchable apps on the device; tapping one opens it, like the
@@ -34,6 +35,8 @@ public class AppsActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_apps);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.backdrop(this, R.id.app_list);
         BlurBackground.apply(this, R.drawable.bg_main_gradient);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());

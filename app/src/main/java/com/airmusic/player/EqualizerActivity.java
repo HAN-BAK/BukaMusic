@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import com.airmusic.player.ui.BukaNotice;
 import com.airmusic.player.ui.BukaDialog;
+import com.airmusic.player.ui.BukaTheme;
 
 public class EqualizerActivity extends BaseActivity {
 
@@ -60,6 +61,8 @@ public class EqualizerActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_equalizer);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.applyPageContent(this);
         BlurBackground.apply(this, R.color.background);
 
         prefs = new Prefs(this);

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 次级卡片 / 行：更淡的底色，用于列表行与分组标题 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#141B3550" />
+    <corners android:radius="16dp" />
+</shape>

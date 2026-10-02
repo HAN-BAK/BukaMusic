@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaTheme;
 
 /**
  * A lightweight, self-contained folder browser used to pick the local music
@@ -82,6 +83,8 @@ public class FolderPickerActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_folder_picker);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.applyPageContent(this);
         BlurBackground.apply(this, R.color.background);
 
         pathText = findViewById(R.id.path_text);

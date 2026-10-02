@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaTheme;
 
 public class TransferActivity extends BaseActivity {
 
@@ -47,6 +48,8 @@ public class TransferActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.applyPageContent(this);
         BlurBackground.apply(this, R.color.background);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());

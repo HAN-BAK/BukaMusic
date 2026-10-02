@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 
 import com.airmusic.player.util.BlurBackground;
 import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaTheme;
 
 /**
  * "About" screen. Every link row copies its address to the clipboard instead
@@ -34,6 +35,8 @@ public class AboutActivity extends BaseActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
+        // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
+        BukaTheme.applyPageContent(this);
         BlurBackground.apply(this, R.color.background);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
