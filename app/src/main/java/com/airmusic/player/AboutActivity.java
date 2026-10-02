@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 
 import com.airmusic.player.util.BlurBackground;
+import com.airmusic.player.ui.BukaNotice;
 
 /**
  * "About" screen. Every link row copies its address to the clipboard instead
@@ -72,8 +73,7 @@ public class AboutActivity extends BaseActivity {
                 }
             } catch (Throwable ignored) {
             }
-            Toast.makeText(this, getString(R.string.copied_link, url),
-                    Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, getString(R.string.copied_link, url));
         });
     }
 }

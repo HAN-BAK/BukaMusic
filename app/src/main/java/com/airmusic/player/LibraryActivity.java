@@ -6,9 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +24,8 @@ import com.airmusic.player.ui.CoverArtLoader;
 
 import java.io.File;
 import java.util.List;
+import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaDialog;
 
 public class LibraryActivity extends BaseActivity {
 
@@ -257,10 +257,10 @@ public class LibraryActivity extends BaseActivity {
                 locateCurrentInGroup(result);
             }
             if (result != null && result.isEmpty() && error != null) {
-                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                BukaNotice.show(this, error, BukaNotice.LONG);
             }
             if (result != null && result.isEmpty()) {
-                Toast.makeText(this, R.string.no_tracks, Toast.LENGTH_LONG).show();
+                BukaNotice.show(this, R.string.no_tracks, BukaNotice.LONG);
             }
         });
     }
@@ -296,17 +296,13 @@ public class LibraryActivity extends BaseActivity {
         for (int i = 0; i < modes.length; i++) {
             if (modes[i] == current) checked = i;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.group_title)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    adapter.setGroupBy(modes[which]);
-                    new Prefs(this).setLibraryGroup(modes[which].name());
-                    btnGroup.setText(labels[which]);
-                    dialog.dismiss();
-                    applyLayoutMode();
-                    scrollToCurrentTrack();
-                })
-                .show();
+        BukaDialog.singleChoice(this, getString(R.string.group_title), labels, checked, which -> {
+            adapter.setGroupBy(modes[which]);
+            new Prefs(this).setLibraryGroup(modes[which].name());
+            btnGroup.setText(labels[which]);
+            applyLayoutMode();
+            scrollToCurrentTrack();
+        }).show();
     }
 
     private void scrollToCurrentTrack() {
@@ -424,12 +420,9 @@ public class LibraryActivity extends BaseActivity {
             exitSelectionMode();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.delete)
-                .setMessage(getString(R.string.delete_files_confirm, selected.size()))
-                .setPositiveButton(android.R.string.ok, (d, w) -> deleteTracks(selected))
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        BukaDialog.confirm(this, getString(R.string.delete),
+                getString(R.string.delete_files_confirm, selected.size()),
+                getString(android.R.string.ok), () -> deleteTracks(selected)).show();
     }
 
     private void deleteTracks(List<Track> selected) {
@@ -442,7 +435,7 @@ public class LibraryActivity extends BaseActivity {
             }
         }
         exitSelectionMode();
-        Toast.makeText(this, getString(R.string.deleted_count, ok), Toast.LENGTH_SHORT).show();
+        BukaNotice.show(this, getString(R.string.deleted_count, ok));
         MusicLibrary.getInstance().clearCache();
         PlaybackService service = PlaybackService.getInstance();
         if (service != null) {

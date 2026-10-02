@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import com.airmusic.player.ui.BukaNotice;
 
 public class TransferActivity extends BaseActivity {
 
@@ -68,7 +68,7 @@ public class TransferActivity extends BaseActivity {
         // library refresh happen no matter who started the server first.
         server.addListener((name, success, message) ->
                 runOnUiThread(() -> {
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                    BukaNotice.show(this, message);
                     if (success) {
                         handler.removeCallbacks(refreshLibrary);
                         handler.postDelayed(refreshLibrary, 1000);
@@ -88,8 +88,7 @@ public class TransferActivity extends BaseActivity {
                 try {
                     startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
                 } catch (Exception e) {
-                    Toast.makeText(this, R.string.home_settings_unavailable,
-                            Toast.LENGTH_SHORT).show();
+                    BukaNotice.show(this, R.string.home_settings_unavailable);
                 }
             });
             return;

@@ -17,7 +17,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -33,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import com.airmusic.player.ui.BukaNotice;
 
 /**
  * A lightweight, self-contained folder browser used to pick the local music
@@ -159,7 +159,7 @@ public class FolderPickerActivity extends BaseActivity {
             try {
                 startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
             } catch (Exception ex) {
-                Toast.makeText(this, R.string.folder_permission_denied, Toast.LENGTH_SHORT).show();
+                BukaNotice.show(this, R.string.folder_permission_denied);
             }
         }
     }
@@ -238,7 +238,7 @@ public class FolderPickerActivity extends BaseActivity {
 
     private void openFolder(File dir) {
         if (dir == null || !dir.isDirectory()) {
-            Toast.makeText(this, R.string.folder_permission_denied, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.folder_permission_denied);
             return;
         }
         currentDir = dir;

@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,6 +20,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import com.airmusic.player.ui.BukaNotice;
 
 /**
  * Lists all launchable apps on the device; tapping one opens it, like the
@@ -46,8 +46,7 @@ public class AppsActivity extends BaseActivity {
             try {
                 startActivity(app.launchIntent);
             } catch (Exception e) {
-                Toast.makeText(this, getString(R.string.apps_open_failed, app.label),
-                        Toast.LENGTH_SHORT).show();
+                BukaNotice.show(this, getString(R.string.apps_open_failed, app.label));
             }
         });
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 所有页面的转场动画：淡入淡出 + 轻微缩放/位移，系统默认的那套不再使用 -->
+    <style name="BukaWindowAnimation">
+        <item name="android:activityOpenEnterAnimation">@anim/page_open_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/page_open_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/page_close_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/page_close_exit</item>
+        <item name="android:windowEnterAnimation">@anim/page_open_enter</item>
+        <item name="android:windowExitAnimation">@anim/page_close_exit</item>
+    </style>
+
+    <!-- 自定义对话框窗口：透明背景、可更窄、无系统动画（动效自己写） -->
+    <style name="BukaDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowMinWidthMajor">0%</item>
+        <item name="android:windowMinWidthMinor">0%</item>
+        <item name="android:backgroundDimAmount">0.62</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:colorAccent">@color/primary</item>
+    </style>
+</resources>

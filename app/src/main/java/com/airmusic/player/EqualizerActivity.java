@@ -1,6 +1,5 @@
 package com.airmusic.player;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -27,6 +26,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaDialog;
 
 public class EqualizerActivity extends BaseActivity {
 
@@ -88,15 +89,13 @@ public class EqualizerActivity extends BaseActivity {
             importLauncher.launch(intent);
         });
         findViewById(R.id.btn_reset_eq).setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setMessage(R.string.equalizer_reset_confirm)
-                    .setPositiveButton(android.R.string.ok, (d, w) -> {
+            BukaDialog.confirm(this, getString(R.string.equalizer_reset),
+                    getString(R.string.equalizer_reset_confirm),
+                    getString(android.R.string.ok), () -> {
                         gains = new double[10];
                         refreshAllValues();
                         applyGains();
-                    })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
+                    }).show();
         });
     }
 
@@ -169,24 +168,17 @@ public class EqualizerActivity extends BaseActivity {
     }
 
     private void savePreset() {
-        final EditText input = new EditText(this);
-        input.setHint(R.string.equalizer_preset_name_hint);
         String defaultName = nextPresetName();
-        input.setText(defaultName);
-        input.setSelection(defaultName.length());
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.equalizer_save_preset)
-                .setView(input)
-                .setPositiveButton(android.R.string.ok, (d, w) -> {
-                    String name = input.getText() == null ? "" : input.getText().toString().trim();
+        BukaDialog.input(this, getString(R.string.equalizer_save_preset),
+                getString(R.string.equalizer_preset_name_hint), defaultName,
+                getString(android.R.string.ok), value -> {
+                    String name = value == null ? "" : value.trim();
                     if (prefs.addEqPreset(name, gains)) {
-                        Toast.makeText(this, R.string.equalizer_saved, Toast.LENGTH_SHORT).show();
+                        BukaNotice.show(this, R.string.equalizer_saved);
                     } else {
-                        Toast.makeText(this, R.string.equalizer_name_exists, Toast.LENGTH_SHORT).show();
+                        BukaNotice.show(this, R.string.equalizer_name_exists);
                     }
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                }).show();
     }
 
     /** Returns the next unused "预设N" name (localized). */
@@ -202,32 +194,28 @@ public class EqualizerActivity extends BaseActivity {
     private void loadPreset() {
         final List<String> names = prefs.getEqPresetNames();
         if (names.isEmpty()) {
-            Toast.makeText(this, R.string.equalizer_no_presets, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.equalizer_no_presets);
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.equalizer_load_preset)
-                .setItems(names.toArray(new String[0]), (d, which) -> {
+        BukaDialog.singleChoice(this, getString(R.string.equalizer_load_preset),
+                names.toArray(new String[0]), -1, which -> {
                     gains = prefs.getEqPresetGains(names.get(which));
                     refreshAllValues();
                     applyGains();
-                })
-                .show();
+                }).show();
     }
 
     private void deletePreset() {
         final List<String> names = prefs.getEqPresetNames();
         if (names.isEmpty()) {
-            Toast.makeText(this, R.string.equalizer_no_presets, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.equalizer_no_presets);
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.equalizer_delete_preset)
-                .setItems(names.toArray(new String[0]), (d, which) -> {
+        BukaDialog.singleChoice(this, getString(R.string.equalizer_delete_preset),
+                names.toArray(new String[0]), -1, which -> {
                     prefs.removeEqPreset(names.get(which));
-                    Toast.makeText(this, R.string.equalizer_deleted, Toast.LENGTH_SHORT).show();
-                })
-                .show();
+                    BukaNotice.show(this, R.string.equalizer_deleted);
+                }).show();
     }
 
     private void writeExport(Uri uri) {
@@ -238,7 +226,7 @@ public class EqualizerActivity extends BaseActivity {
             w.flush();
             w.close();
         } catch (Throwable t) {
-            Toast.makeText(this, R.string.equalizer_export_failed, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.equalizer_export_failed);
         }
     }
 
@@ -251,9 +239,9 @@ public class EqualizerActivity extends BaseActivity {
             while ((line = r.readLine()) != null) sb.append(line);
             r.close();
             int n = prefs.importEqPresets(sb.toString());
-            Toast.makeText(this, getString(R.string.equalizer_imported) + " (" + n + ")", Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, getString(R.string.equalizer_imported) + " (" + n + ")");
         } catch (Throwable t) {
-            Toast.makeText(this, R.string.equalizer_import_failed, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.equalizer_import_failed);
         }
     }
 

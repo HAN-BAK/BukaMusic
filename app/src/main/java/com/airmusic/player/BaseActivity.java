@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat;
 import com.airmusic.player.util.LocaleHelper;
 import com.airmusic.player.service.PlaybackService;
 import com.airmusic.player.util.BlurBackground;
+import com.airmusic.player.ui.PageFx;
 import com.airmusic.player.view.BoxAspectFrameLayout;
 
 /** Applies the user-selected UI language to every activity. */
@@ -95,6 +96,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void onContentChanged() {
         super.onContentChanged();
         wrapContentToBoxAspect();
+        // 页面入场动效 + 给页面里的可点击控件挂上按压动效（系统水波纹早已关闭）。
+        PageFx.apply(this);
     }
 
     /**

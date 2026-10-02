@@ -1,7 +1,6 @@
 package com.airmusic.player;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -46,6 +45,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import com.airmusic.player.ui.BukaDialog;
 
 public class MainActivity extends BaseActivity {
 
@@ -550,9 +550,7 @@ public class MainActivity extends BaseActivity {
         if (mgr == null) return;
         // Show a spinner while the network scan runs so the delay doesn't
         // feel like a freeze.
-        ProgressDialog progress = new ProgressDialog(this);
-        progress.setMessage(getString(R.string.multicast_scanning));
-        progress.setCancelable(true);
+        BukaDialog progress = BukaDialog.loading(this, getString(R.string.multicast_scanning));
         progress.show();
         final Handler scanHandler = new Handler(Looper.getMainLooper());
         final Runnable showDialog = () -> {
@@ -570,11 +568,8 @@ public class MainActivity extends BaseActivity {
             devices.add(d);
         }
         if (devices.isEmpty()) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.multicast_title)
-                    .setMessage(R.string.multicast_empty)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show();
+            BukaDialog.message(this, getString(R.string.multicast_title),
+                    getString(R.string.multicast_empty)).show();
             return;
         }
         String[] names = new String[devices.size()];
@@ -589,15 +584,14 @@ public class MainActivity extends BaseActivity {
                 selected.add(devices.get(i));
             }
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.multicast_title)
-                .setMultiChoiceItems(names, checked, (d, which, isChecked) -> {
-                    if (isChecked) selected.add(devices.get(which));
-                    else selected.remove(devices.get(which));
-                })
-                .setPositiveButton(R.string.multicast_confirm, (d, w) -> mgr.updateTargets(selected))
-                .setNegativeButton(R.string.multicast_cancel, null)
-                .show();
+        BukaDialog.multiChoice(this, getString(R.string.multicast_title), names, checked,
+                getString(R.string.multicast_confirm), state -> {
+                    List<MultiRoomDiscovery.DeviceInfo> picked = new ArrayList<>();
+                    for (int i = 0; i < devices.size() && i < state.length; i++) {
+                        if (state[i]) picked.add(devices.get(i));
+                    }
+                    mgr.updateTargets(picked);
+                }).show();
     }
 
     private void render(PlayerUiState s) {

@@ -11,7 +11,6 @@ import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -27,13 +26,15 @@ import com.airmusic.player.util.StorageHelper;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.File;
+import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.ui.BukaDialog;
 
 public class SettingsActivity extends BaseActivity {
 
     private Prefs prefs;
     private TextInputEditText inputName;
     private TextView pathDisplay;
-    private RadioGroup radioMode;
+    private com.google.android.material.button.MaterialButton btnPlayMode;
     private Switch switchAutoPlay;
     private Switch switchOnlineLyrics;
     private Switch switchShowApps;
@@ -70,7 +71,7 @@ public class SettingsActivity extends BaseActivity {
         prefs = new Prefs(this);
         inputName = findViewById(R.id.input_airplay_name);
         pathDisplay = findViewById(R.id.path_display);
-        radioMode = findViewById(R.id.radio_mode);
+        btnPlayMode = findViewById(R.id.btn_play_mode);
         switchAutoPlay = findViewById(R.id.switch_auto_play);
         switchOnlineLyrics = findViewById(R.id.switch_online_lyrics);
         switchShowApps = findViewById(R.id.switch_show_apps);
@@ -91,20 +92,7 @@ public class SettingsActivity extends BaseActivity {
             pathDisplay.setText(formatFolderDisplay(folderDisplay, folderUri));
         }
 
-        switch (prefs.getPlayMode()) {
-            case Prefs.PLAY_MODE_REPEAT_ONE:
-                radioMode.check(R.id.mode_repeat_one);
-                break;
-            case Prefs.PLAY_MODE_SHUFFLE:
-                radioMode.check(R.id.mode_shuffle);
-                break;
-            case Prefs.PLAY_MODE_FOLDER_LOOP:
-                radioMode.check(R.id.mode_folder_loop);
-                break;
-            default:
-                radioMode.check(R.id.mode_sequence);
-                break;
-        }
+        setupPlayModeButton();
         switchAutoPlay.setChecked(prefs.isAutoPlayOnStart());
         switchAutoPlay.setOnCheckedChangeListener((b, checked) ->
                 prefs.setAutoPlayOnStart(checked));
@@ -140,22 +128,6 @@ public class SettingsActivity extends BaseActivity {
             }
         });
 
-        radioMode.setOnCheckedChangeListener((group, checkedId) -> {
-            String mode;
-            if (checkedId == R.id.mode_repeat_one) {
-                mode = Prefs.PLAY_MODE_REPEAT_ONE;
-            } else if (checkedId == R.id.mode_shuffle) {
-                mode = Prefs.PLAY_MODE_SHUFFLE;
-            } else if (checkedId == R.id.mode_folder_loop) {
-                mode = Prefs.PLAY_MODE_FOLDER_LOOP;
-            } else {
-                mode = Prefs.PLAY_MODE_SEQUENCE;
-            }
-            prefs.setPlayMode(mode);
-            PlaybackService service = PlaybackService.getInstance();
-            if (service != null) service.applyPlayMode(mode);
-        });
-
         setupSection(findViewById(R.id.section_airplay), findViewById(R.id.airplay_content));
         setupSection(findViewById(R.id.section_local), findViewById(R.id.local_content));
         setupSection(findViewById(R.id.section_ui), findViewById(R.id.ui_content));
@@ -185,7 +157,7 @@ public class SettingsActivity extends BaseActivity {
             prefs.setBalance(0f);
             PlaybackService service = PlaybackService.getInstance();
             if (service != null) service.setBalance(0f);
-            Toast.makeText(this, R.string.balance_reset, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.balance_reset);
         });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
@@ -196,26 +168,26 @@ public class SettingsActivity extends BaseActivity {
             pathDisplay.setText(R.string.pref_music_path_hint);
             PlaybackService service = PlaybackService.getInstance();
             if (service != null) service.rescanLibrary();
-            Toast.makeText(this, R.string.path_cleared, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.path_cleared);
         });
 
         findViewById(R.id.btn_rescan).setOnClickListener(v -> {
             PlaybackService service = PlaybackService.getInstance();
             if (service != null) service.rescanLibrary();
-            Toast.makeText(this, R.string.rescanning, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.rescanning);
         });
         findViewById(R.id.btn_set_home).setOnClickListener(v -> {
             try {
                 startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
             } catch (Exception e) {
-                Toast.makeText(this, R.string.home_settings_unavailable, Toast.LENGTH_SHORT).show();
+                BukaNotice.show(this, R.string.home_settings_unavailable);
             }
         });
         findViewById(R.id.btn_wifi_settings).setOnClickListener(v -> {
             try {
                 startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
             } catch (Exception e) {
-                Toast.makeText(this, R.string.home_settings_unavailable, Toast.LENGTH_SHORT).show();
+                BukaNotice.show(this, R.string.home_settings_unavailable);
             }
         });
         findViewById(R.id.btn_equalizer).setOnClickListener(v ->
@@ -223,7 +195,7 @@ public class SettingsActivity extends BaseActivity {
         btnTransfer.setOnClickListener(v -> {
             // Low disk space: refuse to open the transfer page.
             if (!StorageHelper.hasEnoughSpace(prefs.getMusicFolderPath(), 0)) {
-                Toast.makeText(this, R.string.storage_low_warning, Toast.LENGTH_LONG).show();
+                BukaNotice.show(this, R.string.storage_low_warning, BukaNotice.LONG);
                 return;
             }
             startActivity(new Intent(this, TransferActivity.class));
@@ -289,7 +261,7 @@ public class SettingsActivity extends BaseActivity {
     private void exportLogs() {
         File logFile = DiagnosticLog.getLogFile(this);
         if (logFile == null) {
-            Toast.makeText(this, R.string.logs_empty, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.logs_empty);
             return;
         }
         try {
@@ -301,7 +273,7 @@ public class SettingsActivity extends BaseActivity {
             share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(share, getString(R.string.export_logs_share)));
         } catch (Exception e) {
-            Toast.makeText(this, R.string.export_logs_failed, Toast.LENGTH_SHORT).show();
+            BukaNotice.show(this, R.string.export_logs_failed);
         }
     }
 
@@ -322,9 +294,8 @@ public class SettingsActivity extends BaseActivity {
             for (int i = 0; i < langs.length; i++) {
                 if (langs[i].equals(current)) checked = i;
             }
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle(R.string.language_dialog_title)
-                    .setSingleChoiceItems(labels, checked, (d, which) -> {
+            BukaDialog.singleChoice(this, getString(R.string.language_dialog_title), labels,
+                    checked, which -> {
                         prefs.setLanguage(langs[which]);
                         PlaybackService service = PlaybackService.getInstance();
                         if (service != null) {
@@ -332,15 +303,59 @@ public class SettingsActivity extends BaseActivity {
                             // the old language; rebuild its UI strings now.
                             service.applyUiLanguage();
                         }
-                        d.dismiss();
                         updateLanguageLabel(btnLanguage);
                         // Recreate this screen and let the other activities
                         // refresh themselves when they resume.
                         recreate();
-                    })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
+                    }).show();
         });
+    }
+
+    /**
+     * 播放方式：与「语言」一致的行式 UI —— 左侧标题，右侧按钮显示当前值，
+     * 点开用自定义单选对话框选择（原来是 4 个单选框）。
+     */
+    private void setupPlayModeButton() {
+        updatePlayModeLabel();
+        btnPlayMode.setOnClickListener(v -> {
+            String[] modes = {
+                    Prefs.PLAY_MODE_SEQUENCE,
+                    Prefs.PLAY_MODE_FOLDER_LOOP,
+                    Prefs.PLAY_MODE_SHUFFLE,
+                    Prefs.PLAY_MODE_REPEAT_ONE
+            };
+            String[] labels = {
+                    getString(R.string.mode_sequence),
+                    getString(R.string.mode_folder_loop),
+                    getString(R.string.mode_shuffle),
+                    getString(R.string.mode_repeat_one)
+            };
+            String current = prefs.getPlayMode();
+            int checked = 0;
+            for (int i = 0; i < modes.length; i++) {
+                if (modes[i].equals(current)) checked = i;
+            }
+            BukaDialog.singleChoice(this, getString(R.string.pref_play_mode), labels, checked,
+                    which -> {
+                        prefs.setPlayMode(modes[which]);
+                        PlaybackService service = PlaybackService.getInstance();
+                        if (service != null) service.applyPlayMode(modes[which]);
+                        updatePlayModeLabel();
+                    }).show();
+        });
+    }
+
+    private void updatePlayModeLabel() {
+        String mode = prefs.getPlayMode();
+        if (Prefs.PLAY_MODE_FOLDER_LOOP.equals(mode)) {
+            btnPlayMode.setText(R.string.mode_folder_loop);
+        } else if (Prefs.PLAY_MODE_SHUFFLE.equals(mode)) {
+            btnPlayMode.setText(R.string.mode_shuffle);
+        } else if (Prefs.PLAY_MODE_REPEAT_ONE.equals(mode)) {
+            btnPlayMode.setText(R.string.mode_repeat_one);
+        } else {
+            btnPlayMode.setText(R.string.mode_sequence);
+        }
     }
 
     private void setupBlurModeButton() {
@@ -356,16 +371,12 @@ public class SettingsActivity extends BaseActivity {
             for (int i = 0; i < modes.length; i++) {
                 if (modes[i].equals(current)) checked = i;
             }
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle(R.string.blur_dialog_title)
-                    .setSingleChoiceItems(labels, checked, (d, which) -> {
+            BukaDialog.singleChoice(this, getString(R.string.blur_dialog_title), labels, checked,
+                    which -> {
                         prefs.setBlurMode(modes[which]);
                         BlurBackground.apply(SettingsActivity.this, R.color.background);
-                        d.dismiss();
                         updateBlurModeLabel();
-                    })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
+                    }).show();
         });
     }
 

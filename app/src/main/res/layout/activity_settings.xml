@@ -171,52 +171,33 @@
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
                 </LinearLayout>
 
-                <TextView
+                <!-- 播放方式：与「语言」一样的行式 UI（右侧按钮点开选择） -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/pref_play_mode"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <RadioGroup
-                    android:id="@+id/radio_mode"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp">
-
-                    <RadioButton
-                        android:id="@+id/mode_sequence"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:buttonTint="@color/accent"
-                        android:text="@string/mode_sequence"
-                        android:textColor="@color/text_primary" />
+                        android:layout_weight="1"
+                        android:text="@string/pref_play_mode"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
 
-                    <RadioButton
-                        android:id="@+id/mode_folder_loop"
-                        android:layout_width="match_parent"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_play_mode"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:buttonTint="@color/accent"
-                        android:text="@string/mode_folder_loop"
-                        android:textColor="@color/text_primary" />
-
-                    <RadioButton
-                        android:id="@+id/mode_shuffle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/accent"
-                        android:text="@string/mode_shuffle"
-                        android:textColor="@color/text_primary" />
-
-                    <RadioButton
-                        android:id="@+id/mode_repeat_one"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:buttonTint="@color/accent"
-                        android:text="@string/mode_repeat_one"
-                        android:textColor="@color/text_primary" />
-                </RadioGroup>
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:minHeight="36dp"
+                        android:textColor="@color/accent" />
+                </LinearLayout>
 
                 <Switch
                     android:id="@+id/switch_auto_play"
