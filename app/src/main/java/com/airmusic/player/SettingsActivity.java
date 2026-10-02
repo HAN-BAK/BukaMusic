@@ -348,11 +348,11 @@ public class SettingsActivity extends BaseActivity {
                 R.drawable.ic_row_rescan);
         // 播放方式 / 语言 / 背景模糊：图标放在左边的标签上，右侧的取值按钮不带图标
         com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_play_mode),
-                R.drawable.ic_row_playmode, -0.5f);
+                R.drawable.ic_row_playmode, -1.0f);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_language),
                 R.drawable.ic_row_language);
         com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_blur_mode),
-                R.drawable.ic_row_blur, -0.5f);
+                R.drawable.ic_row_blur, -1.0f);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_set_home),
                 R.drawable.ic_row_launcher);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_export_logs),
