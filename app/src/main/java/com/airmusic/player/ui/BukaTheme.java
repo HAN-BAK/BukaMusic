@@ -50,9 +50,15 @@ public final class BukaTheme {
 
     private static void tintButtons(Activity activity, View view) {
         if (view == null) return;
-        // 整个应用不要水波纹：任何 RippleDrawable 背景 / 前景都拆掉，
-        // 只保留它里面的内容层（形状或颜色），视觉不变但没有按压涟漪。
-        if (view.getBackground() instanceof android.graphics.drawable.RippleDrawable) {
+        // 整个应用不要水波纹。
+        // MaterialButton 的 ripple 是它自己背景的一部分，直接拆背景会把材质背景弄坏
+        // （动态取色就失效了），所以这里只把它的 ripple 颜色设成透明。
+        if (view instanceof com.google.android.material.button.MaterialButton) {
+            ((com.google.android.material.button.MaterialButton) view)
+                    .setRippleColor(android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.TRANSPARENT));
+        } else if (view.getBackground() instanceof android.graphics.drawable.RippleDrawable) {
+            // 普通视图：拆掉涟漪层，只留内容层（形状或颜色），视觉不变
             android.graphics.drawable.RippleDrawable ripple =
                     (android.graphics.drawable.RippleDrawable) view.getBackground();
             android.graphics.drawable.Drawable content =
