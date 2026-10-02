@@ -81,17 +81,34 @@ public final class BukaTheme {
         } else if (view instanceof android.widget.TextView) {
             // 所有「主色 / 强调色」的文字也跟着一起变（分组标题、当前值、说明等）。
             android.widget.TextView text = (android.widget.TextView) view;
-            android.content.res.ColorStateList list = text.getTextColors();
-            if (list != null) {
-                int color = list.getDefaultColor();
-                if (isAccentColor(activity, color)) {
+            // 颜色只认「角色」：第一次按布局里的颜色判定它是主色 / 纯白 / 次级灰，
+            // 之后每次都按角色重新算。否则上过一轮色之后就再也认不出来，
+            // 换歌时文字颜色就不刷新了（歌手名不刷新就是这个原因）。
+            Object tagged = text.getTag(R.id.palette_role_tag);
+            String role = tagged instanceof String ? (String) tagged : null;
+            if (role == null) {
+                android.content.res.ColorStateList list = text.getTextColors();
+                if (list != null) {
+                    int color = list.getDefaultColor();
+                    if (isAccentColor(activity, color)) {
+                        role = "accent";
+                    } else if (isWhiteText(activity, color)) {
+                        role = "white";
+                    } else if (isSecondaryText(activity, color)) {
+                        role = "secondary";
+                    }
+                    if (role != null) text.setTag(R.id.palette_role_tag, role);
+                }
+            }
+            if (role != null) {
+                if ("accent".equals(role)) {
                     // 文字用提饱和版的主色，换歌时看得出来在变
                     text.setTextColor(ColorTheme.textAccent());
-                } else if (isWhiteText(activity, color)) {
-                    // 纯白字是「漏掉没跟着取色」的那批，统一成气泡那种同色系近白。
+                } else if ("white".equals(role)) {
+                    // 纯白字统一成气泡那种同色系近白
                     text.setTextColor(ColorTheme.tooltipText());
-                } else if (isSecondaryText(activity, color)) {
-                    // 次级灰字（歌手名、说明）也掺一点主色，跟着封面变。
+                } else if ("secondary".equals(role)) {
+                    // 次级灰字（歌手名、专辑名、说明）掺一半主色，跟着封面变
                     text.setTextColor(ColorTheme.textSecondary());
                 }
             }

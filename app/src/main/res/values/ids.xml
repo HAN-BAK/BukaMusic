@@ -2,4 +2,6 @@
 <resources>
     <item name="press_fx_tag" type="id" />
     <item name="btn_shape_tag" type="id" />
+    <!-- 文字在当前配色里扮演的角色（主色 / 纯白 / 次级灰），换歌时按它重新上色 -->
+    <item name="palette_role_tag" type="id" />
 </resources>
