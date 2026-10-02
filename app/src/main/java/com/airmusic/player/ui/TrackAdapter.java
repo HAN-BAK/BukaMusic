@@ -211,6 +211,23 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
             bucket.add(track);
         }
+        if (groupBy == GroupBy.ALBUM) {
+            // 专辑视图里按音轨号排；没有音轨号的排到最后，再按标题。
+            // 不分组的平铺列表与按歌手视图保持原顺序。
+            for (List<Track> bucket : groups.values()) {
+                Collections.sort(bucket, new java.util.Comparator<Track>() {
+                    @Override
+                    public int compare(Track a, Track b) {
+                        int ta = a.trackNo > 0 ? a.trackNo : Integer.MAX_VALUE;
+                        int tb = b.trackNo > 0 ? b.trackNo : Integer.MAX_VALUE;
+                        if (ta != tb) return ta < tb ? -1 : 1;
+                        String x = a.displayTitle();
+                        String y = b.displayTitle();
+                        return x.compareToIgnoreCase(y);
+                    }
+                });
+            }
+        }
         return groups;
     }
 

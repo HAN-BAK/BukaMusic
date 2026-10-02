@@ -17,6 +17,8 @@ public class Track {
     public final String title;
     public final String artist;
     public final String album;
+    /** 音轨号（标签里没有时为 0）。 */
+    public final int trackNo;
     public final long durationMs;
     public final String folder;
     public final String filePath;
@@ -24,10 +26,16 @@ public class Track {
 
     public Track(Uri uri, String title, String artist, String album, long durationMs,
                  String folder, String filePath, String extension) {
+        this(uri, title, artist, album, 0, durationMs, folder, filePath, extension);
+    }
+
+    public Track(Uri uri, String title, String artist, String album, int trackNo, long durationMs,
+                 String folder, String filePath, String extension) {
         this.uri = uri;
         this.title = title;
         this.artist = artist;
         this.album = album;
+        this.trackNo = trackNo;
         this.durationMs = durationMs;
         this.folder = folder;
         this.filePath = filePath;

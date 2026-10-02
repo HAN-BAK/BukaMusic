@@ -153,6 +153,7 @@ public final class MusicLibrary {
         String title = nameWithoutExt(name);
         String artist = "";
         String album = "";
+        int trackNo = 0;
         long duration = 0;
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
@@ -160,6 +161,7 @@ public final class MusicLibrary {
             title = firstNonEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE), title);
             artist = trimToEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST));
             album = trimToEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM));
+            trackNo = readTrackNo(retriever);
             String d = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
             if (d != null) {
                 try {
@@ -175,8 +177,26 @@ public final class MusicLibrary {
             } catch (Exception ignored) {
             }
         }
-        return new Track(Uri.fromFile(file), title, artist, album, duration, folder,
+        return new Track(Uri.fromFile(file), title, artist, album, trackNo, duration, folder,
                 file.getAbsolutePath(), AudioExt.extensionOf(name));
+    }
+
+    /**
+     * 音轨号：标签里可能是 "3"、"3/12" 或 "0"（0 视为没有）。
+     * 读不到就返回 0，桌面端会退化回按标题排序。
+     */
+    private static int readTrackNo(MediaMetadataRetriever retriever) {
+        try {
+            String raw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER);
+            if (raw == null) return 0;
+            String value = raw.trim();
+            int slash = value.indexOf('/');
+            if (slash > 0) value = value.substring(0, slash);
+            int number = Integer.parseInt(value.trim());
+            return number > 0 ? number : 0;
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     private static int compareNullable(String a, String b) {
@@ -208,6 +228,7 @@ public final class MusicLibrary {
         String title = nameWithoutExt(name);
         String artist = "";
         String album = "";
+        int trackNo = 0;
         long duration = 0;
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
@@ -215,6 +236,7 @@ public final class MusicLibrary {
             title = firstNonEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE), title);
             artist = trimToEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST));
             album = trimToEmpty(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM));
+            trackNo = readTrackNo(retriever);
             String d = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
             if (d != null) {
                 try {
@@ -230,7 +252,7 @@ public final class MusicLibrary {
             } catch (Exception ignored) {
             }
         }
-        return new Track(file.getUri(), title, artist, album, duration, folder,
+        return new Track(file.getUri(), title, artist, album, trackNo, duration, folder,
                 null, AudioExt.extensionOf(name));
     }
 

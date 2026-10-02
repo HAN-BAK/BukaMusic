@@ -261,6 +261,8 @@ public final class ControlApi {
                     item.put("title", nullToEmpty(track.title));
                     item.put("artist", nullToEmpty(track.artist));
                     item.put("album", nullToEmpty(track.album));
+                    // 音轨号（没有标签时为 0）：桌面端按它给专辑内的歌排序
+                    item.put("track", track.trackNo);
                     item.put("durationMs", track.durationMs);
                     item.put("folder", nullToEmpty(track.folder));
                     item.put("extension", nullToEmpty(track.extension));
