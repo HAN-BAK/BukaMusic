@@ -132,6 +132,7 @@
     <string name="pref_balance">L/R Channel Balance</string>
     <string name="pref_reset_balance">Reset to Default</string>
     <string name="balance_reset">Balance reset</string>
+    <string name="balance_reset_confirm">Reset the channel balance to default?</string>
     <string name="balance_left">L</string>
     <string name="balance_right">R</string>
     <string name="balance_center">Center</string>

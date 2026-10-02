@@ -43,31 +43,21 @@ public final class BukaTheme {
     public static void tintButtons(Activity activity) {
         int accent = ColorTheme.accent();
         Integer last = appliedPalette.get(activity);
-        if (last != null && last == accent) return;
+        View content = activity.findViewById(android.R.id.content);
+        if (last != null && last == accent) {
+            // 主色没变就不重复上色，但涟漪始终要保证是关的（可能有新加入的视图）。
+            RippleKiller.kill(content);
+            return;
+        }
         appliedPalette.put(activity, accent);
-        tintButtons(activity, activity.findViewById(android.R.id.content));
+        tintButtons(activity, content);
+        // setBackgroundTintList 会让 MaterialButton 重建背景（涟漪层跟着回来），
+        // 所以「去涟漪」必须是这一轮的最后一步。
+        RippleKiller.kill(content);
     }
 
     private static void tintButtons(Activity activity, View view) {
         if (view == null) return;
-        // 整个应用不要水波纹。
-        // MaterialButton 的 ripple 是它自己背景的一部分，直接拆背景会把材质背景弄坏
-        // （动态取色就失效了），所以这里只把它的 ripple 颜色设成透明。
-        if (view instanceof com.google.android.material.button.MaterialButton) {
-            ((com.google.android.material.button.MaterialButton) view)
-                    .setRippleColor(android.content.res.ColorStateList.valueOf(
-                            android.graphics.Color.TRANSPARENT));
-        } else if (view.getBackground() instanceof android.graphics.drawable.RippleDrawable) {
-            // 普通视图：拆掉涟漪层，只留内容层（形状或颜色），视觉不变
-            android.graphics.drawable.RippleDrawable ripple =
-                    (android.graphics.drawable.RippleDrawable) view.getBackground();
-            android.graphics.drawable.Drawable content =
-                    ripple.getNumberOfLayers() > 0 ? ripple.getDrawable(0) : null;
-            view.setBackground(content);
-        }
-        if (view.getForeground() instanceof android.graphics.drawable.RippleDrawable) {
-            view.setForeground(null);
-        }
         if (view.getId() == R.id.volume_icon && view instanceof android.widget.ImageView) {
             // 图标在浅色胶囊里，用已播放段的深色同色系，保证看得清。
             ((android.widget.ImageView) view).setImageTintList(

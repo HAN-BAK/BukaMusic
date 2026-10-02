@@ -91,6 +91,18 @@ public class BukaDialog extends Dialog {
             window.setLayout(dialogWidth(context), ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         setCanceledOnTouchOutside(true);
+
+        // 对话框的窗口主题不是应用主题，标题 / 选项 / 按钮的文字色都得自己跟着
+        // 封面主色走（否则选项文字永远是天蓝或纯白的静态色）。
+        title.setTextColor(ColorTheme.tooltipText());
+        message.setTextColor(ColorTheme.textSecondary());
+        loadingText.setTextColor(ColorTheme.textSecondary());
+        negative.setTextColor(ColorTheme.tooltipText());
+        positive.setTextColor(ColorTheme.tooltipText());
+        input.setTextColor(ColorTheme.tooltipText());
+        input.setHintTextColor(ColorTheme.withAlpha(ColorTheme.textSecondary(), 0.55f));
+        // 对话框里也可能有系统涟漪（平台对话框主题默认开启），建完清一遍。
+        RippleKiller.kill(window == null ? card : window.getDecorView());
     }
 
     private static int dialogWidth(Context context) {
@@ -260,8 +272,9 @@ public class BukaDialog extends Dialog {
         TextView text = new TextView(context);
         text.setText(label);
         text.setTextSize(15f);
-        text.setTextColor(context.getResources().getColor(
-                selected ? R.color.accent : R.color.text_primary));
+        // 选中项跟着封面主色（提饱和版），未选中项和按钮同一套近白，
+        // 不再是固定的 R.color.accent / 纯白。
+        text.setTextColor(selected ? ColorTheme.textAccent() : ColorTheme.tooltipText());
         text.setLayoutParams(new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(text);
@@ -269,7 +282,7 @@ public class BukaDialog extends Dialog {
         TextView mark = new TextView(context);
         mark.setText("✓");
         mark.setTextSize(16f);
-        mark.setTextColor(context.getResources().getColor(R.color.accent));
+        mark.setTextColor(ColorTheme.textAccent());
         mark.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
         row.addView(mark);
 
@@ -294,8 +307,8 @@ public class BukaDialog extends Dialog {
             row.setBackground(state[i]
                     ? ColorTheme.optionSelected(getContext())
                     : ColorTheme.optionIdle(getContext()));
-            optionViews.get(i).setTextColor(getContext().getResources().getColor(
-                    state[i] ? R.color.accent : R.color.text_primary));
+            optionViews.get(i).setTextColor(
+                    state[i] ? ColorTheme.textAccent() : ColorTheme.tooltipText());
         }
     }
 

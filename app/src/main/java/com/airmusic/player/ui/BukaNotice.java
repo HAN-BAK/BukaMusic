@@ -54,7 +54,8 @@ public final class BukaNotice {
         notice.setText(text);
         notice.setTag(TAG);
         notice.setTextSize(14f);
-        notice.setTextColor(activity.getResources().getColor(R.color.text_primary));
+        // 提示条是动态创建的，走不到页面统一上色那一步，这里直接用动态近白。
+        notice.setTextColor(ColorTheme.tooltipText());
         notice.setBackgroundResource(R.drawable.bg_notice);
         int padH = dp(activity, 20f);
         int padV = dp(activity, 12f);

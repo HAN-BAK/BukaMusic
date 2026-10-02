@@ -19,6 +19,11 @@
         <item name="android:backgroundDimAmount">0.62</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:colorAccent">@color/primary</item>
+        <!-- 对话框用的是平台对话框主题，不吃应用主题里的这两项；不写的话
+             对话框里的控件（MaterialButton / 卡片）会带着系统默认的白色涟漪。 -->
+        <item name="android:colorControlHighlight">@android:color/transparent</item>
+        <item name="colorControlHighlight">@android:color/transparent</item>
+        <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
     </style>
 
     <!-- 全应用按钮统一成对话框那套外观：覆盖 Material 的两个内置样式，

@@ -132,6 +132,7 @@
     <string name="pref_balance">左右声道平衡</string>
     <string name="pref_reset_balance">恢复默认</string>
     <string name="balance_reset">已恢复默认</string>
+    <string name="balance_reset_confirm">确定要恢复默认声道平衡吗？</string>
     <string name="balance_left">左</string>
     <string name="balance_right">右</string>
     <string name="balance_center">居中</string>

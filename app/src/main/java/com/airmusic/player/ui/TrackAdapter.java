@@ -437,8 +437,10 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         + (Track.UNKNOWN_ALBUM.equals(album)
                         ? ctx.getString(R.string.unknown_album) : album));
         boolean isSelected = selected.contains(key(track));
-        h.title.setTextColor(ContextCompat.getColor(ctx,
-                isCurrent(track) ? R.color.accent : R.color.text_primary));
+        // 曲目列表每次绑定都会重设颜色：这里也必须用动态配色，否则换歌 / 滚动
+        // 回来后正在播放的那首又变回固定的天蓝，其余行回到纯白。
+        h.title.setTextColor(isCurrent(track)
+                ? ColorTheme.textAccent() : ColorTheme.tooltipText());
         h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
         h.check.setChecked(isSelected);
         h.itemView.setBackgroundColor(isSelected

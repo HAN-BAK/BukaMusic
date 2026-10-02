@@ -152,11 +152,16 @@ public class SettingsActivity extends BaseActivity {
         });
 
         findViewById(R.id.btn_reset_balance).setOnClickListener(v -> {
-            seekBalance.setValue(100f);
-            prefs.setBalance(0f);
-            PlaybackService service = PlaybackService.getInstance();
-            if (service != null) service.setBalance(0f);
-            BukaNotice.show(this, R.string.balance_reset);
+            // 和均衡器的「恢复默认」一样先二次确认，避免误触把调好的平衡清掉
+            BukaDialog.confirm(this, getString(R.string.pref_reset_balance),
+                    getString(R.string.balance_reset_confirm),
+                    getString(android.R.string.ok), () -> {
+                        seekBalance.setValue(100f);
+                        prefs.setBalance(0f);
+                        PlaybackService service = PlaybackService.getInstance();
+                        if (service != null) service.setBalance(0f);
+                        BukaNotice.show(this, R.string.balance_reset);
+                    }).show();
         });
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
