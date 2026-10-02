@@ -121,7 +121,6 @@ public class OnboardingOverlay extends FrameLayout {
         scrimPaint.setColor(0xD9060F1C);
         ringPaint.setStyle(Paint.Style.STROKE);
         ringPaint.setStrokeWidth(Math.round(2 * density));
-        ringPaint.setColor(0xFF4FC3F7);
 
         card = LayoutInflater.from(context).inflate(R.layout.overlay_onboarding, this, false);
         addView(card);
@@ -130,6 +129,16 @@ public class OnboardingOverlay extends FrameLayout {
         dots = card.findViewById(R.id.onboarding_dots);
         nextButton = card.findViewById(R.id.onboarding_next);
         skipButton = card.findViewById(R.id.onboarding_skip);
+        // 引导用和对话框 / 按钮同一套动态配色，跟着当前封面主色走
+        card.setBackground(com.airmusic.player.ui.ColorTheme.dialogCard(context));
+        titleView.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+        bodyView.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
+        ringPaint.setColor(com.airmusic.player.ui.ColorTheme.accent());
+        for (android.widget.Button button : new android.widget.Button[]{nextButton, skipButton}) {
+            button.setBackground(com.airmusic.player.ui.ColorTheme.capsule(context));
+            button.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+            button.setAllCaps(false);
+        }
         nextButton.setOnClickListener(v -> advance());
         skipButton.setOnClickListener(v -> dismiss());
     }
@@ -204,7 +213,8 @@ public class OnboardingOverlay extends FrameLayout {
             View dot = new View(getContext());
             GradientDrawable shape = new GradientDrawable();
             shape.setShape(GradientDrawable.OVAL);
-            shape.setColor(0x4DFFFFFF);
+            shape.setColor(com.airmusic.player.ui.ColorTheme.withAlpha(
+                    com.airmusic.player.ui.ColorTheme.accent(), 0.28f));
             dot.setBackground(shape);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
             params.setMargins(gap, 0, gap, 0);
@@ -218,7 +228,10 @@ public class OnboardingOverlay extends FrameLayout {
             View dot = dots.getChildAt(i);
             if (dot.getBackground() instanceof GradientDrawable) {
                 ((GradientDrawable) dot.getBackground())
-                        .setColor(i == index ? 0xFF4FC3F7 : 0x4DFFFFFF);
+                        .setColor(i == index
+                                ? com.airmusic.player.ui.ColorTheme.accent()
+                                : com.airmusic.player.ui.ColorTheme.withAlpha(
+                                        com.airmusic.player.ui.ColorTheme.accent(), 0.28f));
             }
         }
     }
