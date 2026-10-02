@@ -133,6 +133,7 @@ public class SettingsActivity extends BaseActivity {
         });
 
         setupTabs();
+        applyIcons();
         seekBalance.setProgress((int) ((prefs.getBalance() + 1f) * 100f));
         seekBalance.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -325,6 +326,63 @@ public class SettingsActivity extends BaseActivity {
             tab.setBackground(selected
                     ? com.airmusic.player.ui.ColorTheme.capsule(this)
                     : null);
+        }
+    }
+
+    /** 给各类选项 / 按钮加线性图标（颜色跟随动态主色）。 */
+    private void applyIcons() {
+        // 选项卡也带图标
+        int[] tabIcons = {
+                R.drawable.ic_row_wifi, R.drawable.ic_row_autoplay, R.drawable.ic_row_apps,
+                R.drawable.ic_row_storage, R.drawable.ic_row_info,
+        };
+        for (int i = 0; i < tabViews.size() && i < tabIcons.length; i++) {
+            com.airmusic.player.ui.BukaIcons.row(tabViews.get(i), tabIcons[i]);
+        }
+        // 按钮
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_wifi_settings),
+                R.drawable.ic_row_wifi);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_transfer),
+                R.drawable.ic_row_transfer);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_choose_folder),
+                R.drawable.ic_row_folder);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_clear_path),
+                R.drawable.ic_row_rescan);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_play_mode),
+                R.drawable.ic_row_playmode);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_language),
+                R.drawable.ic_row_language);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_blur_mode),
+                R.drawable.ic_row_blur);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_set_home),
+                R.drawable.ic_row_launcher);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_export_logs),
+                R.drawable.ic_row_logs);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_rescan),
+                R.drawable.ic_row_rescan);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_about),
+                R.drawable.ic_row_info);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_show_tour),
+                R.drawable.ic_row_device);
+        // 开关 / 滑条 / 信息行：给行标签加图标
+        com.airmusic.player.ui.BukaIcons.rowLabel(findViewById(R.id.switch_auto_play),
+                R.drawable.ic_row_autoplay);
+        com.airmusic.player.ui.BukaIcons.rowLabel(findViewById(R.id.switch_online_lyrics),
+                R.drawable.ic_row_lyrics);
+        com.airmusic.player.ui.BukaIcons.rowLabel(findViewById(R.id.switch_show_apps),
+                R.drawable.ic_row_apps);
+        com.airmusic.player.ui.BukaIcons.rowLabel(findViewById(R.id.seek_balance),
+                R.drawable.ic_row_balance);
+        com.airmusic.player.ui.BukaIcons.rowLabel(findViewById(R.id.path_display),
+                R.drawable.ic_row_folder);
+        // 均衡器入口用动态图标（点击时播放动画，动画在原有的点击处理里启动）
+        View eq = findViewById(R.id.btn_equalizer);
+        if (eq instanceof TextView) {
+            com.airmusic.player.ui.BukaIcons.animated((TextView) eq, R.drawable.ic_anim_equalizer);
+            eq.setOnClickListener(v -> {
+                com.airmusic.player.ui.BukaIcons.play((TextView) v);
+                startActivity(new Intent(this, EqualizerActivity.class));
+            });
         }
     }
 

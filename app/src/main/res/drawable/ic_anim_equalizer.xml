@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 动态版均衡器：三根柱依次上下跳动（原生 AnimatedVectorDrawable） -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_eq_bars">
+    <target android:name="bar1">
+        <objectAnimator
+            android:duration="420"
+            android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="infinite"
+            android:repeatMode="reverse"
+            android:valueFrom="0.55"
+            android:valueTo="1.25"
+            android:valueType="floatType" />
+    </target>
+    <target android:name="bar2">
+        <objectAnimator
+            android:duration="420"
+            android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="infinite"
+            android:repeatMode="reverse"
+            android:startOffset="120"
+            android:valueFrom="0.6"
+            android:valueTo="1.35"
+            android:valueType="floatType" />
+    </target>
+    <target android:name="bar3">
+        <objectAnimator
+            android:duration="420"
+            android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="infinite"
+            android:repeatMode="reverse"
+            android:startOffset="240"
+            android:valueFrom="0.5"
+            android:valueTo="1.2"
+            android:valueType="floatType" />
+    </target>
+</animated-vector>

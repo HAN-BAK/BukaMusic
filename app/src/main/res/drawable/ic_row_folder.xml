@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 24dp 线性图标：统一 1.7dp 描边、圆角端点，颜色由 compoundDrawableTint 决定 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M3.5,7.5 a2,2 0 0 1 2,-2 h3.2 l1.8,2 h7.5 a2,2 0 0 1 2,2 v7.5 a2,2 0 0 1 -2,2 h-12.5 a2,2 0 0 1 -2,-2 z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
+</vector>
