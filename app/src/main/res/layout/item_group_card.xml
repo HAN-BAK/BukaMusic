@@ -28,7 +28,7 @@
             android:background="@drawable/bg_art_placeholder"
             android:contentDescription="@string/album_art"
             android:scaleType="centerCrop"
-            android:src="@drawable/ic_music_note" />
+            android:src="@drawable/ic_airplay" />
     </com.google.android.material.card.MaterialCardView>
 
     <TextView

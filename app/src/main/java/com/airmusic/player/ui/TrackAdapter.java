@@ -370,9 +370,9 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             h.subtitle.setText(subtitle);
             String artKey = CoverArtLoader.keyOf(card.key, card.first);
             if (coverLoader != null) {
-                coverLoader.load(artKey, card.tracks, h.art, R.drawable.ic_music_note);
+                coverLoader.load(artKey, card.tracks, h.art, R.drawable.ic_airplay);
             } else {
-                h.art.setImageResource(R.drawable.ic_music_note);
+                h.art.setImageResource(R.drawable.ic_airplay);
             }
             h.itemView.setOnClickListener(v -> {
                 if (selectionMode) return;

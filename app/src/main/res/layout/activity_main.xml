@@ -41,7 +41,7 @@
                 android:padding="4dp"
                 android:scaleType="centerCrop"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.AirMusic.Rounded"
-                app:srcCompat="@drawable/ic_music_note" />
+                app:srcCompat="@drawable/ic_airplay" />
         </LinearLayout>
 
         <!-- 鍙充晶锛氭瓕鏇蹭俊鎭湪涓婏紝鎾斁鎺у埗灞呬腑锛堝皝闈㈠彉澶у悗鐩稿簲鍙崇Щ锛?-->

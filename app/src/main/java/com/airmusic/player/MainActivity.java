@@ -623,10 +623,11 @@ public class MainActivity extends BaseActivity {
         } else if (s.source == PlayerUiState.Source.IDLE) {
             albumArt.setImageResource(R.drawable.ic_airplay);
         } else {
-            albumArt.setImageResource(R.drawable.ic_music_note);
+            // 本地播放也统一用专属占位封面：没有内嵌封面的歌不该变成小音符图标。
+            albumArt.setImageResource(R.drawable.ic_airplay);
             if (art != null) {
                 albumArt.setImageBitmap(art);
-        }
+            }
     }
 
         if (s.source == PlayerUiState.Source.AIRPLAY) {
