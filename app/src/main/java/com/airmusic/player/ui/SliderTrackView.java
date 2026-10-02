@@ -132,40 +132,23 @@ public class SliderTrackView extends View {
         // 不会半个身子探到条外面去（那样看着像渲染错位）。
         float thumbCenterX = left + half + fraction * Math.max(0f, (right - left) - half * 2f);
         float gapPx = thumbGapDp * d;
-        // 切口（断口）只在这侧有足够空间时才留：手柄贴到端点时这一侧不留切口，
-        // 轨道直接画到手柄下面——否则端点会剩下一小块孤零零的端头，看着像渲染错误。
-        float capKeep = radius * 0.5f;
-        float leftCut = thumbCenterX - half - gapPx;
-        boolean leftGap = leftCut > left + capKeep;
-        float leftPieceEnd = leftGap ? leftCut : thumbCenterX;
-        float rightCut = thumbCenterX + half + gapPx;
-        boolean rightGap = rightCut < right - capKeep;
-        float rightPieceStart = rightGap ? rightCut : thumbCenterX;
-
-        // 轨道两端永远是半圆：先按整条胶囊算形状，再按左右两段分别裁切。
-        if (leftPieceEnd > left + 0.5f) {
-            paint.setColor(trackColor);
-            canvas.save();
-            canvas.clipRect(left, 0f, leftPieceEnd, h);
-            rect.set(left, trackTop, right, trackBottom);
-            canvas.drawRoundRect(rect, radius, radius, paint);
-            canvas.restore();
-        }
-        if (right > rightPieceStart + 0.5f) {
-            paint.setColor(trackColor);
-            canvas.save();
-            canvas.clipRect(rightPieceStart, 0f, right, h);
-            rect.set(left, trackTop, right, trackBottom);
-            canvas.drawRoundRect(rect, radius, radius, paint);
-            canvas.restore();
-        }
-        // 已播放段：左端跟着轨道圆角，靠手柄那头是直角切口
-        float edge = Math.min(leftPieceEnd, Math.max(left, fillRight()));
-        if (edge > left + 0.5f) {
+        // 整条只有两段可见：左边的「已播放段」和右边的「未播放段」，
+        // 它们之间（手柄两侧各留一个断口）什么都不画 = 切口露出背景。
+        // 两段都用「整条胶囊 + 裁切」画，所以外端永远是半圆、靠手柄那头是直角。
+        float fillEnd = Math.max(left, fillRight());
+        float trackStart = thumbCenterX + half + gapPx;
+        if (fillEnd > left + 0.5f) {
             paint.setColor(fillColor);
-            // 同样用「整条胶囊 + 裁切」：左端永远是圆的，右端被裁成直角
             canvas.save();
-            canvas.clipRect(left, 0f, edge, h);
+            canvas.clipRect(left, 0f, fillEnd, h);
+            rect.set(left, trackTop, right, trackBottom);
+            canvas.drawRoundRect(rect, radius, radius, paint);
+            canvas.restore();
+        }
+        if (trackStart < right - 0.5f) {
+            paint.setColor(trackColor);
+            canvas.save();
+            canvas.clipRect(trackStart, 0f, right, h);
             rect.set(left, trackTop, right, trackBottom);
             canvas.drawRoundRect(rect, radius, radius, paint);
             canvas.restore();
@@ -180,7 +163,7 @@ public class SliderTrackView extends View {
         canvas.drawRoundRect(rect, thumbRadius, thumbRadius, paint);
 
         // 图标最后画（压在手柄上面），但同样被切口裁掉
-        drawIcon(canvas, leftPieceEnd, rightPieceStart, left, right);
+        drawIcon(canvas, fillEnd, trackStart, left, right);
     }
 
     /** 图标分左右两段裁切绘制：切口那一段不画，视觉上就是被切断。 */

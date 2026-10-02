@@ -527,7 +527,7 @@ public class MainActivity extends BaseActivity {
     private void layoutSliderTracks() {
         if (volumeSeek == null) return;
         float d = getResources().getDisplayMetrics().density;
-        int iconMargin = Math.round(12 * d);
+        int iconMargin = Math.round(14 * d);
         if (volumeIcon != null && volumeIcon.getLayoutParams()
                 instanceof ViewGroup.MarginLayoutParams) {
             ViewGroup.MarginLayoutParams lp =
