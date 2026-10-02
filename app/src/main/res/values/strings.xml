@@ -103,6 +103,7 @@
     <string name="equalizer_reset_confirm">确定要恢复默认均衡器设置吗？</string>
     <string name="equalizer_default_name">预设%1$d</string>
     <string name="equalizer_export_failed">导出失败</string>
+    <string name="equalizer_exported">已导出预设</string>
     <string name="equalizer_import_failed">导入失败</string>
     <string name="pref_music_path">本地音乐路径</string>
     <string name="pref_music_path_hint">未选择时使用系统媒体库（含 USB 设备）</string>

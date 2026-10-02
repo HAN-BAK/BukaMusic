@@ -44,6 +44,49 @@ public final class PressFx {
         });
     }
 
+    /**
+     * 触摸 {@code touchTarget}（比如滑条）时缩放 {@code scaleTarget}
+     * （比如滑条所在的那一层轨道容器）。滑条自己要处理拖动，所以做成
+     * 「监听触摸但不动缩放对象本身」，不会影响拖动。
+     */
+    public static void attachScaled(View touchTarget, View scaleTarget, float pressedScale) {
+        if (touchTarget == null || scaleTarget == null) return;
+        if (touchTarget.getTag(R.id.press_fx_tag) != null) return;
+        touchTarget.setTag(R.id.press_fx_tag, Boolean.TRUE);
+        touchTarget.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    scalePress(scaleTarget, pressedScale);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    scaleRelease(scaleTarget);
+                    break;
+                default:
+                    break;
+            }
+            return false; // 不消费事件，拖动照旧
+        });
+    }
+
+    private static void scalePress(View v, float scale) {
+        v.animate().cancel();
+        v.animate()
+                .scaleX(scale).scaleY(scale)
+                .setDuration(90L)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+    }
+
+    private static void scaleRelease(View v) {
+        v.animate().cancel();
+        v.animate()
+                .scaleX(1f).scaleY(1f)
+                .setDuration(180L)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+    }
+
     private static void press(View v, float scale) {
         v.animate().cancel();
         // 图标本身是 AnimatedVectorDrawable 的话，按下时顺手播放一次动画

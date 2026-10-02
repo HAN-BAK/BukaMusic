@@ -60,6 +60,8 @@ public final class BukaSlider {
         });
         host.addView(slider);
 
+        // 按住滑条时整层轨道轻微缩放（和按钮同一套按压反馈）
+        PressFx.attachScaled(slider, host, 0.97f);
         host.post(() -> align(host, slider, track, d));
         return slider;
     }
@@ -71,7 +73,9 @@ public final class BukaSlider {
     private static void align(FrameLayout host, Slider slider, SliderTrackView track, float d) {
         int trackWidth = slider.getTrackWidth();
         if (slider.getWidth() <= 0 || trackWidth <= 0 || slider.getWidth() <= trackWidth) {
-            host.post(() -> align(host, slider, track, d)); // 布局还没算好，下一帧再来
+            // 按住滑条时整层轨道轻微缩放（和按钮同一套按压反馈）
+        PressFx.attachScaled(slider, host, 0.97f);
+        host.post(() -> align(host, slider, track, d)); // 布局还没算好，下一帧再来
             return;
         }
         int pad = (slider.getWidth() - trackWidth) / 2;

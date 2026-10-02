@@ -103,6 +103,7 @@
     <string name="equalizer_reset_confirm">Reset the equalizer to defaults?</string>
     <string name="equalizer_default_name">Preset %1$d</string>
     <string name="equalizer_export_failed">Export failed</string>
+    <string name="equalizer_exported">Presets exported</string>
     <string name="equalizer_import_failed">Import failed</string>
     <string name="pref_music_path">Local Music Path</string>
     <string name="pref_music_path_hint">Uses the system media library (incl. USB devices) when not set</string>

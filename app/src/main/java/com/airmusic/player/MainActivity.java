@@ -207,6 +207,16 @@ public class MainActivity extends BaseActivity {
         View leftPanel = findViewById(R.id.left_panel);
 
         setupVolumeSlider();
+        // 按住进度条 / 音量条时，整条（轨道+手柄）轻微缩放，和按钮同一套按压反馈
+        View seekHost = findViewById(R.id.seek_track);
+        View volumeBarForScale = findViewById(R.id.volume_bar);
+        if (seekHost != null && seekBar != null && seekHost.getParent() instanceof View) {
+            com.airmusic.player.ui.PressFx.attachScaled(
+                    seekBar, (View) seekHost.getParent(), 0.97f);
+        }
+        if (volumeBarForScale != null && volumeSeek != null) {
+            com.airmusic.player.ui.PressFx.attachScaled(volumeSeek, volumeBarForScale, 0.97f);
+        }
         // 音量轨道的两端要贴着「图标右侧」和「胶囊右端」，等布局完成后再对齐。
         View volumeBar = findViewById(R.id.volume_bar);
         if (volumeBar != null) {

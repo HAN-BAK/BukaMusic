@@ -112,7 +112,10 @@ public class FolderPickerActivity extends BaseActivity {
         if (pickFile) {
             ((android.widget.TextView) findViewById(R.id.folder_title))
                     .setText(R.string.folder_pick_file);
+            // 选文件模式：底部那个「选择文件夹」按钮没有意义，直接藏掉，
+            // 免得看起来像是在选文件夹。
             btnSelect.setEnabled(false);
+            btnSelect.setVisibility(View.GONE);
         }
 
         adapter = new ArrayAdapter<FolderEntry>(this, R.layout.item_folder, R.id.item_name, entries) {

@@ -45,8 +45,10 @@ public class EqualizerActivity extends BaseActivity {
     private final ActivityResultLauncher<Intent> exportLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri uri = result.getData().getData();
-                    if (uri != null) writeExport(uri);
+                    // 用应用自带的文件管理器选文件夹，预设文件写进这个文件夹
+                    String dir = result.getData()
+                            .getStringExtra(FolderPickerActivity.EXTRA_RESULT_PATH);
+                    if (dir != null) writeExportTo(new java.io.File(dir));
                 }
             });
 
@@ -81,10 +83,7 @@ public class EqualizerActivity extends BaseActivity {
         findViewById(R.id.btn_load_preset).setOnClickListener(v -> loadPreset());
         findViewById(R.id.btn_delete_preset).setOnClickListener(v -> deletePreset());
         findViewById(R.id.btn_export_presets).setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/json");
-            intent.putExtra(Intent.EXTRA_TITLE, "buka_eq_presets.json");
+            Intent intent = new Intent(this, FolderPickerActivity.class);
             exportLauncher.launch(intent);
         });
         findViewById(R.id.btn_import_presets).setOnClickListener(v -> {
@@ -220,6 +219,22 @@ public class EqualizerActivity extends BaseActivity {
             w.write(prefs.exportEqPresets());
             w.flush();
             w.close();
+        } catch (Throwable t) {
+            BukaNotice.show(this, R.string.equalizer_export_failed);
+        }
+    }
+
+    /** 导出到指定文件夹（同名文件直接覆盖）。 */
+    private void writeExportTo(java.io.File dir) {
+        try {
+            java.io.File out = new java.io.File(dir, "buka_eq_presets.json");
+            try (OutputStreamWriter w = new OutputStreamWriter(
+                    new java.io.FileOutputStream(out), StandardCharsets.UTF_8)) {
+                w.write(prefs.exportEqPresets());
+                w.flush();
+            }
+            BukaNotice.show(this, getString(R.string.equalizer_exported) + "\n"
+                    + out.getAbsolutePath());
         } catch (Throwable t) {
             BukaNotice.show(this, R.string.equalizer_export_failed);
         }

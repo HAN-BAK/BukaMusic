@@ -103,6 +103,7 @@
     <string name="equalizer_reset_confirm">이퀄라이저 설정을 기본값으로 복원하시겠습니까?</string>
     <string name="equalizer_default_name">프리셋%1$d</string>
     <string name="equalizer_export_failed">내보내기 실패</string>
+    <string name="equalizer_exported">프리셋을 내보냈습니다</string>
     <string name="equalizer_import_failed">가져오기 실패</string>
     <string name="pref_music_path">로컬 음악 경로</string>
     <string name="pref_music_path_hint">설정하지 않으면 시스템 미디어 라이브러리(USB 기기 포함) 사용</string>
