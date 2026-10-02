@@ -242,13 +242,35 @@ public final class ColorTheme {
         return layers;
     }
 
-    /** 滑条手柄：和轨道同高的小圆点，不抢眼。 */
+    /**
+     * 滑条手柄：两头圆角的**竖条**，颜色比轨道更深，并且与轨道主体断开——
+     * 用「底色挖空 + 中间竖条」两层实现：外层宽一些、填页面底色（看起来像轨道
+     * 在这里断开），里层是 6dp 宽、22dp 高的深色圆角竖条。
+     */
     public static android.graphics.drawable.Drawable sliderThumb(Context context) {
-        int size = dp(context, 14f);
-        GradientDrawable thumb = new GradientDrawable();
-        thumb.setShape(GradientDrawable.OVAL);
-        thumb.setColor(accent);
-        thumb.setSize(size, size);
+        int gapWidth = dp(context, 18f);
+        int barWidth = dp(context, 6f);
+        int barHeight = dp(context, 22f);
+
+        GradientDrawable gap = new GradientDrawable();
+        gap.setShape(GradientDrawable.RECTANGLE);
+        gap.setColor(blend(0xFF0A1428, accent, 0.04f));
+        gap.setCornerRadius(dp(context, 4f));
+        gap.setSize(gapWidth, barHeight);
+
+        GradientDrawable bar = new GradientDrawable();
+        bar.setShape(GradientDrawable.RECTANGLE);
+        // 比轨道更深：主色压到很暗的同色系
+        bar.setColor(blend(0xFF0B1119, accent, 0.45f));
+        bar.setCornerRadius(barWidth / 2f);
+        bar.setSize(barWidth, barHeight);
+
+        android.graphics.drawable.LayerDrawable thumb =
+                new android.graphics.drawable.LayerDrawable(
+                        new android.graphics.drawable.Drawable[]{gap, bar});
+        thumb.setLayerGravity(1, android.view.Gravity.CENTER);
+        thumb.setLayerInsetLeft(0, 0);
+        thumb.setLayerInsetRight(0, 0);
         return thumb;
     }
 
