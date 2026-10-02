@@ -41,6 +41,10 @@ public class LibraryActivity extends BaseActivity {
     /** Album / artist mode: jump to the playing song the first time we load. */
     private boolean locateCurrentOnFirstLoad;
 
+    /** 从播放界面点歌手 / 专辑跳进来时带的参数。 */
+    public static final String EXTRA_GROUP_BY = "com.airmusic.player.GROUP_BY";
+    public static final String EXTRA_GROUP_KEY = "com.airmusic.player.GROUP_KEY";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,6 +95,30 @@ public class LibraryActivity extends BaseActivity {
             // Opening the library in album / artist mode jumps to whatever is
             // playing right now (once - not on every resume).
             locateCurrentOnFirstLoad = true;
+        }
+
+        // 从播放界面点歌手 / 专辑进来：直接切到对应分组并展开那一组
+        String wantGroupBy = getIntent().getStringExtra(EXTRA_GROUP_BY);
+        String wantGroupKey = getIntent().getStringExtra(EXTRA_GROUP_KEY);
+        if (wantGroupBy != null && wantGroupKey != null && wantGroupKey.length() > 0) {
+            try {
+                TrackAdapter.GroupBy mode = TrackAdapter.GroupBy.valueOf(wantGroupBy);
+                adapter.setGroupBy(mode);
+                new Prefs(this).setLibraryGroup(mode.name());
+                applyLayoutMode();
+                String key = wantGroupKey.trim().isEmpty()
+                        || Track.UNKNOWN_ALBUM.equals(wantGroupKey)
+                        || Track.UNKNOWN_ARTIST.equals(wantGroupKey) ? "-" : wantGroupKey;
+                adapter.openGroup(key);
+                if (adapter.getItemCount() == 0) {
+                    // 这一组里没有歌（比如元数据对不上），回到平铺列表
+                    adapter.closeGroup();
+                } else {
+                    locateCurrentOnFirstLoad = false;
+                }
+                applyLayoutMode();
+            } catch (Throwable ignored) {
+            }
         }
 
         adapter.setOnTrackClick(track -> {

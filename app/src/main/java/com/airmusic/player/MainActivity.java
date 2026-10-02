@@ -49,6 +49,7 @@ import com.airmusic.player.ui.BukaDialog;
 import com.airmusic.player.ui.BukaTheme;
 import com.airmusic.player.ui.ColorTheme;
 import com.airmusic.player.ui.BukaIcons;
+import com.airmusic.player.ui.TrackAdapter;
 
 public class MainActivity extends BaseActivity {
 
@@ -178,6 +179,11 @@ public class MainActivity extends BaseActivity {
         prevProgress = findViewById(R.id.prev_progress);
         volumeIcon = findViewById(R.id.volume_icon);
         btnApps = findViewById(R.id.btn_apps);
+        trackTitle.setOnClickListener(null);
+        trackArtist.setOnClickListener(v ->
+                openLibraryFor(TrackAdapter.GroupBy.ARTIST, trackArtist.getText()));
+        trackAlbum.setOnClickListener(v ->
+                openLibraryFor(TrackAdapter.GroupBy.ALBUM, trackAlbum.getText()));
         seekBar = findViewById(R.id.seek_bar);
         volumeSeek = findViewById(R.id.volume_seek);
         volumeTrack = findViewById(R.id.volume_track);
@@ -796,6 +802,12 @@ public class MainActivity extends BaseActivity {
         trackTitle.setText(s.title);
         trackArtist.setText(s.artist);
         trackAlbum.setText(s.album);
+        // 点歌手 / 专辑：跳到曲库对应分组（AirPlay / 多房间接收时屏幕上不是本地
+        // 曲库里的信息，就不跳）
+        boolean localInfo = s.source == PlayerUiState.Source.LOCAL
+                || s.source == PlayerUiState.Source.IDLE;
+        trackArtist.setClickable(localInfo);
+        trackAlbum.setClickable(localInfo);
 
         Bitmap art = s.art;
         // 动态配色：从当前封面取主色（降饱和）后给按钮 / 滑块上色。
@@ -877,5 +889,21 @@ public class MainActivity extends BaseActivity {
     private String formatTime(long ms) {
         long totalSec = ms / 1000;
         return String.format(Locale.US, "%d:%02d", totalSec / 60, totalSec % 60);
+    }
+
+    /** 点歌手 / 专辑 -> 打开曲库并展开对应的分组。 */
+    private void openLibraryFor(TrackAdapter.GroupBy mode, CharSequence name) {
+        if (name == null) return;
+        String key = name.toString().trim();
+        if (key.isEmpty()
+                || key.equals(getString(R.string.unknown_artist))
+                || key.equals(getString(R.string.unknown_album))
+                || key.equals(getString(R.string.source_idle))) {
+            return;
+        }
+        Intent intent = new Intent(this, LibraryActivity.class);
+        intent.putExtra(LibraryActivity.EXTRA_GROUP_BY, mode.name());
+        intent.putExtra(LibraryActivity.EXTRA_GROUP_KEY, key);
+        startActivity(intent);
     }
 }

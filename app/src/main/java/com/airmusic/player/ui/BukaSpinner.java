@@ -6,20 +6,21 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.SweepGradient;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
 /**
- * 自绘加载转圈：一段带「扫光」渐变的圆环在旋转（尾端渐隐、头部圆头），
- * 比系统 ProgressBar 那根细弧线好看，颜色也跟当前主色走。
+ * 自绘加载转圈：一圈淡淡的主色底环 + 一段会「呼吸」（长度 70°↔160°）的亮弧匀速旋转。
  *
- * <p>显示/隐藏沿用原来的 setVisibility 调用，控件自己会在可见时开始转、隐藏时停止。
+ * <p>细描边、圆头、纯色（不用渐变），是现在常见的那种极简加载指示器。
+ * 显示/隐藏沿用原来的 setVisibility 调用：可见时转、隐藏时停。
  */
 public class BukaSpinner extends View {
 
-    private static final float SWEEP_DEGREES = 300f;
+    private static final float MIN_SWEEP_DEGREES = 70f;
+    private static final float MAX_SWEEP_DEGREES = 160f;
+    private static final long SWEEP_PERIOD_MS = 1500L;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
@@ -27,8 +28,6 @@ public class BukaSpinner extends View {
     private int color = 0xFFCFE2F5;
     private float rotation;
     private ValueAnimator animator;
-    private SweepGradient gradient;
-    private int gradientColor = 0;
 
     public BukaSpinner(Context context) {
         this(context, null);
@@ -45,7 +44,6 @@ public class BukaSpinner extends View {
         int opaque = 0xFF000000 | (value & 0xFFFFFF);
         if (opaque == color) return;
         color = opaque;
-        gradient = null;
         invalidate();
     }
 
@@ -60,22 +58,27 @@ public class BukaSpinner extends View {
         float w = getWidth();
         float h = getHeight();
         if (w <= 0f || h <= 0f) return;
-        float stroke = Math.max(2f, Math.min(w, h) * 0.11f);
+        float stroke = Math.max(getResources().getDisplayMetrics().density * 1.6f,
+                Math.min(w, h) * 0.085f);
         float inset = stroke / 2f;
         rect.set(inset, inset, w - inset, h - inset);
         paint.setStrokeWidth(stroke);
-        if (gradient == null || gradientColor != color) {
-            gradientColor = color;
-            gradient = new SweepGradient(w / 2f, h / 2f,
-                    new int[]{color, Color.TRANSPARENT},
-                    new float[]{0f, 0.85f});
-        }
-        paint.setShader(gradient);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+
+        // 底环：主色压到很淡，交代出「一圈」
+        paint.setColor(Color.argb(0x2E, Color.red(color), Color.green(color), Color.blue(color)));
+        canvas.drawCircle(w / 2f, h / 2f, (w - stroke) / 2f, paint);
+
+        // 亮弧：长度随时间缓慢呼吸，整体匀速转
+        float phase = (android.os.SystemClock.uptimeMillis() % SWEEP_PERIOD_MS)
+                / (float) SWEEP_PERIOD_MS;
+        float sweep = MIN_SWEEP_DEGREES + (MAX_SWEEP_DEGREES - MIN_SWEEP_DEGREES)
+                * (0.5f - 0.5f * (float) Math.cos(2 * Math.PI * phase));
+        paint.setColor(color);
         canvas.save();
         canvas.rotate(rotation, w / 2f, h / 2f);
-        canvas.drawArc(rect, 0f, SWEEP_DEGREES, false, paint);
+        canvas.drawArc(rect, 0f, sweep, false, paint);
         canvas.restore();
-        paint.setShader(null);
     }
 
     @Override
