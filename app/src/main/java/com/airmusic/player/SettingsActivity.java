@@ -322,7 +322,7 @@ public class SettingsActivity extends BaseActivity {
             // 同时打上配色角色标记，换歌后由主题按角色重新上色（不会串成浓主色）
             tab.setTextColor(selected
                     ? com.airmusic.player.ui.ColorTheme.tooltipText()
-                    : getResources().getColor(R.color.text_secondary));
+                    : com.airmusic.player.ui.ColorTheme.textSecondary());
             tab.setTag(R.id.palette_role_tag, selected ? "white" : null);
             tab.setBackground(selected
                     ? com.airmusic.player.ui.ColorTheme.capsule(this)
