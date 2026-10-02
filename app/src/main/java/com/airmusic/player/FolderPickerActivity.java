@@ -44,12 +44,19 @@ public class FolderPickerActivity extends BaseActivity {
 
     public static final String EXTRA_RESULT_PATH = "result_path";
     public static final String EXTRA_RESULT_DISPLAY = "result_display";
+    /** 选文件模式：只列该后缀的文件，点文件即返回。 */
+    public static final String EXTRA_PICK_FILE = "pick_file";
+    public static final String EXTRA_FILE_SUFFIX = "file_suffix";
+    public static final String EXTRA_RESULT_IS_FILE = "result_is_file";
 
     private TextView pathText;
     private TextView statusText;
     private Button btnGrant;
     private ListView listView;
     private Button btnSelect;
+    /** 选文件模式（均衡器导入预设用）：列出指定后缀的文件，点文件即返回。 */
+    private boolean pickFile;
+    private String fileSuffix;
 
     private final List<FolderEntry> entries = new ArrayList<>();
     private final List<File> roots = new ArrayList<>();
@@ -71,11 +78,17 @@ public class FolderPickerActivity extends BaseActivity {
         final File dir;
         final String name;
         final String sub;
+        final boolean isFile;
 
         FolderEntry(File dir, String name, String sub) {
+            this(dir, name, sub, false);
+        }
+
+        FolderEntry(File dir, String name, String sub, boolean isFile) {
             this.dir = dir;
             this.name = name;
             this.sub = sub;
+            this.isFile = isFile;
         }
     }
 
@@ -87,10 +100,20 @@ public class FolderPickerActivity extends BaseActivity {
         BlurBackground.apply(this, R.color.background);
 
         pathText = findViewById(R.id.path_text);
+        // 路径框用和按钮同一套动态取色（描边+淡底），不再是那块写死的蓝框
+        pathText.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+        pathText.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
         statusText = findViewById(R.id.status_text);
         btnGrant = findViewById(R.id.btn_grant);
         listView = findViewById(R.id.folder_list);
         btnSelect = findViewById(R.id.btn_select);
+        pickFile = getIntent().getBooleanExtra(EXTRA_PICK_FILE, false);
+        fileSuffix = getIntent().getStringExtra(EXTRA_FILE_SUFFIX);
+        if (pickFile) {
+            ((android.widget.TextView) findViewById(R.id.folder_title))
+                    .setText(R.string.folder_pick_file);
+            btnSelect.setEnabled(false);
+        }
 
         adapter = new ArrayAdapter<FolderEntry>(this, R.layout.item_folder, R.id.item_name, entries) {
             @Override
@@ -99,15 +122,40 @@ public class FolderPickerActivity extends BaseActivity {
                 FolderEntry entry = getItem(position);
                 TextView name = view.findViewById(R.id.item_name);
                 TextView sub = view.findViewById(R.id.item_sub);
+                View card = view.findViewById(R.id.item_card);
+                android.widget.ImageView icon = view.findViewById(R.id.item_icon);
                 name.setText(entry.name);
                 sub.setText(entry.sub);
+                icon.setImageResource(entry.isFile ? R.drawable.ic_row_logs : R.drawable.ic_folder);
+                if (card != null) {
+                    card.setBackground(com.airmusic.player.ui.ColorTheme.softBlock(view.getContext()));
+                }
+                if (icon != null) {
+                    // 图标做成主色淡淡的圆底，和曲库 / 设置页的观感一致
+                    android.graphics.drawable.GradientDrawable chip =
+                            new android.graphics.drawable.GradientDrawable();
+                    chip.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                    chip.setColor(com.airmusic.player.ui.ColorTheme.fill());
+                    icon.setBackground(chip);
+                    icon.setImageTintList(android.content.res.ColorStateList.valueOf(
+                            com.airmusic.player.ui.ColorTheme.accent()));
+                }
                 return view;
             }
         };
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((parent, view, position, id) -> {
             FolderEntry entry = entries.get(position);
-            openFolder(entry.dir);
+            if (entry.isFile) {
+                Intent data = new Intent();
+                data.putExtra(EXTRA_RESULT_PATH, entry.dir.getAbsolutePath());
+                data.putExtra(EXTRA_RESULT_DISPLAY, entry.name);
+                data.putExtra(EXTRA_RESULT_IS_FILE, true);
+                setResult(Activity.RESULT_OK, data);
+                finish();
+            } else {
+                openFolder(entry.dir);
+            }
         });
 
         btnSelect.setOnClickListener(v -> confirmSelection());
@@ -262,6 +310,12 @@ public class FolderPickerActivity extends BaseActivity {
                             ? getString(R.string.folder_audio_count, count)
                             : getString(R.string.folder_empty);
                     entries.add(new FolderEntry(f, f.getName(), sub));
+                } else if (pickFile && f.isFile() && !f.isHidden()
+                        && (fileSuffix == null
+                            || f.getName().toLowerCase(Locale.US)
+                                    .endsWith(fileSuffix.toLowerCase(Locale.US)))) {
+                    entries.add(new FolderEntry(f, f.getName(),
+                            getString(R.string.folder_pick_file_tap), true));
                 }
             }
         }

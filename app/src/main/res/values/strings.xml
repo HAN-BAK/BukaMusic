@@ -108,6 +108,8 @@
     <string name="pref_music_path_hint">未选择时使用系统媒体库（含 USB 设备）</string>
     <string name="pref_choose_folder">选择文件夹</string>
     <string name="folder_picker_title">选择音乐文件夹</string>
+    <string name="folder_pick_file">选择预设文件</string>
+    <string name="folder_pick_file_tap">点一下选中这个文件</string>
     <string name="folder_select">选择此文件夹</string>
     <string name="folder_internal_storage">内部存储</string>
     <string name="folder_usb_storage">USB 存储</string>

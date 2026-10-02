@@ -53,8 +53,10 @@ public class EqualizerActivity extends BaseActivity {
     private final ActivityResultLauncher<Intent> importLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Uri uri = result.getData().getData();
-                    if (uri != null) readImport(uri);
+                    // 用应用自带的文件管理器选文件（不依赖系统文件管理器）
+                    String path = result.getData()
+                            .getStringExtra(FolderPickerActivity.EXTRA_RESULT_PATH);
+                    if (path != null) readImport(new java.io.File(path));
                 }
             });
 
@@ -86,9 +88,9 @@ public class EqualizerActivity extends BaseActivity {
             exportLauncher.launch(intent);
         });
         findViewById(R.id.btn_import_presets).setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/json");
+            Intent intent = new Intent(this, FolderPickerActivity.class);
+            intent.putExtra(FolderPickerActivity.EXTRA_PICK_FILE, true);
+            intent.putExtra(FolderPickerActivity.EXTRA_FILE_SUFFIX, ".json");
             importLauncher.launch(intent);
         });
         findViewById(R.id.btn_reset_eq).setOnClickListener(v -> {
@@ -223,11 +225,11 @@ public class EqualizerActivity extends BaseActivity {
         }
     }
 
-    private void readImport(Uri uri) {
+    private void readImport(java.io.File file) {
         try {
             StringBuilder sb = new StringBuilder();
             BufferedReader r = new BufferedReader(new InputStreamReader(
-                    getContentResolver().openInputStream(uri), StandardCharsets.UTF_8));
+                    new java.io.FileInputStream(file), StandardCharsets.UTF_8));
             String line;
             while ((line = r.readLine()) != null) sb.append(line);
             r.close();

@@ -133,6 +133,18 @@ public final class BukaTheme {
         if (view instanceof BukaSpinner) {
             ((BukaSpinner) view).setSpinnerColor(ColorTheme.accent());
         }
+        // 输入框描边：和按钮同一套动态色（原来是写死的蓝）
+        if (view instanceof com.google.android.material.textfield.TextInputLayout) {
+            com.google.android.material.textfield.TextInputLayout input =
+                    (com.google.android.material.textfield.TextInputLayout) view;
+            android.content.res.ColorStateList stroke =
+                    android.content.res.ColorStateList.valueOf(ColorTheme.stroke());
+            input.setBoxStrokeColorStateList(stroke);
+            input.setBoxStrokeErrorColor(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
+            input.setHintTextColor(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
+        }
         // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
         if (view instanceof android.widget.Switch) {
             android.widget.Switch toggle = (android.widget.Switch) view;

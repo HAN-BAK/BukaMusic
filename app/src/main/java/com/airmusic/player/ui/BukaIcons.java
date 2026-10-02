@@ -75,7 +75,7 @@ public final class BukaIcons {
     public static android.widget.ImageView attach(TextView label, @DrawableRes int icon,
                                                   float iconUpDp) {
         if (label == null || !(label.getParent() instanceof ViewGroup)) return null;
-        ViewGroup row = (ViewGroup) label.getParent();
+        ViewGroup parent = (ViewGroup) label.getParent();
         float density = label.getResources().getDisplayMetrics().density;
         android.widget.ImageView view = new android.widget.ImageView(label.getContext());
         view.setImageResource(icon);
@@ -84,14 +84,33 @@ public final class BukaIcons {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
         lp.gravity = android.view.Gravity.CENTER_VERTICAL;
         view.setLayoutParams(lp);
-        int index = row.indexOfChild(label);
-        row.addView(view, index);
-        // 图标与文字之间的间距
-        ViewGroup.LayoutParams raw = label.getLayoutParams();
-        if (raw instanceof LinearLayout.LayoutParams) {
-            LinearLayout.LayoutParams labelParams = (LinearLayout.LayoutParams) raw;
-            labelParams.setMarginStart(Math.round(10f * density));
-            label.setLayoutParams(labelParams);
+        int gap = Math.round(10f * density);
+        boolean horizontal = parent instanceof LinearLayout
+                && ((LinearLayout) parent).getOrientation() == LinearLayout.HORIZONTAL;
+        if (horizontal) {
+            // 标签本来就在一行里：插到它前面
+            parent.addView(view, parent.indexOfChild(label));
+            ViewGroup.LayoutParams raw = label.getLayoutParams();
+            if (raw instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams labelParams = (LinearLayout.LayoutParams) raw;
+                labelParams.setMarginStart(gap);
+                label.setLayoutParams(labelParams);
+            }
+        } else {
+            // 标签在纵向容器里（比如本地音乐路径）：先把标签包进一个横向行，
+            // 否则图标会被当成单独一行放到标签上面去。
+            ViewGroup.LayoutParams labelRaw = label.getLayoutParams();
+            int index = parent.indexOfChild(label);
+            LinearLayout row = new LinearLayout(label.getContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            parent.removeView(label);
+            row.addView(view);
+            LinearLayout.LayoutParams inner = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            inner.setMarginStart(gap);
+            row.addView(label, inner);
+            parent.addView(row, index, labelRaw);
         }
         if (iconUpDp != 0f) {
             view.setTranslationY(-iconUpDp * density);

@@ -108,6 +108,8 @@
     <string name="pref_music_path_hint">未設定の場合はシステムのメディアライブラリ（USBデバイス含む）を使用</string>
     <string name="pref_choose_folder">フォルダを選択</string>
     <string name="folder_picker_title">音楽フォルダを選択</string>
+    <string name="folder_pick_file">プリセットを選択</string>
+    <string name="folder_pick_file_tap">タップしてこのファイルを選択</string>
     <string name="folder_select">このフォルダを選択</string>
     <string name="folder_internal_storage">内部ストレージ</string>
     <string name="folder_usb_storage">USBストレージ</string>

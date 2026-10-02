@@ -108,6 +108,8 @@
     <string name="pref_music_path_hint">설정하지 않으면 시스템 미디어 라이브러리(USB 기기 포함) 사용</string>
     <string name="pref_choose_folder">폴더 선택</string>
     <string name="folder_picker_title">음악 폴더 선택</string>
+    <string name="folder_pick_file">프리셋 파일 선택</string>
+    <string name="folder_pick_file_tap">탭하여 이 파일 선택</string>
     <string name="folder_select">이 폴더 선택</string>
     <string name="folder_internal_storage">내부 저장소</string>
     <string name="folder_usb_storage">USB 저장소</string>

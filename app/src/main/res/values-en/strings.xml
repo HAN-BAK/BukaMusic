@@ -108,6 +108,8 @@
     <string name="pref_music_path_hint">Uses the system media library (incl. USB devices) when not set</string>
     <string name="pref_choose_folder">Choose Folder</string>
     <string name="folder_picker_title">Choose Music Folder</string>
+    <string name="folder_pick_file">Choose Preset File</string>
+    <string name="folder_pick_file_tap">Tap to pick this file</string>
     <string name="folder_select">Select This Folder</string>
     <string name="folder_internal_storage">Internal Storage</string>
     <string name="folder_usb_storage">USB Storage</string>
