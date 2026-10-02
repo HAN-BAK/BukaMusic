@@ -215,6 +215,11 @@ public class BukaDialog extends Dialog {
         dialog.loadingText.setText(text);
         dialog.negative.setVisibility(View.GONE);
         dialog.positive.setVisibility(View.GONE);
+        // 按钮行本身也藏掉：否则它那 16dp 的上外边距会白白加在卡片下方，
+        // 变成「上 20dp、下 32dp」的不对称留白。
+        if (dialog.negative.getParent() instanceof View) {
+            ((View) dialog.negative.getParent()).setVisibility(View.GONE);
+        }
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(false);
         return dialog;

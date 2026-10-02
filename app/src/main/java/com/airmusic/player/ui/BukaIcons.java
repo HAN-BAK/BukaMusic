@@ -44,6 +44,35 @@ public final class BukaIcons {
         row(view, icon);
     }
 
+    /**
+     * 同上，并做一点微调：{@code shiftUpDp > 0} 表示图标上移，&lt;0 表示下移。
+     *
+     * <p>compoundDrawable 是按「行盒」居中的，不同行盒高度会让图标看着偏上/偏下，
+     * 这里按行做几个像素的修正。
+     */
+    public static void rowAligned(TextView view, @DrawableRes int icon, float shiftUpDp) {
+        if (view == null || shiftUpDp == 0f) {
+            rowAligned(view, icon);
+            return;
+        }
+        view.setIncludeFontPadding(false);
+        float density = view.getResources().getDisplayMetrics().density;
+        view.setCompoundDrawablePadding(Math.round(10f * density));
+        android.graphics.drawable.Drawable drawable =
+                androidx.core.content.ContextCompat.getDrawable(view.getContext(), icon);
+        if (drawable == null) {
+            row(view, icon);
+            return;
+        }
+        int inset = Math.round(2f * Math.abs(shiftUpDp) * density);
+        // 下侧留白 -> 图标相对行盒中心上移；上侧留白 -> 下移
+        android.graphics.drawable.InsetDrawable wrapped = shiftUpDp > 0f
+                ? new android.graphics.drawable.InsetDrawable(drawable, 0, 0, 0, inset)
+                : new android.graphics.drawable.InsetDrawable(drawable, 0, inset, 0, 0);
+        view.setCompoundDrawablesRelativeWithIntrinsicBounds(wrapped, null, null, null);
+        tint(view);
+    }
+
     /** 动态图标：挂上后由调用方在点击处理里调用 {@link #play} 播放动画。 */
     public static void animated(TextView view, @DrawableRes int animRes) {
         if (view == null) return;

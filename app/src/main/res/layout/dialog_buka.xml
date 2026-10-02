@@ -14,7 +14,7 @@
         android:paddingStart="22dp"
         android:paddingTop="20dp"
         android:paddingEnd="22dp"
-        android:paddingBottom="16dp">
+        android:paddingBottom="20dp">
 
         <TextView
             android:id="@+id/buka_title"
