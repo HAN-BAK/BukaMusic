@@ -115,7 +115,9 @@ public final class Prefs {
     }
 
     public String getPlayMode() {
-        return sp.getString(KEY_PLAY_MODE, PLAY_MODE_SEQUENCE);
+        // 首次打开（还没保存过）默认「列表循环」：装好就能一直放下去，不用先去
+        // 设置里改。用户改过之后就以保存的为准。
+        return sp.getString(KEY_PLAY_MODE, PLAY_MODE_FOLDER_LOOP);
     }
 
     public void setPlayMode(String mode) {
