@@ -462,9 +462,19 @@ public class MainActivity extends BaseActivity {
                         Manifest.permission.POST_NOTIFICATIONS});
             }
         } else if (Build.VERSION.SDK_INT >= 23) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionLauncher.launch(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE});
+            // Android 10 及以下还要写权限：上传音乐、删除文件都得写，
+            // 而且没有它系统给的是只读挂载视图。
+            boolean read = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+            boolean write = Build.VERSION.SDK_INT > 29
+                    || ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+            if (!read || !write) {
+                String[] wanted = Build.VERSION.SDK_INT > 29
+                        ? new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}
+                        : new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE};
+                permissionLauncher.launch(wanted);
             }
         }
     }

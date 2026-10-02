@@ -56,12 +56,13 @@ public class FolderPickerActivity extends BaseActivity {
     private ArrayAdapter<FolderEntry> adapter;
     private File currentDir;
 
-    private final ActivityResultLauncher<String> permissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) {
-                    loadRoots();
-                } else {
+    private final ActivityResultLauncher<String[]> permissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), granted -> {
+                // Android 10 及以下同时要读写：选目录后还要在里面建文件夹。
+                if (granted.containsValue(Boolean.FALSE)) {
                     showStatus(getString(R.string.folder_permission_denied));
+                } else {
+                    loadRoots();
                 }
             });
 
@@ -142,7 +143,10 @@ public class FolderPickerActivity extends BaseActivity {
         } else {
             btnGrant.setVisibility(View.GONE);
             showStatus(getString(R.string.folder_need_permission));
-            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
+            // The picker also creates folders, so on Android 10 and below the
+            // write permission has to be part of the same request.
+            permissionLauncher.launch(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE});
         }
     }
 

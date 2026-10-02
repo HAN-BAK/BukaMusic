@@ -17,6 +17,14 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"
         tools:ignore="ScopedStorage" />
+    <!-- Android 10 及以下：上传（写文件）需要这个权限。没有它时系统给应用的
+         /storage/* 挂载是只读视图（mountinfo 里 mask=23），写文件会 EACCES，
+         表现就是「上传不了」。Android 11+ 由 MANAGE_EXTERNAL_STORAGE 负责，
+         所以这里用 maxSdkVersion 限定范围。 -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:ignore="ScopedStorage" />
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
