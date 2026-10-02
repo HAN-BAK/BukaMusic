@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
@@ -63,6 +64,39 @@ public final class BukaIcons {
             row((TextView) child, icon);
             return;
         }
+    }
+
+    /**
+     * 把行左侧的图标做成**独立 ImageView**（插在标签前面），而不是 compoundDrawable。
+     *
+     * <p>这样图标和文字各自定位、互不牵动：图标在行里垂直居中，需要精调时直接给
+     * 返回的 ImageView 设 translationY 即可（{@code iconUpDp} 正值 = 图标上移）。
+     */
+    public static android.widget.ImageView attach(TextView label, @DrawableRes int icon,
+                                                  float iconUpDp) {
+        if (label == null || !(label.getParent() instanceof ViewGroup)) return null;
+        ViewGroup row = (ViewGroup) label.getParent();
+        float density = label.getResources().getDisplayMetrics().density;
+        android.widget.ImageView view = new android.widget.ImageView(label.getContext());
+        view.setImageResource(icon);
+        view.setImageTintList(ColorStateList.valueOf(ColorTheme.accent()));
+        int size = Math.round(24f * density);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+        lp.gravity = android.view.Gravity.CENTER_VERTICAL;
+        view.setLayoutParams(lp);
+        int index = row.indexOfChild(label);
+        row.addView(view, index);
+        // 图标与文字之间的间距
+        ViewGroup.LayoutParams raw = label.getLayoutParams();
+        if (raw instanceof LinearLayout.LayoutParams) {
+            LinearLayout.LayoutParams labelParams = (LinearLayout.LayoutParams) raw;
+            labelParams.setMarginStart(Math.round(10f * density));
+            label.setLayoutParams(labelParams);
+        }
+        if (iconUpDp != 0f) {
+            view.setTranslationY(-iconUpDp * density);
+        }
+        return view;
     }
 
     /** ImageView 版本（底栏、工具按钮）。 */
