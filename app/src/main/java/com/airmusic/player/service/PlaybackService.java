@@ -1430,6 +1430,16 @@ public class PlaybackService extends Service {
         playTrack(track);
     }
 
+    /** True while the playlist is one album / artist instead of the whole library. */
+    public boolean isGroupPlaylist() {
+        return groupPlaylist;
+    }
+
+    /** Number of songs in the current playlist (library or album / artist). */
+    public int getPlaylistSize() {
+        return tracks == null ? 0 : tracks.size();
+    }
+
     /**
      * Removes deleted files from the playlist. If the currently playing
      * local track was deleted, playback immediately switches to the next

@@ -46,9 +46,9 @@
     <string name="previous">前の曲</string>
     <string name="next">次の曲</string>
     <string name="mode_sequence">順次再生</string>
-    <string name="mode_repeat_one">リピート1曲</string>
+    <string name="mode_repeat_one">1曲リピート</string>
     <string name="mode_shuffle">シャッフルループ</string>
-    <string name="mode_folder_loop">フォルダループ</string>
+    <string name="mode_folder_loop">リストループ</string>
     <string name="settings_title">設定</string>
     <string name="pref_airplay_name">デバイス名</string>
     <string name="pref_airplay_name_hint">iPhone/他のデバイスに表示される名前</string>

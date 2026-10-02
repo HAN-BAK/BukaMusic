@@ -184,6 +184,9 @@ public final class ControlApi {
             // desktop console can offer the matching button.
             json.put("screen", com.airmusic.player.LyricsActivity.visible ? "lyrics" : "main");
             json.put("hasCover", state != null && state.art != null);
+            // 当前播放范围：是否限定在某张专辑 / 某位歌手内，以及共几首。
+            json.put("groupPlay", service != null && service.isGroupPlaylist());
+            json.put("playlistSize", service == null ? 0 : service.getPlaylistSize());
             AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
             if (audio != null) {
                 json.put("volume", audio.getStreamVolume(AudioManager.STREAM_MUSIC));
@@ -723,6 +726,13 @@ public final class ControlApi {
                         runOnMain(() -> {
                             Track target = null;
                             List<Track> library = MusicLibrary.getInstance().getCachedTracks();
+                            // The library cache can be empty right after a restart (the
+                            // scan is still running) or stale after a folder change. When
+                            // that happened the group lookup silently failed and playback
+                            // fell back to the whole library, so the album range was lost.
+                            if (library == null || library.isEmpty()) {
+                                library = service.getLibraryTracks();
+                            }
                             if (library != null) {
                                 for (Track track : library) {
                                     if (track.filePath != null && track.filePath.equals(path)) {
@@ -731,7 +741,6 @@ public final class ControlApi {
                                     }
                                 }
                             }
-                            if (target == null) return;
                             List<Track> group = new java.util.ArrayList<>();
                             if (queue != null && library != null) {
                                 for (int i = 0; i < queue.length(); i++) {
@@ -744,7 +753,20 @@ public final class ControlApi {
                                     }
                                 }
                             }
-                            if (!group.isEmpty() && group.contains(target)) {
+                            if (target != null && !group.contains(target)) {
+                                // The requested song belongs to its own range even when the
+                                // queue missed it (a path the device cannot match).
+                                group.add(0, target);
+                            }
+                            if (target == null) {
+                                Log.w(TAG, "playTrack：曲库里找不到 " + path);
+                                return;
+                            }
+                            if (queue != null && group.size() < queue.length()) {
+                                Log.w(TAG, "playTrack：队列 " + queue.length() + " 首只匹配到 "
+                                        + group.size() + " 首");
+                            }
+                            if (!group.isEmpty()) {
                                 service.playTrackInGroup(target, group);
                             } else {
                                 service.playTrack(target);

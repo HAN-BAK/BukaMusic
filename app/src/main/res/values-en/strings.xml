@@ -48,7 +48,7 @@
     <string name="mode_sequence">Sequential Play</string>
     <string name="mode_repeat_one">Repeat One</string>
     <string name="mode_shuffle">Shuffle Loop</string>
-    <string name="mode_folder_loop">Folder Loop</string>
+    <string name="mode_folder_loop">List Loop</string>
     <string name="settings_title">Settings</string>
     <string name="pref_airplay_name">Device Name</string>
     <string name="pref_airplay_name_hint">Name shown on iPhone/other devices</string>
