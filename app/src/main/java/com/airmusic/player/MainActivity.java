@@ -541,8 +541,8 @@ public class MainActivity extends BaseActivity {
         // Slider 的轨道起点 = 滑条左端 + trackSidePadding，所以用负外边距抵消。
         int thumbHalf = Math.round(VOLUME_THUMB_WIDTH_DP * d / 2f);
         int pad = trackSidePad(volumeSeek);
-        // 自绘条的手柄行程在条内再各让出半个手柄，所以 Material 的轨道也要再往里缩半个
-        int margin = -(pad - thumbHalf * 2);
+        // 自绘条的手柄行程在条内各让出「半个手柄 + 一个断口」，Material 的轨道同步内缩
+        int margin = -(pad - thumbHalf * 2 - Math.round(VOLUME_THUMB_GAP_DP * d));
         setSliderMargins(volumeSeek, margin, margin);
         // Material 的轨道是按它自己的 widgetHeight 排的，比整条居中位置低几像素，
         // 用它拖动气泡的锚点会跟着偏，所以把滑条整体下移对齐（触摸坐标会一起变换）。
@@ -568,7 +568,8 @@ public class MainActivity extends BaseActivity {
         if (seekBar != null) {
             // 进度条同理：让 Material 的轨道行程落在自绘轨道那一段上
             int seekThumbHalf = Math.round(SEEK_THUMB_WIDTH_DP * d / 2f);
-            int seekMargin = -(trackSidePad(seekBar) - seekThumbHalf * 2);
+            int seekMargin = -(trackSidePad(seekBar) - seekThumbHalf * 2
+                    - Math.round(SEEK_THUMB_GAP_DP * d));
             setSliderMargins(seekBar, seekMargin, seekMargin);
         }
     }

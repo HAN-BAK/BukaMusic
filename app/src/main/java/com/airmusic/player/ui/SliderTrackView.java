@@ -94,13 +94,24 @@ public class SliderTrackView extends View {
         return getResources().getDisplayMetrics().density;
     }
 
+    /**
+     * 手柄中心（本 View 坐标）。行程在轨道内部各让出「半个手柄 + 一个断口」，
+     * 这样拖到两端时两侧断口都还是完整宽度。填充段和手柄必须共用这一个结果，
+     * 否则会出现「一边有断口、一边贴着手柄」的不对称。
+     */
+    private float thumbCenterX() {
+        float d = density();
+        float half = thumbHalfDp * d;
+        float gap = thumbGapDp * d;
+        float travelLeft = half + half + gap;
+        float travelRight = (getWidth() - half) - half - gap;
+        return travelLeft + fraction * Math.max(0f, travelRight - travelLeft);
+    }
+
     /** 已播放段的右端（本 View 坐标），手柄左侧还留了断口。 */
     private float fillRight() {
         float d = density();
-        float half = thumbHalfDp * d;
-        float trackWidth = Math.max(0f, getWidth() - half * 2f);
-        float thumbCenter = half + fraction * trackWidth;
-        return thumbCenter - half - thumbGapDp * d;
+        return thumbCenterX() - thumbHalfDp * d - thumbGapDp * d;
     }
 
     /** 某个 x（本 View 坐标，也就是整根条的坐标）是否已被深色段覆盖。 */
@@ -128,10 +139,8 @@ public class SliderTrackView extends View {
         float trackBottom = trackTop + trackHeight;
         float radius = Math.min(cornerDp * d, trackHeight / 2f);
 
-        // 手柄行程在轨道内部再各让出半个手柄宽：拖到两端时手柄正好贴在条的内侧，
-        // 不会半个身子探到条外面去（那样看着像渲染错位）。
-        float thumbCenterX = left + half + fraction * Math.max(0f, (right - left) - half * 2f);
         float gapPx = thumbGapDp * d;
+        float thumbCenterX = thumbCenterX();
         // 整条只有两段可见：左边的「已播放段」和右边的「未播放段」，
         // 它们之间（手柄两侧各留一个断口）什么都不画 = 切口露出背景。
         // 两段都用「整条胶囊 + 裁切」画，所以外端永远是半圆、靠手柄那头是直角。
