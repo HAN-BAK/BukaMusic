@@ -108,7 +108,7 @@ public class BukaDialog extends Dialog {
         dialog.message.setText(text);
         dialog.message.setVisibility(View.VISIBLE);
         dialog.positive.setText(android.R.string.ok);
-        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
+        dialog.positive.setBackground(ColorTheme.capsule(context));
         dialog.positive.setOnClickListener(v -> dialog.dismiss());
         dialog.negative.setVisibility(View.GONE);
         return dialog;
@@ -123,7 +123,7 @@ public class BukaDialog extends Dialog {
             dialog.message.setVisibility(View.VISIBLE);
         }
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
+        dialog.positive.setBackground(ColorTheme.capsule(context));
         dialog.positive.setOnClickListener(v -> {
             dialog.dismiss();
             if (onConfirm != null) onConfirm.run();
@@ -144,7 +144,7 @@ public class BukaDialog extends Dialog {
         dialog.input.setVisibility(View.VISIBLE);
         dialog.input.setSelection(dialog.input.getText().length());
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
+        dialog.positive.setBackground(ColorTheme.capsule(context));
         dialog.positive.setOnClickListener(v -> {
             String value = dialog.input.getText().toString();
             dialog.dismiss();
@@ -190,7 +190,7 @@ public class BukaDialog extends Dialog {
             });
         }
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
+        dialog.positive.setBackground(ColorTheme.capsule(context));
         dialog.positive.setOnClickListener(v -> {
             dialog.dismiss();
             if (onConfirm != null) onConfirm.onConfirm(state);
