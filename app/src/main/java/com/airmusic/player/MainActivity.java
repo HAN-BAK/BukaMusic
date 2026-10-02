@@ -577,6 +577,9 @@ public class MainActivity extends BaseActivity {
             volumeTrack.setThumb(VOLUME_THUMB_WIDTH_DP, VOLUME_THUMB_HEIGHT_DP,
                     VOLUME_THUMB_GAP_DP);
             volumeTrack.setTrackHeightDp(VOLUME_TRACK_HEIGHT_DP);
+            // Material 的手柄尺寸要和自绘手柄一致，拖动气泡才会正好落在竖条正上方
+            volumeSeek.setThumbWidth(Math.round(VOLUME_THUMB_WIDTH_DP * d));
+            volumeSeek.setThumbHeight(Math.round(VOLUME_THUMB_HEIGHT_DP * d));
             // 图标交给自绘层代画：这样它会被手柄两侧的切口一起切掉，
             // 不会浮在断口上面。原 ImageView 留在原位（只负责占位与量尺寸）。
             volumeTrack.setIconSource(volumeIcon);
