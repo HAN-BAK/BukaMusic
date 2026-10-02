@@ -220,6 +220,14 @@ public class BukaDialog extends Dialog {
         if (dialog.negative.getParent() instanceof View) {
             ((View) dialog.negative.getParent()).setVisibility(View.GONE);
         }
+        // 标题字形的上留白让「上边距」看着更大，这里把卡片上留白收 4dp 使上下相等
+        View card = dialog.findViewById(R.id.buka_card);
+        if (card != null) {
+            int dp4 = Math.round(4f * dialog.getContext().getResources()
+                    .getDisplayMetrics().density);
+            card.setPadding(card.getPaddingLeft(), Math.max(0, card.getPaddingTop() - dp4),
+                    card.getPaddingRight(), card.getPaddingBottom());
+        }
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(false);
         return dialog;

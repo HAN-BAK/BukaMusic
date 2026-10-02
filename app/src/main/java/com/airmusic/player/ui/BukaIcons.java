@@ -30,6 +30,40 @@ public final class BukaIcons {
         tint(view);
     }
 
+    /**
+     * 只把**文字**整体上下微调，图标留在原位。
+     *
+     * <p>做法：给标签加单边内边距把整行文字（含图标）挪动，再把图标用 InsetDrawable
+     * 反向补偿回去，于是视觉上只有文字动了。
+     * {@code textDownDp > 0} 表示文字下移，&lt;0 表示上移。
+     */
+    public static void rowTextShifted(TextView view, @DrawableRes int icon, float textDownDp) {
+        if (view == null || textDownDp == 0f) {
+            row(view, icon);
+            return;
+        }
+        float density = view.getResources().getDisplayMetrics().density;
+        int shift = Math.round(Math.abs(textDownDp) * density);
+        int top = textDownDp > 0f ? shift : 0;
+        int bottom = textDownDp > 0f ? 0 : shift;
+        view.setPadding(view.getPaddingLeft(), view.getPaddingTop() + top,
+                view.getPaddingRight(), view.getPaddingBottom() + bottom);
+        view.setCompoundDrawablePadding(Math.round(10f * density));
+        android.graphics.drawable.Drawable drawable =
+                androidx.core.content.ContextCompat.getDrawable(view.getContext(), icon);
+        if (drawable == null) {
+            view.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        } else {
+            // 反向补偿：文字下移 shift 时，图标用下侧留白 2*shift 顶回去
+            int inset = shift * 2;
+            android.graphics.drawable.InsetDrawable wrapped = textDownDp > 0f
+                    ? new android.graphics.drawable.InsetDrawable(drawable, 0, 0, 0, inset)
+                    : new android.graphics.drawable.InsetDrawable(drawable, 0, inset, 0, 0);
+            view.setCompoundDrawablesRelativeWithIntrinsicBounds(wrapped, null, null, null);
+        }
+        tint(view);
+    }
+
 
     /** 动态图标：挂上后由调用方在点击处理里调用 {@link #play} 播放动画。 */
     public static void animated(TextView view, @DrawableRes int animRes) {
