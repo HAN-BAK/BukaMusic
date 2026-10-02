@@ -52,7 +52,7 @@
             android:layout_weight="58"
             android:gravity="top"
             android:orientation="vertical"
-            android:paddingTop="56dp"
+            android:paddingTop="76dp"
             android:paddingStart="36dp"
             android:paddingEnd="24dp">
 

@@ -87,6 +87,11 @@ public class SliderTrackView extends View {
     public void setIconSource(View icon) {
         if (iconSource == icon) return;
         iconSource = icon;
+        if (icon != null) {
+            // 图标控件的尺寸/位置是布局之后才确定的：它一变就让本 View 重新记录绘制，
+            // 否则硬件加速会一直复用「图标还是 0 尺寸」那一帧，图标就再也不显示。
+            icon.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> invalidate());
+        }
         invalidate();
     }
 
@@ -182,7 +187,11 @@ public class SliderTrackView extends View {
         if (iconSource.getVisibility() == View.GONE) return;
         int iconW = iconSource.getWidth();
         int iconH = iconSource.getHeight();
-        if (iconW <= 0 || iconH <= 0) return;
+        if (iconW <= 0 || iconH <= 0) {
+            // 布局还没完成：下一帧再来
+            postInvalidateOnAnimation();
+            return;
+        }
         // 本 View 在音量条里是垂直居中的，坐标原点和图标控件不一样，必须先换算
         float iconX = iconSource.getLeft() - getLeft();
         float iconY = iconSource.getTop() - getTop();

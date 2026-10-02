@@ -182,6 +182,12 @@ public class MainActivity extends BaseActivity {
         volumeSeek = findViewById(R.id.volume_seek);
         volumeTrack = findViewById(R.id.volume_track);
         seekTrack = findViewById(R.id.seek_track);
+        // 音量图标从一开始就交给自绘层画（原 ImageView 只负责占位与量尺寸），
+        // 这样不会出现「先由 ImageView 画一帧、再换自绘层」的闪烁。
+        if (volumeTrack != null && volumeIcon != null) {
+            volumeTrack.setIconSource(volumeIcon);
+            volumeIcon.setVisibility(View.INVISIBLE);
+        }
         seekRow = findViewById(R.id.seek_row);
         // 播放界面的按钮统一用圆形边框（其它页面是圆角方形）。
         // 播放键保持原来的实心主色圆，不加描边
@@ -321,7 +327,7 @@ public class MainActivity extends BaseActivity {
         if (heightDp >= 360) return; // box-sized UI unchanged
         boolean tiny = heightDp < 250; // very short screens (PA03 class)
         rightPanel.setPadding(Math.round(36 * d),
-                Math.round((tiny ? 6 : 12) * d),
+                Math.round((tiny ? 18 : 32) * d),
                 Math.round(24 * d), 0);
         trackTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, tiny ? 10 : 15);
         trackTitle.setMaxLines(1);
@@ -633,6 +639,8 @@ public class MainActivity extends BaseActivity {
                 volumeIcon.getLeft() + volumeIcon.getWidth() / 2f);
         volumeIcon.setImageTintList(android.content.res.ColorStateList.valueOf(
                 overFill ? ColorTheme.tooltipText() : ColorTheme.sliderActive()));
+        // 图标是自绘层代画的，换档 / 换色后让它重画一次
+        if (volumeTrack != null) volumeTrack.invalidate();
     }
 
     private void requestPermissionsIfNeeded() {
