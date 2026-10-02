@@ -318,9 +318,12 @@ public class SettingsActivity extends BaseActivity {
         for (int i = 0; i < tabViews.size(); i++) {
             TextView tab = tabViews.get(i);
             boolean selected = i == index;
+            // 选中的标签用「气泡那种同色系近白」，未选中用次级色；
+            // 同时打上配色角色标记，换歌后由主题按角色重新上色（不会串成浓主色）
             tab.setTextColor(selected
-                    ? com.airmusic.player.ui.ColorTheme.accent()
+                    ? com.airmusic.player.ui.ColorTheme.tooltipText()
                     : getResources().getColor(R.color.text_secondary));
+            tab.setTag(R.id.palette_role_tag, selected ? "white" : null);
             tab.setBackground(selected
                     ? com.airmusic.player.ui.ColorTheme.capsule(this)
                     : null);
