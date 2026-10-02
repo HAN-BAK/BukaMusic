@@ -118,11 +118,22 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <SeekBar
+                    <!-- Material 滑条：粗圆角轨道 + 竖向胶囊手柄 + 手柄与轨道断开
+                         （对齐 Android Canary 的系统音量条效果） -->
+                    <com.google.android.material.slider.Slider
                         android:id="@+id/seek_bar"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
-                        android:max="1000" />
+                        android:stepSize="1"
+                        android:valueFrom="0"
+                        android:valueTo="1000"
+                        app:thumbHeight="24dp"
+                        app:thumbTrackGapSize="6dp"
+                        app:thumbWidth="6dp"
+                        app:trackColorActive="#8FA6BF"
+                        app:trackColorInactive="#9DB2C4"
+                        app:trackHeight="12dp"
+                        app:trackStopIndicatorSize="12dp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -283,13 +294,22 @@
                     android:src="@drawable/ic_volume"
                     android:tint="@color/text_primary" />
 
-                <SeekBar
+                <com.google.android.material.slider.Slider
                     android:id="@+id/volume_seek"
                     android:layout_width="0dp"
                     android:layout_height="56dp"
                     android:layout_marginStart="6dp"
                     android:layout_weight="1"
-                    android:max="100" />
+                    android:stepSize="1"
+                    android:valueFrom="0"
+                    android:valueTo="100"
+                    app:thumbHeight="24dp"
+                    app:thumbTrackGapSize="6dp"
+                    app:thumbWidth="6dp"
+                    app:trackColorActive="#8FA6BF"
+                    app:trackColorInactive="#9DB2C4"
+                    app:trackHeight="12dp"
+                    app:trackStopIndicatorSize="12dp" />
             </LinearLayout>
 
             <Space

@@ -76,8 +76,8 @@ public class MainActivity extends BaseActivity {
     private ProgressBar nextProgress;
     private ProgressBar prevProgress;
     private ImageView volumeIcon;
-    private SeekBar seekBar;
-    private SeekBar volumeSeek;
+    private com.google.android.material.slider.Slider seekBar;
+    private com.google.android.material.slider.Slider volumeSeek;
     private View seekRow;
 
     private boolean seeking;
@@ -238,28 +238,29 @@ public class MainActivity extends BaseActivity {
                 service.togglePlay();
             }
         });
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && lastState != null && lastState.durationMs > 0) {
-                    positionText.setText(formatTime((long) progress * lastState.durationMs / 1000));
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-                seeking = true;
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                seeking = false;
-                PlaybackService service = PlaybackService.getInstance();
-                if (service != null && lastState != null && lastState.durationMs > 0) {
-                    service.seekTo(seekBar.getProgress() * lastState.durationMs / 1000);
-                }
+        seekBar.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser && lastState != null && lastState.durationMs > 0) {
+                positionText.setText(formatTime((long) value * lastState.durationMs / 1000));
             }
         });
+        seekBar.addOnSliderTouchListener(
+                new com.google.android.material.slider.Slider.OnSliderTouchListener() {
+                    @Override
+                    public void onStartTrackingTouch(
+                            com.google.android.material.slider.Slider slider) {
+                        seeking = true;
+                    }
+
+                    @Override
+                    public void onStopTrackingTouch(
+                            com.google.android.material.slider.Slider slider) {
+                        seeking = false;
+                        PlaybackService service = PlaybackService.getInstance();
+                        if (service != null && lastState != null && lastState.durationMs > 0) {
+                            service.seekTo((int) ((int) slider.getValue() * lastState.durationMs / 1000));
+                        }
+                    }
+                });
 
         PlaybackService.start(this);
         PlaybackService service = PlaybackService.getInstance();
@@ -407,25 +408,15 @@ public class MainActivity extends BaseActivity {
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         if (audioManager == null || volumeSeek == null) return;
 
-        volumeSeek.setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
-        volumeSeek.setProgress(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+        volumeSeek.setValueTo(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+        volumeSeek.setValue(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
         updateVolumeIcon(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
-        volumeSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0);
-                }
-                updateVolumeIcon(progress);
+        volumeSeek.addOnChangeListener((slider, value, fromUser) -> {
+            int volume = Math.round(value);
+            if (fromUser) {
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
             }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
+            updateVolumeIcon(volume);
         });
 
         // Keep the slider in sync when the volume is changed elsewhere
@@ -434,8 +425,8 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onChange(boolean selfChange) {
                 int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-                if (volumeSeek.getProgress() != current) {
-                    volumeSeek.setProgress(current);
+                if (Math.round(volumeSeek.getValue()) != current) {
+                    volumeSeek.setValue(current);
                 }
                 updateVolumeIcon(current);
             }
@@ -447,8 +438,8 @@ public class MainActivity extends BaseActivity {
     private void syncVolumeSlider() {
         if (audioManager != null && volumeSeek != null) {
             int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-            if (volumeSeek.getProgress() != current) {
-                volumeSeek.setProgress(current);
+            if (Math.round(volumeSeek.getValue()) != current) {
+                volumeSeek.setValue(current);
             }
             updateVolumeIcon(current);
         }
@@ -689,7 +680,7 @@ public class MainActivity extends BaseActivity {
         if (showSeek) {
             if (!seeking) {
                 int progress = s.durationMs > 0 ? (int) ((long) s.positionMs * 1000 / s.durationMs) : 0;
-                seekBar.setProgress(Math.min(1000, Math.max(0, progress)));
+                seekBar.setValue(Math.min(1000, Math.max(0, progress)));
                 positionText.setText(formatTime(s.positionMs));
             }
             durationText.setText(formatTime(s.durationMs));

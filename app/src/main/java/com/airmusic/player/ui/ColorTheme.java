@@ -223,33 +223,29 @@ public final class ColorTheme {
      * （与常见做法相反，这是参考图的效果）。
      */
     public static android.graphics.drawable.Drawable sliderTrack(Context context) {
-        int height = dp(context, 10f);
-        // background = 未播放：浅色
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(withAlpha(accent, 0.55f));
-        background.setCornerRadius(height / 2f);
-        // progress = 已播放：深色
-        GradientDrawable progress = new GradientDrawable();
-        progress.setShape(GradientDrawable.RECTANGLE);
-        progress.setColor(sliderPlayedColor());
-        progress.setCornerRadius(height / 2f);
-        android.graphics.drawable.LayerDrawable layers =
-                new android.graphics.drawable.LayerDrawable(
-                        new android.graphics.drawable.Drawable[]{background, progress});
-        layers.setId(0, android.R.id.background);
-        layers.setId(1, android.R.id.progress);
-        for (int i = 0; i < 2; i++) {
-            layers.setLayerHeight(i, height);
-            layers.setLayerGravity(i, android.view.Gravity.FILL_HORIZONTAL
-                    | android.view.Gravity.CENTER_VERTICAL);
-        }
-        return layers;
+        // 已播放=实色偏深，未播放=浅色；两段在滑块两侧断开
+        int height = dp(context, 12f);
+        return new SliderDrawable(sliderPlayedColor(), withAlpha(accent, 0.62f),
+                height, dp(context, 7f));
     }
 
-    /** 已播放段 / 手柄用的深色（主色压暗，保持同色系）。 */
-    private static int sliderPlayedColor() {
+    /** 已播放段：主色压到偏深的实色。 */
+    public static int sliderActive() {
         return blend(0xFF13293D, accent, 0.55f);
+    }
+
+    /** 未播放段：主色的浅色（不透明，半透明会被主题的深色底吃光）。 */
+    public static int sliderInactive() {
+        return blend(0xFF9DB2C4, accent, 0.75f);
+    }
+
+    /** 手柄竖条：比已播放段再深一点。 */
+    public static int sliderThumb() {
+        return blend(0xFF0F2436, accent, 0.45f);
+    }
+
+    private static int sliderPlayedColor() {
+        return sliderActive();
     }
 
     /**
@@ -271,7 +267,7 @@ public final class ColorTheme {
         GradientDrawable bar = new GradientDrawable();
         bar.setShape(GradientDrawable.RECTANGLE);
         // 手柄比已播放段再深一点
-        bar.setColor(blend(0xFF0F2436, accent, 0.45f));
+        bar.setColor(sliderThumb());
         bar.setCornerRadius(barWidth / 2f);
         bar.setSize(barWidth, barHeight);
 

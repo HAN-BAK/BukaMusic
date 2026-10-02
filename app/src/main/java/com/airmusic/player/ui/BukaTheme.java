@@ -87,6 +87,20 @@ public final class BukaTheme {
             bar.setThumbTintList(null);
             bar.setThumbOffset(0);
             bar.setSplitTrack(false);
+        } else if (view instanceof com.google.android.material.slider.Slider) {
+            // Material 滑条：轨道粗细 / 手柄尺寸 / 断开间隙都在布局里配好，
+            // 这里只按当前封面主色刷新三段颜色（已播放=实色偏深、未播放=浅色、
+            // 手柄=更深的同色系）。
+            com.google.android.material.slider.Slider slider =
+                    (com.google.android.material.slider.Slider) view;
+            slider.setTrackActiveTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderActive()));
+            slider.setTrackInactiveTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderInactive()));
+            slider.setThumbTintList(
+                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderThumb()));
+            slider.setHaloTintList(android.content.res.ColorStateList.valueOf(
+                    ColorTheme.withAlpha(ColorTheme.accent(), 0.18f)));
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
