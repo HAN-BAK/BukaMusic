@@ -203,6 +203,14 @@ public final class ColorTheme {
         return drawable;
     }
 
+    /** 柔和的圆形底：应用图标芯片、圆角图片这类需要「圆形但不抢眼」的地方。 */
+    public static GradientDrawable softCircle(Context context) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.OVAL);
+        drawable.setColor(fillSoft());
+        return drawable;
+    }
+
     /**
      * 对话框卡片：深色底 + 一点点主色，描边用主色的一半，
      * 于是卡片也跟着当前封面走，但依然是深色不刺眼。

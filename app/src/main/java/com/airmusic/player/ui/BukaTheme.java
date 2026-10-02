@@ -137,6 +137,10 @@ public final class BukaTheme {
         if (view instanceof BukaSwitch) {
             ((BukaSwitch) view).setAccentColor(ColorTheme.accent());
         }
+        // 自绘勾选框：选中态的填充色
+        if (view instanceof BukaCheckBox) {
+            ((BukaCheckBox) view).setAccentColor(ColorTheme.accent());
+        }
         // 自绘加载圆环：跟着动态主色
         if (view instanceof BukaSpinner) {
             ((BukaSpinner) view).setSpinnerColor(ColorTheme.accent());

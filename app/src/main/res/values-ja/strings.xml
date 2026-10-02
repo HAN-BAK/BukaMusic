@@ -13,6 +13,13 @@
     <string name="library">ライブラリ</string>
     <string name="delete">削除</string>
     <string name="selected_count">%1$d 曲選択中</string>
+    <string name="select_all">すべて選択</string>
+    <string name="deselect_all">選択を解除</string>
+    <string name="exit_selection">選択モードを終了</string>
+    <string name="selected_count_album">%1$d 曲・%2$d アルバム</string>
+    <string name="selected_count_artist">%1$d 曲・%2$d アーティスト</string>
+    <string name="delete_groups_confirm_album">%2$d 枚のアルバムから %1$d 曲を削除しますか？元に戻せません。</string>
+    <string name="delete_groups_confirm_artist">%2$d 人のアーティストから %1$d 曲を削除しますか？元に戻せません。</string>
     <string name="delete_files_confirm">選択した %1$d 曲のファイルを削除しますか？削除したファイルは元に戻せません。</string>
     <string name="deleted">削除しました</string>
     <string name="deleted_count">%1$d 曲の音楽を削除しました</string>
@@ -138,6 +145,7 @@
     <string name="balance_center">中央</string>
     <string name="apps">アプリ</string>
     <string name="apps_title">アプリ</string>
+    <string name="apps_count">アプリ %1$d 個</string>
     <string name="multicast">マルチルーム</string>
     <string name="multicast_title">マルチルーム同期再生</string>
     <string name="multicast_empty">他のデバイスが見つかりません</string>

@@ -11,24 +11,39 @@
     android:paddingEnd="8dp"
     android:paddingBottom="14dp">
 
-    <com.google.android.material.card.MaterialCardView
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:clickable="false"
-        android:focusable="false"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="0dp">
+        android:layout_height="wrap_content">
 
-        <com.airmusic.player.ui.SquareImageView
-            android:id="@+id/card_art"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_art_placeholder"
-            android:contentDescription="@string/album_art"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_airplay" />
-    </com.google.android.material.card.MaterialCardView>
+            android:clickable="false"
+            android:focusable="false"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp">
+
+            <com.airmusic.player.ui.SquareImageView
+                android:id="@+id/card_art"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_art_placeholder"
+                android:contentDescription="@string/album_art"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_airplay" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 多选时勾选整个专辑 / 歌手 -->
+        <com.airmusic.player.ui.BukaCheckBox
+            android:id="@+id/card_check"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="top|start"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="6dp"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/card_title"

@@ -13,6 +13,13 @@
     <string name="library">Library</string>
     <string name="delete">Delete</string>
     <string name="selected_count">Selected %1$d</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+    <string name="exit_selection">Exit selection</string>
+    <string name="selected_count_album">%1$d songs · %2$d albums</string>
+    <string name="selected_count_artist">%1$d songs · %2$d artists</string>
+    <string name="delete_groups_confirm_album">Delete %1$d songs from %2$d albums? This cannot be undone.</string>
+    <string name="delete_groups_confirm_artist">Delete %1$d songs from %2$d artists? This cannot be undone.</string>
     <string name="delete_files_confirm">Delete the selected %1$d song files? This cannot be undone.</string>
     <string name="deleted">Deleted</string>
     <string name="deleted_count">Deleted %1$d songs</string>
@@ -138,6 +145,7 @@
     <string name="balance_center">Center</string>
     <string name="apps">Apps</string>
     <string name="apps_title">Apps</string>
+    <string name="apps_count">%1$d apps</string>
     <string name="multicast">Multi-room</string>
     <string name="multicast_title">Multi-room Sync Playback</string>
     <string name="multicast_empty">No other devices found</string>

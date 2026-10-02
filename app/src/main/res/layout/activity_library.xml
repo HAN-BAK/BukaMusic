@@ -43,6 +43,18 @@
             android:textSize="16sp"
             android:visibility="gone" />
 
+        <!-- 多选时出现：全选 / 取消全选（返回键在同一位置变成关闭 X） -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_select_all"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/select_all"
+            android:textColor="@color/accent"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/btn_delete"
             android:layout_width="44dp"

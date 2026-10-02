@@ -10,13 +10,11 @@
     android:paddingEnd="20dp"
     android:paddingBottom="12dp">
 
-    <CheckBox
+    <com.airmusic.player.ui.BukaCheckBox
         android:id="@+id/track_check"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:buttonTint="@color/primary"
-        android:clickable="false"
-        android:focusable="false"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="12dp"
         android:visibility="gone" />
 
     <LinearLayout

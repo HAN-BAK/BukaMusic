@@ -13,6 +13,13 @@
     <string name="library">曲库</string>
     <string name="delete">删除</string>
     <string name="selected_count">已选 %1$d 首</string>
+    <string name="select_all">全选</string>
+    <string name="deselect_all">取消全选</string>
+    <string name="exit_selection">退出多选</string>
+    <string name="selected_count_album">已选 %1$d 首 · %2$d 个专辑</string>
+    <string name="selected_count_artist">已选 %1$d 首 · %2$d 位歌手</string>
+    <string name="delete_groups_confirm_album">将删除 %1$d 个专辑中的 %2$d 首音乐，删除后不可恢复。</string>
+    <string name="delete_groups_confirm_artist">将删除 %1$d 位歌手的 %2$d 首音乐，删除后不可恢复。</string>
     <string name="delete_files_confirm">确定删除选中的 %1$d 首歌曲文件吗？删除后不可恢复。</string>
     <string name="deleted">已删除</string>
     <string name="deleted_count">已删除 %1$d 首音乐</string>
@@ -138,6 +145,7 @@
     <string name="balance_center">居中</string>
     <string name="apps">应用</string>
     <string name="apps_title">应用</string>
+    <string name="apps_count">共 %1$d 个应用</string>
     <string name="multicast">多房间</string>
     <string name="multicast_title">多房间同步播放</string>
     <string name="multicast_empty">未发现其他设备</string>

@@ -13,6 +13,13 @@
     <string name="library">라이브러리</string>
     <string name="delete">삭제</string>
     <string name="selected_count">%1$d곡 선택됨</string>
+    <string name="select_all">전체 선택</string>
+    <string name="deselect_all">전체 해제</string>
+    <string name="exit_selection">선택 모드 종료</string>
+    <string name="selected_count_album">%1$d곡 · %2$d개 앨범</string>
+    <string name="selected_count_artist">%1$d곡 · %2$d명 아티스트</string>
+    <string name="delete_groups_confirm_album">%2$d개 앨범의 %1$d곡을 삭제하시겠습니까? 되돌릴 수 없습니다.</string>
+    <string name="delete_groups_confirm_artist">%2$d명 아티스트의 %1$d곡을 삭제하시겠습니까? 되돌릴 수 없습니다.</string>
     <string name="delete_files_confirm">선택한 %1$d곡의 파일을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.</string>
     <string name="deleted">삭제됨</string>
     <string name="deleted_count">음악 %1$d곡을 삭제했습니다</string>
@@ -138,6 +145,7 @@
     <string name="balance_center">가운데</string>
     <string name="apps">앱</string>
     <string name="apps_title">앱</string>
+    <string name="apps_count">앱 %1$d개</string>
     <string name="multicast">멀티룸</string>
     <string name="multicast_title">멀티룸 동기화 재생</string>
     <string name="multicast_empty">다른 기기를 찾지 못했습니다</string>

@@ -34,6 +34,8 @@ public class LibraryActivity extends BaseActivity {
     private TextView txtTitle;
     private TextView txtSelectCount;
     private ImageButton btnDelete;
+    private ImageButton btnBack;
+    private com.google.android.material.button.MaterialButton btnSelectAll;
     private com.google.android.material.button.MaterialButton btnGroup;
     private RecyclerView list;
     private CoverArtLoader coverLoader;
@@ -54,10 +56,12 @@ public class LibraryActivity extends BaseActivity {
         txtTitle = findViewById(R.id.txt_title);
         txtSelectCount = findViewById(R.id.txt_select_count);
         btnDelete = findViewById(R.id.btn_delete);
+        btnSelectAll = findViewById(R.id.btn_select_all);
         btnGroup = findViewById(R.id.btn_group);
         btnGroup.setOnClickListener(v -> showGroupDialog());
 
-        findViewById(R.id.btn_back).setOnClickListener(v -> {
+        btnBack = findViewById(R.id.btn_back);
+        btnBack.setOnClickListener(v -> {
             if (adapter.isSelectionMode()) {
                 exitSelectionMode();
             } else if (adapter.getOpenGroupKey() != null) {
@@ -138,6 +142,15 @@ public class LibraryActivity extends BaseActivity {
         adapter.setOnTrackLongClick(track -> updateSelectionUi());
         adapter.setOnSelectionChanged(count -> updateSelectionUi());
         btnDelete.setOnClickListener(v -> confirmDelete());
+        btnSelectAll.setOnClickListener(v -> {
+            // 全选 / 取消全选（分组视图里就是每个专辑 / 歌手的全部歌曲）
+            if (adapter.isAllSelected()) {
+                adapter.clearSelection();
+            } else {
+                adapter.selectAll();
+            }
+            updateSelectionUi();
+        });
 
         loadTracks();
     }
@@ -300,13 +313,36 @@ public class LibraryActivity extends BaseActivity {
         txtTitle.setVisibility(selecting ? View.GONE : View.VISIBLE);
         btnGroup.setVisibility(selecting ? View.GONE : View.VISIBLE);
         txtSelectCount.setVisibility(selecting ? View.VISIBLE : View.GONE);
+        btnSelectAll.setVisibility(selecting ? View.VISIBLE : View.GONE);
         btnDelete.setVisibility(selecting ? View.VISIBLE : View.GONE);
+        // 没勾任何东西时删除按钮变灰，避免点了没反应
+        boolean canDelete = selecting && adapter.getSelectedCount() > 0;
+        btnDelete.setEnabled(canDelete);
+        btnDelete.setAlpha(canDelete ? 1f : 0.35f);
+        // 多选模式下返回键换成关闭 X（同一个位置，不额外占宽度）
+        btnBack.setImageResource(selecting ? R.drawable.ic_close : R.drawable.ic_back);
+        btnBack.setContentDescription(getString(
+                selecting ? R.string.exit_selection : R.string.previous));
         if (selecting) {
-            txtSelectCount.setText(getString(R.string.selected_count, adapter.getSelectedCount()));
+            txtSelectCount.setText(selectionSummary());
+            btnSelectAll.setText(getString(adapter.isAllSelected()
+                    ? R.string.deselect_all : R.string.select_all));
         } else {
             String open = adapter.getOpenGroupTitle();
             txtTitle.setText(open == null ? getString(R.string.library) : open);
         }
+    }
+
+    /** 多选标题：平铺列表只报首数，按专辑 / 按歌手还会报选中了几个分组。 */
+    private CharSequence selectionSummary() {
+        int songs = adapter.getSelectedCount();
+        int groups = adapter.getSelectedGroupCount();
+        if (groups <= 0 || adapter.getGroupBy() == TrackAdapter.GroupBy.NONE) {
+            return getString(R.string.selected_count, songs);
+        }
+        return getString(adapter.getGroupBy() == TrackAdapter.GroupBy.ALBUM
+                        ? R.string.selected_count_album : R.string.selected_count_artist,
+                songs, groups);
     }
 
     /** Chooses how the library is presented: flat, by album or by artist. */
@@ -450,8 +486,17 @@ public class LibraryActivity extends BaseActivity {
             exitSelectionMode();
             return;
         }
-        BukaDialog.confirm(this, getString(R.string.delete),
-                getString(R.string.delete_files_confirm, selected.size()),
+        // 整张专辑 / 整个歌手被选中时，提示里说清楚删掉的是哪些分组
+        int groups = adapter.getSelectedGroupCount();
+        CharSequence message;
+        if (groups > 0 && adapter.getGroupBy() == TrackAdapter.GroupBy.ALBUM) {
+            message = getString(R.string.delete_groups_confirm_album, groups, selected.size());
+        } else if (groups > 0 && adapter.getGroupBy() == TrackAdapter.GroupBy.ARTIST) {
+            message = getString(R.string.delete_groups_confirm_artist, groups, selected.size());
+        } else {
+            message = getString(R.string.delete_files_confirm, selected.size());
+        }
+        BukaDialog.confirm(this, getString(R.string.delete), message,
                 getString(android.R.string.ok), () -> deleteTracks(selected)).show();
     }
 

@@ -60,8 +60,18 @@ public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
         AppInfo app = apps.get(position);
+        android.content.Context ctx = holder.itemView.getContext();
         holder.icon.setImageDrawable(app.icon);
+        // 图标不再套圆形底，直接显示原图标；名称 / 行底仍跟当前封面主色走
+        holder.icon.setBackground(null);
         holder.label.setText(app.label);
+        holder.label.setTextColor(ColorTheme.tooltipText());
+        // 每行做成柔和的圆角卡片（背景内缩，文字位置不变）
+        float density = ctx.getResources().getDisplayMetrics().density;
+        holder.itemView.setBackground(new android.graphics.drawable.InsetDrawable(
+                ColorTheme.softBlock(ctx),
+                Math.round(10f * density), Math.round(4f * density),
+                Math.round(10f * density), Math.round(4f * density)));
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onAppClick(app);
         });

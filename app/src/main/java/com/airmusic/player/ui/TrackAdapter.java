@@ -320,13 +320,82 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         return selected.size();
     }
 
-    /** Returns the selected tracks in list order. */
+    /**
+     * 当前视图里被完整选中的分组数量（按专辑 / 按歌手时用于标题里的
+     * "已选 12 首 · 2 个专辑"）；平铺列表返回 0。
+     */
+    public int getSelectedGroupCount() {
+        int groups = 0;
+        boolean anyCard = false;
+        for (Object row : rows) {
+            if (row instanceof GroupCard) {
+                anyCard = true;
+                if (isGroupSelected((GroupCard) row)) groups++;
+            }
+        }
+        if (!anyCard && openGroup != null && isAllSelected()) return 1;
+        return groups;
+    }
+
+    /** 当前视图里的歌是否已全部选中（分组视图按所有分组的歌算）。 */
+    public boolean isAllSelected() {
+        int total = 0;
+        int picked = 0;
+        for (Object row : rows) {
+            if (row instanceof Track) {
+                total++;
+                if (selected.contains(key((Track) row))) picked++;
+            } else if (row instanceof GroupCard) {
+                for (Track track : ((GroupCard) row).tracks) {
+                    total++;
+                    if (selected.contains(key(track))) picked++;
+                }
+            }
+        }
+        return total > 0 && picked == total;
+    }
+
+    /** 全选当前视图（分组视图 = 每个分组里的全部歌曲）。 */
+    public void selectAll() {
+        for (Object row : rows) {
+            if (row instanceof Track) {
+                selected.add(key((Track) row));
+            } else if (row instanceof GroupCard) {
+                for (Track track : ((GroupCard) row).tracks) {
+                    selected.add(key(track));
+                }
+            }
+        }
+        notifyDataSetChanged();
+        if (selectionListener != null) {
+            selectionListener.onSelectionChanged(selected.size());
+        }
+    }
+
+    /** 清空选择（仍留在多选模式，方便重新勾）。 */
+    public void clearSelection() {
+        if (selected.isEmpty()) return;
+        selected.clear();
+        notifyDataSetChanged();
+        if (selectionListener != null) {
+            selectionListener.onSelectionChanged(0);
+        }
+    }
+
+    /** 一个分组是否整组选中（用于卡片上的勾选框）。 */
+    private boolean isGroupSelected(GroupCard card) {
+        if (card == null || card.tracks.isEmpty()) return false;
+        for (Track track : card.tracks) {
+            if (!selected.contains(key(track))) return false;
+        }
+        return true;
+    }
+
+    /** Returns the selected tracks in library order (groups included). */
     public List<Track> getSelectedTracks() {
         List<Track> out = new ArrayList<>();
-        for (Object row : rows) {
-            if (row instanceof Track && selected.contains(key((Track) row))) {
-                out.add((Track) row);
-            }
+        for (Track track : source) {
+            if (selected.contains(key(track))) out.add(track);
         }
         return out;
     }
@@ -388,10 +457,30 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 h.art.setImageResource(R.drawable.ic_airplay);
             }
             h.itemView.setOnClickListener(v -> {
-                if (selectionMode) return;
-                if (groupListener != null) groupListener.onGroupClick(card.key);
+                if (selectionMode) {
+                    toggleSelection(position);
+                } else if (groupListener != null) {
+                    groupListener.onGroupClick(card.key);
+                }
             });
-            h.itemView.setOnLongClickListener(null);
+            // 长按整张卡片 = 选中这个专辑 / 歌手的全部歌曲（多选里也能整组取消）
+            h.itemView.setOnLongClickListener(v -> {
+                if (selectionMode) return false;
+                for (Track track : card.tracks) {
+                    selected.add(key(track));
+                }
+                setSelectionMode(true);
+                notifyDataSetChanged();
+                if (selectionListener != null) {
+                    selectionListener.onSelectionChanged(selected.size());
+                }
+                return true;
+            });
+            boolean cardSelected = selectionMode && isGroupSelected(card);
+            h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
+            h.check.setChecked(cardSelected);
+            h.check.setAccentColor(ColorTheme.accent());
+            h.itemView.setBackground(cardSelected ? selectedBackground(ctx) : null);
             // A recycled tile must never keep the pressed-down scale.
             h.itemView.setScaleX(1f);
             h.itemView.setScaleY(1f);
@@ -443,9 +532,8 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 ? ColorTheme.textAccent() : ColorTheme.tooltipText());
         h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
         h.check.setChecked(isSelected);
-        h.itemView.setBackgroundColor(isSelected
-                ? ContextCompat.getColor(ctx, R.color.surface_light)
-                : Color.TRANSPARENT);
+        h.check.setAccentColor(ColorTheme.accent());
+        h.itemView.setBackground(isSelected ? selectedBackground(ctx) : null);
         h.itemView.setOnLongClickListener(v -> {
             if (!selectionMode) {
                 setSelectionMode(true);
@@ -472,15 +560,49 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void toggleSelection(int position) {
         if (!selectionMode || position < 0 || position >= rows.size()) return;
         Object row = rows.get(position);
-        if (!(row instanceof Track)) return;
-        String trackKey = key((Track) row);
-        if (!selected.remove(trackKey)) {
-            selected.add(trackKey);
+        if (row instanceof Track) {
+            String trackKey = key((Track) row);
+            if (!selected.remove(trackKey)) {
+                selected.add(trackKey);
+            }
+        } else if (row instanceof GroupCard) {
+            // 整张卡片：整组选中 / 整组取消
+            GroupCard card = (GroupCard) row;
+            boolean select = !isGroupSelected(card);
+            for (Track track : card.tracks) {
+                if (select) {
+                    selected.add(key(track));
+                } else {
+                    selected.remove(key(track));
+                }
+            }
+        } else {
+            return;
         }
         notifyItemChanged(position);
         if (selectionListener != null) {
             selectionListener.onSelectionChanged(selected.size());
         }
+    }
+
+    /**
+     * 选中行 / 卡片外那圈「淡色大框」：左右几乎铺满，上下留一点边距，
+     * 边框保持和其他地方一样的 1dp 细线，不额外加粗。
+     * （背景内缩不影响行内文字的排布。）
+     */
+    private static android.graphics.drawable.Drawable selectedBackground(
+            android.content.Context ctx) {
+        float density = ctx.getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable frame =
+                new android.graphics.drawable.GradientDrawable();
+        frame.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        frame.setColor(ColorTheme.withAlpha(ColorTheme.accent(), 0.20f));
+        frame.setStroke(Math.max(1, Math.round(density)), ColorTheme.stroke());
+        frame.setCornerRadius(16f * density);
+        return new android.graphics.drawable.InsetDrawable(
+                frame,
+                Math.round(4f * density), Math.round(3f * density),
+                Math.round(4f * density), Math.round(3f * density));
     }
 
     @Override
@@ -489,7 +611,7 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     static class Holder extends RecyclerView.ViewHolder {
-        final CheckBox check;
+        final BukaCheckBox check;
         final TextView title;
         final TextView subtitle;
 
@@ -516,12 +638,14 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         final android.widget.ImageView art;
         final TextView title;
         final TextView subtitle;
+        final BukaCheckBox check;
 
         CardHolder(@NonNull View itemView) {
             super(itemView);
             art = itemView.findViewById(R.id.card_art);
             title = itemView.findViewById(R.id.card_title);
             subtitle = itemView.findViewById(R.id.card_subtitle);
+            check = itemView.findViewById(R.id.card_check);
         }
     }
 }
