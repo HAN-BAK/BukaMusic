@@ -263,7 +263,8 @@ public class FolderPickerActivity extends BaseActivity {
             File root = roots.get(i);
             entries.add(new FolderEntry(root, rootLabels.get(i), root.getAbsolutePath()));
         }
-        pathText.setText(getString(R.string.folder_pick_hint));
+        pathText.setText(getString(pickFile
+                ? R.string.folder_pick_file_tap : R.string.folder_pick_hint));
         btnSelect.setEnabled(false);
         adapter.notifyDataSetChanged();
     }
