@@ -75,13 +75,10 @@
             android:orientation="horizontal"
             android:visibility="gone">
 
-            <com.airbnb.lottie.LottieAnimationView
+            <com.airmusic.player.ui.BukaSpinner
                 android:id="@+id/buka_spinner"
                 android:layout_width="34dp"
-                android:layout_height="34dp"
-                app:lottie_autoPlay="true"
-                app:lottie_fileName="loading_ring.json"
-                app:lottie_loop="true" />
+                android:layout_height="34dp" />
 
             <TextView
                 android:id="@+id/buka_loading_text"

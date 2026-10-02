@@ -49,7 +49,7 @@ public class BukaDialog extends Dialog {
     private final ScrollView scroll;
     private final LinearLayout options;
     private final LinearLayout loadingRow;
-    private final com.airbnb.lottie.LottieAnimationView spinner;
+    private final BukaSpinner spinner;
     private final TextView loadingText;
     private final TextView negative;
     private final TextView positive;
@@ -72,6 +72,7 @@ public class BukaDialog extends Dialog {
         options = findViewById(R.id.buka_options);
         loadingRow = findViewById(R.id.buka_loading_row);
         spinner = findViewById(R.id.buka_spinner);
+        spinner.setSpinnerColor(ColorTheme.accent());
         loadingText = findViewById(R.id.buka_loading_text);
         negative = findViewById(R.id.buka_negative);
         positive = findViewById(R.id.buka_positive);

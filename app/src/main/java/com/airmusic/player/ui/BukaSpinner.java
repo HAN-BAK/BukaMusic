@@ -51,6 +51,12 @@ public class BukaSpinner extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        // 自己或任意祖先被隐藏时不转；重新显示时自动续上
+        if (!isShown()) {
+            stop();
+            return;
+        }
+        if (animator == null || !animator.isRunning()) start();
         float w = getWidth();
         float h = getHeight();
         if (w <= 0f || h <= 0f) return;

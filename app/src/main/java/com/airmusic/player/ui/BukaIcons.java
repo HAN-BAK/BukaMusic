@@ -30,6 +30,20 @@ public final class BukaIcons {
         tint(view);
     }
 
+    /**
+     * 同上，但把图标往上挪一点点。
+     *
+     * <p>图标挂在「标签 TextView」上时，compoundDrawable 是按行盒居中的，而行盒比字形
+     * 低一点，于是图标看着比文字偏下；挂在按钮上的图标没有这个问题。
+     * 所以只对标签那几行做这个小修正。
+     */
+    public static void rowAligned(TextView view, @DrawableRes int icon) {
+        if (view == null) return;
+        // MaterialButton 默认关掉了字体额外留白，图标才对得准；普通标签要保持一致
+        view.setIncludeFontPadding(false);
+        row(view, icon);
+    }
+
     /** 动态图标：挂上后由调用方在点击处理里调用 {@link #play} 播放动画。 */
     public static void animated(TextView view, @DrawableRes int animRes) {
         if (view == null) return;
