@@ -375,7 +375,7 @@ public class SettingsActivity extends BaseActivity {
         com.airmusic.player.ui.BukaIcons.attach(findViewById(R.id.label_balance),
                 R.drawable.ic_row_balance, 0f);
         com.airmusic.player.ui.BukaIcons.attach(findViewById(R.id.path_display),
-                R.drawable.ic_row_folder, -0.9f);
+                R.drawable.ic_row_folder, -0.4f);
         // 均衡器入口用动态图标（点击时播放动画，动画在原有的点击处理里启动）
         View eq = findViewById(R.id.btn_equalizer);
         if (eq instanceof TextView) {
