@@ -82,14 +82,35 @@ public final class BukaTheme {
             // 所有「主色 / 强调色」的文字也跟着一起变（分组标题、当前值、说明等）。
             android.widget.TextView text = (android.widget.TextView) view;
             android.content.res.ColorStateList list = text.getTextColors();
-            if (list != null && isAccentColor(activity, list.getDefaultColor())) {
-                text.setTextColor(ColorTheme.accent());
+            if (list != null) {
+                int color = list.getDefaultColor();
+                if (isAccentColor(activity, color)) {
+                    // 文字用提饱和版的主色，换歌时看得出来在变
+                    text.setTextColor(ColorTheme.textAccent());
+                } else if (isWhiteText(activity, color)) {
+                    // 纯白字是「漏掉没跟着取色」的那批，统一成气泡那种同色系近白。
+                    text.setTextColor(ColorTheme.tooltipText());
+                } else if (isSecondaryText(activity, color)) {
+                    // 次级灰字（歌手名、说明）也掺一点主色，跟着封面变。
+                    text.setTextColor(ColorTheme.textSecondary());
+                }
             }
             // 行首的线性图标（compound drawable）同样要保持当前主色。
             if (text.getCompoundDrawableTintList() != null) {
                 text.setCompoundDrawableTintList(
                         android.content.res.ColorStateList.valueOf(ColorTheme.accent()));
             }
+        }
+        // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
+        if (view instanceof android.widget.Switch) {
+            android.widget.Switch toggle = (android.widget.Switch) view;
+            toggle.setThumbTintList(switchThumbColors());
+            toggle.setTrackTintList(switchTrackColors());
+        } else if (view instanceof androidx.appcompat.widget.SwitchCompat) {
+            androidx.appcompat.widget.SwitchCompat toggle =
+                    (androidx.appcompat.widget.SwitchCompat) view;
+            toggle.setThumbTintList(switchThumbColors());
+            toggle.setTrackTintList(switchTrackColors());
         }
         // 设置页里 OutlinedButton 是白字、TextButton 是主色字，两套看着不一样，
         // 统一成拖动气泡里那种同色系近白（高对比、带一点封面色）。
@@ -114,24 +135,36 @@ public final class BukaTheme {
             // 手柄=更深的同色系）。
             com.google.android.material.slider.Slider slider =
                     (com.google.android.material.slider.Slider) view;
-            // 轨道是自绘的圆角矩形（Material 的轨道两端永远半圆），
-            // 所以把 Material 的轨道设成透明，只留手柄 / 光晕 / 拖动气泡。
+            // 音量条的整根条（轨道 + 深色段 + 手柄）是自绘的，Material 只负责
+            // 触摸和拖动气泡；进度条用 Material 自己的轨道。
+            boolean customTrack = view.getId() == R.id.volume_seek
+                    || view.getId() == R.id.seek_bar;
+            int transparent = android.graphics.Color.TRANSPARENT;
             slider.setTrackActiveTintList(android.content.res.ColorStateList.valueOf(
-                    android.graphics.Color.TRANSPARENT));
+                    customTrack ? transparent : ColorTheme.sliderActive()));
             slider.setTrackInactiveTintList(android.content.res.ColorStateList.valueOf(
-                    android.graphics.Color.TRANSPARENT));
-            // 步进刻度（小点）本来被 Material 的轨道挡着，轨道透明后就露出来了，关掉。
+                    customTrack ? transparent : ColorTheme.sliderInactive()));
+            // 步进刻度 / 末端圆点都不要。
             slider.setTickVisible(false);
             slider.setTrackStopIndicatorSize(0);
+            // 进度条的轨道两端也要半圆（Material 默认的内侧圆角是方的）
+            if (!customTrack) {
+                slider.setTrackInsideCornerSize(slider.getTrackHeight() / 2);
+            }
             slider.setThumbTintList(
-                    android.content.res.ColorStateList.valueOf(ColorTheme.sliderThumb()));
+                    android.content.res.ColorStateList.valueOf(
+                            customTrack ? transparent : ColorTheme.sliderThumb()));
             slider.setHaloTintList(android.content.res.ColorStateList.valueOf(
                     ColorTheme.withAlpha(ColorTheme.accent(), 0.18f)));
             // 拖动时上方那个数值气泡也跟着封面主色走（深底 + 近白字）。
             SliderLabelTint.apply(slider);
-            RoundedTrackView track = trackViewFor(activity, slider);
+            SliderTrackView track = null;
+            if (customTrack) {
+                track = trackViewFor(activity, view);
+            }
             if (track != null) {
-                track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive());
+                track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive(),
+                        ColorTheme.sliderThumb());
             }
         }
         if (view instanceof ViewGroup) {
@@ -144,10 +177,35 @@ public final class BukaTheme {
 
     private static boolean isAccentColor(Activity activity, int color) {
         // 资源里的强调色，以及布局里写死的旧强调色（天蓝 / 浅蓝）都算，
-        // 统一换成当前主色。
+        // 统一换成当前主色。连当前主色本身也算上——否则「上一帧刚被设成主色」
+        // 的元素（选中的标签页等）换歌后就不会再更新了。
         return color == activity.getResources().getColor(R.color.accent)
+                || color == ColorTheme.accent()
                 || color == 0xFF4FC3F7
                 || color == 0xFF81D4FA;
+    }
+
+    /** 纯白文字（@color/text_primary）——这些是要跟着动态取色走的漏网之鱼。 */
+    private static boolean isWhiteText(Activity activity, int color) {
+        return color == activity.getResources().getColor(R.color.text_primary)
+                || color == 0xFFFFFFFF;
+    }
+
+    /** 次级灰字（@color/text_secondary）。 */
+    private static boolean isSecondaryText(Activity activity, int color) {
+        return color == activity.getResources().getColor(R.color.text_secondary);
+    }
+
+    private static android.content.res.ColorStateList switchThumbColors() {
+        return new android.content.res.ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                new int[]{0xFFFFFFFF, 0xFFB6C3D3});
+    }
+
+    private static android.content.res.ColorStateList switchTrackColors() {
+        return new android.content.res.ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                new int[]{0xFF000000 | (ColorTheme.accent() & 0xFFFFFF), 0x33FFFFFF});
     }
 
     /** 底栏四个图标按钮。 */
@@ -156,13 +214,13 @@ public final class BukaTheme {
                 || id == R.id.btn_apps || id == R.id.btn_multicast;
     }
 
-    /** 自绘轨道与 Material 滑条的配对（轨道是滑条的兄弟层）。 */
-    private static RoundedTrackView trackViewFor(Activity activity, View slider) {
-        if (slider.getId() == R.id.seek_bar) {
-            return activity.findViewById(R.id.seek_track);
-        }
+    /** 自绘整条（轨道 + 深色段 + 手柄）的配对。 */
+    private static SliderTrackView trackViewFor(Activity activity, View slider) {
         if (slider.getId() == R.id.volume_seek) {
             return activity.findViewById(R.id.volume_track);
+        }
+        if (slider.getId() == R.id.seek_bar) {
+            return activity.findViewById(R.id.seek_track);
         }
         return null;
     }

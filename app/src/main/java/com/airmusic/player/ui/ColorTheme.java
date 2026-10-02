@@ -63,6 +63,27 @@ public final class ColorTheme {
         return withAlpha(accent, 0.12f);
     }
 
+    /**
+     * 文字用的主色：按钮底色为了「偏白」把饱和度压得很低，直接拿来做文字
+     * 几乎看不出换歌的区别，所以文字单独提一档饱和度（更深更艳一点），
+     * 歌手名、分组标题、当前值这些文字就能明显跟着封面变色。
+     */
+    public static int textAccent() {
+        float[] hsv = new float[3];
+        Color.colorToHSV(accent, hsv);
+        hsv[1] = Math.max(0.34f, Math.min(0.58f, hsv[1] * 1.55f));
+        hsv[2] = Math.max(0.80f, Math.min(0.93f, hsv[2]));
+        return Color.HSVToColor(0xFF, hsv);
+    }
+
+    /**
+     * 次级文字色：原来的灰 #B9C0C9 掺一半当前主色，
+     * 专辑名、说明文字也看得出来在跟着封面变色。
+     */
+    public static int textSecondary() {
+        return blend(0xFFB9C0C9, accent, 0.5f);
+    }
+
     public static int withAlpha(int color, float alpha) {
         int a = Math.round(Math.max(0f, Math.min(1f, alpha)) * 255f);
         return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color));
@@ -253,15 +274,12 @@ public final class ColorTheme {
         pill.setShape(GradientDrawable.RECTANGLE);
         // 不透明：半透明会让模糊封面透出来，和轨道出现色差
         pill.setColor(0xFF000000 | (sliderInactive() & 0xFFFFFF));
-        // 圆角矩形，不是两头全圆的胶囊
-        pill.setCornerRadius(dp(context, TRACK_CORNER_DP + 4f));
-        int inset = dp(context, 10f);
+        // 两头半圆的胶囊，粗细和底栏按钮的圆形背景一致（44dp）
+        pill.setCornerRadius(dp(context, 22f));
+        int inset = dp(context, 6f);
         return new android.graphics.drawable.InsetDrawable(pill, 0, inset,
                 Math.max(0, rightInset), inset);
     }
-
-    /** 滑条轨道 / 音量条的圆角半径（dp）：圆角矩形风格。 */
-    public static final float TRACK_CORNER_DP = 6f;
 
     /**
      * 拖动气泡的底色：取当前主色相位的**深色**（明度压到 0.30），

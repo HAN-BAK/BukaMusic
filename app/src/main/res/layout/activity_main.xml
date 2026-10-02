@@ -120,15 +120,15 @@
 
                     <!-- Material 滑条：粗圆角轨道 + 竖向胶囊手柄 + 手柄与轨道断开
                          （对齐 Android Canary 的系统音量条效果） -->
+                    <!-- 外层 wrap_content：行高与原来完全一致（不会顶高整行） -->
                     <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="56dp">
+                        android:layout_height="wrap_content">
 
-                        <!-- 轨道自己画：圆角矩形（Material 的轨道两端永远是半圆） -->
-                        <com.airmusic.player.ui.RoundedTrackView
+                        <com.airmusic.player.ui.SliderTrackView
                             android:id="@+id/seek_track"
                             android:layout_width="match_parent"
-                            android:layout_height="24dp"
+                            android:layout_height="36dp"
                             android:layout_gravity="center_vertical" />
 
                         <com.google.android.material.slider.Slider
@@ -300,11 +300,11 @@
                 android:layout_height="56dp"
                 android:layout_weight="0.5">
 
-                <!-- 轨道自绘：圆角矩形；左右留白由代码按 Material 的轨道位置对齐 -->
-                <com.airmusic.player.ui.RoundedTrackView
+                <!-- 整根音量条由它画：轨道 + 深色段 + 手柄，三者严格同心 -->
+                <com.airmusic.player.ui.SliderTrackView
                     android:id="@+id/volume_track"
                     android:layout_width="match_parent"
-                    android:layout_height="28dp"
+                    android:layout_height="52dp"
                     android:layout_gravity="center_vertical" />
 
                 <com.google.android.material.slider.Slider
@@ -314,22 +314,22 @@
                     android:stepSize="1"
                     android:valueFrom="0"
                     android:valueTo="100"
-                    app:thumbHeight="40dp"
+                    app:thumbHeight="48dp"
                     app:thumbTrackGapSize="8dp"
                     app:thumbWidth="8dp"
                     app:trackColorActive="#8FA6BF"
                     app:trackColorInactive="#9DB2C4"
-                    app:trackHeight="28dp"
+                    app:trackHeight="34dp"
                     app:trackStopIndicatorSize="16dp" />
 
                 <ImageView
                     android:id="@+id/volume_icon"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
                     android:layout_gravity="start|center_vertical"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="12dp"
                     android:contentDescription="@string/volume"
-                    android:src="@drawable/ic_volume" />
+                    android:src="@drawable/ic_volume_level3" />
             </FrameLayout>
 
             <Space

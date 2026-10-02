@@ -1793,18 +1793,28 @@ public class PlaybackService extends Service {
         if (!airPlaySessionActive) return;
         Log.i(TAG, "AirPlay metadata: title=" + title + " artist=" + artist + " album=" + album
                 + " art=" + (art != null) + " dur=" + durationMs);
+        // 发送端换歌了（标题变了）。它这次没带的字段要清空，否则会一直显示
+        // 上一首的歌手 / 专辑——这就是「换歌后作者不刷新」的原因。
+        boolean newSong = title != null && title.trim().length() > 0
+                && !title.trim().equals(airMetaTitle);
         // Always cache the metadata; the UI only shows it once AirPlay owns
         // the screen (e.g. after the multi-room fade-out completes).
         if (title != null && title.trim().length() > 0) airMetaTitle = title.trim();
         if (artist != null && artist.trim().length() > 0) airMetaArtist = artist.trim();
+        else if (newSong) airMetaArtist = "";
         if (album != null && album.trim().length() > 0) airMetaAlbum = album.trim();
+        else if (newSong) airMetaAlbum = "";
         if (art != null) airMetaArt = art;
+        else if (newSong) airMetaArt = null;
         if (durationMs > 0) airMetaDurationMs = durationMs;
         if (state.source != PlayerUiState.Source.AIRPLAY) return;
         if (title != null && title.trim().length() > 0) state.title = title.trim();
         if (artist != null && artist.trim().length() > 0) state.artist = artist.trim();
+        else if (newSong) state.artist = "";
         if (album != null && album.trim().length() > 0) state.album = album.trim();
+        else if (newSong) state.album = "";
         if (art != null) state.art = art;
+        else if (newSong) state.art = null;
         if (durationMs > 0) state.durationMs = (int) durationMs;
         publish();
     }
