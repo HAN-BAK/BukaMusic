@@ -31,7 +31,8 @@
             android:text="@string/transfer"
             android:textColor="@color/text_primary"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold" 
+            android:layout_marginStart="16dp" />
     </LinearLayout>
 
     <LinearLayout

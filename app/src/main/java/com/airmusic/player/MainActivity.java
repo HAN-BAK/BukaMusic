@@ -71,10 +71,10 @@ public class MainActivity extends BaseActivity {
     private ImageButton btnMulticast;
     private ImageButton btnLibrary;
     private ImageButton btnApps;
-    private ProgressBar multicastProgress;
-    private ProgressBar playProgress;
-    private ProgressBar nextProgress;
-    private ProgressBar prevProgress;
+    private com.airmusic.player.ui.BukaSpinner multicastProgress;
+    private com.airmusic.player.ui.BukaSpinner playProgress;
+    private com.airmusic.player.ui.BukaSpinner nextProgress;
+    private com.airmusic.player.ui.BukaSpinner prevProgress;
     private ImageView volumeIcon;
     private com.google.android.material.slider.Slider seekBar;
     private com.google.android.material.slider.Slider volumeSeek;
@@ -394,7 +394,7 @@ public class MainActivity extends BaseActivity {
 
     /** Shows a loading spinner on a transport button while the receiver's
      *  command is waiting for the master to execute and broadcast back. */
-    private void showControlSpinner(View icon, ProgressBar spinner) {
+    private void showControlSpinner(View icon, com.airmusic.player.ui.BukaSpinner spinner) {
         controlPending = true;
         if (icon == btnPlay) {
             // Keep the circular sky-blue frame visible; hide only the glyph.

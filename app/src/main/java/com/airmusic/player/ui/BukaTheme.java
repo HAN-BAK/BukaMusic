@@ -129,6 +129,10 @@ public final class BukaTheme {
         if (view instanceof BukaSwitch) {
             ((BukaSwitch) view).setAccentColor(ColorTheme.accent());
         }
+        // 自绘加载圆环：跟着动态主色
+        if (view instanceof BukaSpinner) {
+            ((BukaSpinner) view).setSpinnerColor(ColorTheme.accent());
+        }
         // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
         if (view instanceof android.widget.Switch) {
             android.widget.Switch toggle = (android.widget.Switch) view;

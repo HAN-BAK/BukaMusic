@@ -191,7 +191,7 @@
                             android:src="@drawable/ic_prev"
                             android:tint="@color/text_primary" />
 
-                        <ProgressBar
+                        <com.airmusic.player.ui.BukaSpinner
                             android:id="@+id/prev_progress"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
@@ -214,7 +214,7 @@
                             android:padding="16dp"
                             android:src="@drawable/vd_play_morph" />
 
-                        <ProgressBar
+                        <com.airmusic.player.ui.BukaSpinner
                             android:id="@+id/play_progress"
                             android:layout_width="30dp"
                             android:layout_height="30dp"
@@ -235,7 +235,7 @@
                             android:src="@drawable/ic_next"
                             android:tint="@color/text_primary" />
 
-                        <ProgressBar
+                        <com.airmusic.player.ui.BukaSpinner
                             android:id="@+id/next_progress"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
@@ -272,7 +272,7 @@
                 android:src="@drawable/ic_multicast"
                 android:tint="@color/accent" />
 
-            <ProgressBar
+            <com.airmusic.player.ui.BukaSpinner
                 android:id="@+id/multicast_progress"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
