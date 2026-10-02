@@ -53,6 +53,7 @@ public final class PressFx {
                     ((android.widget.ImageView) v).getDrawable();
             if (drawable instanceof android.graphics.drawable.Animatable) {
                 ((android.graphics.drawable.Animatable) drawable).start();
+                android.util.Log.d("PressFx", "图标动效播放 #" + Integer.toHexString(v.getId()));
             }
         }
         v.animate()

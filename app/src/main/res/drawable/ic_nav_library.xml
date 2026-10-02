@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 底栏：曲库（列表 + 音符），线性风格与设置页图标一致 -->
+<!-- 底栏：曲库（一个干净的八分音符，线条规格与其它图标一致） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <group android:name="notes">
+    <group
+        android:name="notes"
+        android:pivotX="12"
+        android:pivotY="13">
         <path
-            android:pathData="M5,5.5 h9 M5,10 h6 M5,14.5 h6"
+            android:pathData="M13.4,16.6 V5.4 l5.2,-1.4 v3.2"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.7"
-            android:strokeLineCap="round" />
-        <path
-            android:pathData="M16.5,13.5 v-6 l4,-1 v6"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.7"
+            android:strokeWidth="1.8"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
-            android:pathData="M15,15.6 a1.6,1.6 0 1 1 -0.01,3.2 a1.6,1.6 0 0 1 0.01,-3.2 z M19,14.6 a1.6,1.6 0 1 1 -0.01,3.2 a1.6,1.6 0 0 1 0.01,-3.2 z"
+            android:pathData="M9.9,16.6 a3.5,2.7 0 1 1 -0.01,5.4 a3.5,2.7 0 0 1 0.01,-5.4 z"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.7" />
+            android:strokeWidth="1.8" />
+        <path
+            android:pathData="M13.4,9.6 l5.2,-1.4"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round" />
     </group>
 </vector>

@@ -214,6 +214,44 @@ public final class ColorTheme {
         return shape(context, withAlpha(accent, 0.20f), stroke(), false, 14f);
     }
 
+    // ------------------------------------------------------------------
+    // 滑条：两段式粗圆角条（已播放=主色，未播放=主色压暗），无大圆点
+    // ------------------------------------------------------------------
+
+    /** SeekBar 的 progressDrawable。 */
+    public static android.graphics.drawable.Drawable sliderTrack(Context context) {
+        int height = dp(context, 10f);
+        GradientDrawable background = new GradientDrawable();
+        background.setShape(GradientDrawable.RECTANGLE);
+        background.setColor(blend(0xFF0E1620, accent, 0.14f));
+        background.setCornerRadius(height / 2f);
+        GradientDrawable progress = new GradientDrawable();
+        progress.setShape(GradientDrawable.RECTANGLE);
+        progress.setColor(accent);
+        progress.setCornerRadius(height / 2f);
+        android.graphics.drawable.LayerDrawable layers =
+                new android.graphics.drawable.LayerDrawable(
+                        new android.graphics.drawable.Drawable[]{background, progress});
+        layers.setId(0, android.R.id.background);
+        layers.setId(1, android.R.id.progress);
+        for (int i = 0; i < 2; i++) {
+            layers.setLayerHeight(i, height);
+            layers.setLayerGravity(i, android.view.Gravity.FILL_HORIZONTAL
+                    | android.view.Gravity.CENTER_VERTICAL);
+        }
+        return layers;
+    }
+
+    /** 滑条手柄：和轨道同高的小圆点，不抢眼。 */
+    public static android.graphics.drawable.Drawable sliderThumb(Context context) {
+        int size = dp(context, 14f);
+        GradientDrawable thumb = new GradientDrawable();
+        thumb.setShape(GradientDrawable.OVAL);
+        thumb.setColor(accent);
+        thumb.setSize(size, size);
+        return thumb;
+    }
+
     private static GradientDrawable shape(Context context, int fillColor, int strokeColor,
                                          boolean circle) {
         return shape(context, fillColor, strokeColor, circle, 14f);

@@ -75,6 +75,14 @@ public final class BukaTheme {
                 text.setTextColor(ColorTheme.accent());
             }
         }
+        if (view instanceof android.widget.SeekBar) {
+            // 全部滑条统一成两段式粗圆角条，颜色跟随当前封面主色。
+            android.widget.SeekBar bar = (android.widget.SeekBar) view;
+            bar.setProgressDrawable(ColorTheme.sliderTrack(activity));
+            bar.setThumb(ColorTheme.sliderThumb(activity));
+            bar.setThumbOffset(0);
+            bar.setSplitTrack(false);
+        }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {

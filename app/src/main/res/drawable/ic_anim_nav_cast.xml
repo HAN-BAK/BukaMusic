@@ -4,22 +4,22 @@
     android:drawable="@drawable/ic_nav_cast">
     <target android:name="wave">
         <objectAnimator
-            android:duration="520"
+            android:duration="620"
             android:interpolator="@android:anim/decelerate_interpolator"
             android:propertyName="scaleX"
             android:repeatCount="0"
-            android:valueFrom="0.86"
-            android:valueTo="1.12"
+            android:valueFrom="0.7"
+            android:valueTo="1.28"
             android:valueType="floatType" />
     </target>
     <target android:name="wave">
         <objectAnimator
-            android:duration="520"
+            android:duration="620"
             android:interpolator="@android:anim/decelerate_interpolator"
             android:propertyName="scaleY"
             android:repeatCount="0"
-            android:valueFrom="0.86"
-            android:valueTo="1.12"
+            android:valueFrom="0.7"
+            android:valueTo="1.28"
             android:valueType="floatType" />
     </target>
 </animated-vector>
