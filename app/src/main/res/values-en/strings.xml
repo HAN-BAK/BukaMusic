@@ -131,6 +131,7 @@
     <string name="balance_reset">Balance reset</string>
     <string name="balance_left">L</string>
     <string name="balance_right">R</string>
+    <string name="balance_center">Center</string>
     <string name="apps">Apps</string>
     <string name="apps_title">Apps</string>
     <string name="multicast">Multi-room</string>

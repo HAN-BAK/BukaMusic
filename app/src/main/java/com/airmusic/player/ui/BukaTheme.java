@@ -165,8 +165,8 @@ public final class BukaTheme {
                     (com.google.android.material.slider.Slider) view;
             // 音量条的整根条（轨道 + 深色段 + 手柄）是自绘的，Material 只负责
             // 触摸和拖动气泡；进度条用 Material 自己的轨道。
-            boolean customTrack = view.getId() == R.id.volume_seek
-                    || view.getId() == R.id.seek_bar;
+            // 只要同一个容器里有自绘轨道，就走「自绘轨道 + 透明 Material 轨道」这套
+            boolean customTrack = trackViewFor(activity, view) != null;
             int transparent = android.graphics.Color.TRANSPARENT;
             slider.setTrackActiveTintList(android.content.res.ColorStateList.valueOf(
                     customTrack ? transparent : ColorTheme.sliderActive()));
@@ -190,10 +190,7 @@ public final class BukaTheme {
             slider.setBackground(null);
             // 拖动时上方那个数值气泡也跟着封面主色走（深底 + 近白字）。
             SliderLabelTint.apply(slider);
-            SliderTrackView track = null;
-            if (customTrack) {
-                track = trackViewFor(activity, view);
-            }
+            SliderTrackView track = customTrack ? trackViewFor(activity, view) : null;
             if (track != null) {
                 track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive(),
                         ColorTheme.sliderThumb());
@@ -253,6 +250,14 @@ public final class BukaTheme {
         }
         if (slider.getId() == R.id.seek_bar) {
             return activity.findViewById(R.id.seek_track);
+        }
+        // 其它页面（均衡器 / 声道平衡）：自绘轨道和滑条在同一个容器里
+        if (slider.getParent() instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) slider.getParent();
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child instanceof SliderTrackView) return (SliderTrackView) child;
+            }
         }
         return null;
     }

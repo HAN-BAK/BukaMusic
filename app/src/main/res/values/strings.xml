@@ -131,6 +131,7 @@
     <string name="balance_reset">已恢复默认</string>
     <string name="balance_left">左</string>
     <string name="balance_right">右</string>
+    <string name="balance_center">居中</string>
     <string name="apps">应用</string>
     <string name="apps_title">应用</string>
     <string name="multicast">多房间</string>

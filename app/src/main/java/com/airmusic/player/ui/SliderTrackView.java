@@ -36,6 +36,9 @@ public class SliderTrackView extends View {
     private float fraction = 0f;
     /** 嵌在条里的图标（音量图标）：它也要跟着切口一起被切掉。 */
     private View iconSource;
+    /** 图标缩放（音量换档时弹一下用）；由本 View 自己做动画，避免缓存住中间帧。 */
+    private float iconScale = 1f;
+    private android.animation.ValueAnimator iconAnimator;
 
     public SliderTrackView(Context context) {
         this(context, null);
@@ -93,6 +96,19 @@ public class SliderTrackView extends View {
             icon.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> invalidate());
         }
         invalidate();
+    }
+
+    /** 图标弹一下（音量换档时调用）。 */
+    public void popIcon() {
+        if (iconAnimator != null) iconAnimator.cancel();
+        iconAnimator = android.animation.ValueAnimator.ofFloat(0.78f, 1f);
+        iconAnimator.setDuration(220L);
+        iconAnimator.setInterpolator(new android.view.animation.OvershootInterpolator(2.4f));
+        iconAnimator.addUpdateListener(a -> {
+            iconScale = (Float) a.getAnimatedValue();
+            invalidate();
+        });
+        iconAnimator.start();
     }
 
     private float density() {
@@ -197,10 +213,8 @@ public class SliderTrackView extends View {
         float iconY = iconSource.getTop() - getTop();
         int save = canvas.save();
         // 音量换档时那个「弹一下」的动效（缩放在图标控件上）
-        float scaleX = iconSource.getScaleX();
-        float scaleY = iconSource.getScaleY();
-        if (scaleX != 1f || scaleY != 1f) {
-            canvas.scale(scaleX, scaleY, iconX + iconW / 2f, iconY + iconH / 2f);
+        if (iconScale != 1f) {
+            canvas.scale(iconScale, iconScale, iconX + iconW / 2f, iconY + iconH / 2f);
         }
         if (leftPieceEnd > left + 0.5f) {
             canvas.save();

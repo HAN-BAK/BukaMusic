@@ -42,7 +42,7 @@ public class SettingsActivity extends BaseActivity {
     private com.airmusic.player.ui.BukaSwitch switchOnlineLyrics;
     private com.airmusic.player.ui.BukaSwitch switchShowApps;
     private com.google.android.material.button.MaterialButton btnBlurMode;
-    private SeekBar seekBalance;
+    private com.google.android.material.slider.Slider seekBalance;
     private TextView airplayStatus;
     private TextView txtStorageInfo;
     private com.google.android.material.button.MaterialButton btnTransfer;
@@ -80,7 +80,16 @@ public class SettingsActivity extends BaseActivity {
         switchOnlineLyrics = findViewById(R.id.switch_online_lyrics);
         switchShowApps = findViewById(R.id.switch_show_apps);
         btnBlurMode = findViewById(R.id.btn_blur_mode);
-        seekBalance = findViewById(R.id.seek_balance);
+        android.widget.FrameLayout balanceHost = findViewById(R.id.seek_balance);
+        seekBalance = com.airmusic.player.ui.BukaSlider.attach(balanceHost);
+        seekBalance.setValueFrom(0f);
+        seekBalance.setValueTo(200f);
+        seekBalance.setLabelFormatter(v -> {
+            int delta = Math.round(v) - 100;
+            if (delta == 0) return getString(R.string.balance_center);
+            return (delta < 0 ? getString(R.string.balance_left) : getString(R.string.balance_right))
+                    + " " + Math.abs(delta) + "%";
+        });
         airplayStatus = findViewById(R.id.airplay_status);
         txtStorageInfo = findViewById(R.id.txt_storage_info);
         btnTransfer = findViewById(R.id.btn_transfer);
@@ -134,27 +143,16 @@ public class SettingsActivity extends BaseActivity {
 
         setupTabs();
         applyIcons();
-        seekBalance.setProgress((int) ((prefs.getBalance() + 1f) * 100f));
-        seekBalance.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    PlaybackService service = PlaybackService.getInstance();
-                    if (service != null) service.setBalance((progress / 100f) - 1f);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+        seekBalance.setValue(Math.round((prefs.getBalance() + 1f) * 100f));
+        seekBalance.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) {
+                PlaybackService service = PlaybackService.getInstance();
+                if (service != null) service.setBalance((value / 100f) - 1f);
             }
         });
 
         findViewById(R.id.btn_reset_balance).setOnClickListener(v -> {
-            seekBalance.setProgress(100);
+            seekBalance.setValue(100f);
             prefs.setBalance(0f);
             PlaybackService service = PlaybackService.getInstance();
             if (service != null) service.setBalance(0f);

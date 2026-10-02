@@ -37,7 +37,8 @@ public class EqualizerActivity extends BaseActivity {
     };
 
     private Prefs prefs;
-    private final SeekBar[] sliders = new SeekBar[10];
+    private final com.google.android.material.slider.Slider[] sliders =
+            new com.google.android.material.slider.Slider[10];
     private final TextView[] values = new TextView[10];
     private double[] gains = new double[10];
 
@@ -114,30 +115,22 @@ public class EqualizerActivity extends BaseActivity {
         row.addView(label, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-        SeekBar bar = new SeekBar(this);
-        bar.setMax(240); // -12 .. +12 dB, 0.1 dB steps
-        bar.setProgress((int) Math.round((gains[index] + 12) * 10));
-        bar.setLayoutParams(new LinearLayout.LayoutParams(
-                0, dp(48), 3.0f));
-        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    gains[index] = Math.round((progress / 10.0 - 12.0) * 10.0) / 10.0;
-                    values[index].setText(String.format(Locale.US, "%+.1f", gains[index]));
-                    applyGains();
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+        // 和播放界面进度条同款的滑条
+        android.widget.FrameLayout host = new android.widget.FrameLayout(this);
+        row.addView(host, new LinearLayout.LayoutParams(0, dp(48), 3.0f));
+        com.google.android.material.slider.Slider bar =
+                com.airmusic.player.ui.BukaSlider.attach(host);
+        bar.setValueFrom(0f);
+        bar.setValueTo(240f); // -12 .. +12 dB, 0.1 dB steps
+        bar.setValue((float) Math.round((gains[index] + 12) * 10));
+        bar.setLabelFormatter(v -> String.format(Locale.US, "%+.1f dB", v / 10f - 12f));
+        bar.addOnChangeListener((s, value, fromUser) -> {
+            if (fromUser) {
+                gains[index] = Math.round((value / 10.0 - 12.0) * 10.0) / 10.0;
+                values[index].setText(String.format(Locale.US, "%+.1f", gains[index]));
+                applyGains();
             }
         });
-        row.addView(bar);
 
         TextView value = new TextView(this);
         value.setTextColor(getColor(R.color.text_primary));
@@ -153,7 +146,7 @@ public class EqualizerActivity extends BaseActivity {
 
     private void refreshAllValues() {
         for (int i = 0; i < 10; i++) {
-            sliders[i].setProgress((int) Math.round((gains[i] + 12) * 10));
+            sliders[i].setValue((float) Math.round((gains[i] + 12) * 10));
             values[i].setText(String.format(Locale.US, "%+.1f", gains[i]));
         }
     }

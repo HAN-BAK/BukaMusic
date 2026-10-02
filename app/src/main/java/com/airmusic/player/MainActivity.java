@@ -626,12 +626,8 @@ public class MainActivity extends BaseActivity {
         if (level != volumeIconLevel) {
             volumeIconLevel = level;
             volumeIcon.setImageResource(VOLUME_ICONS[level]);
-            volumeIcon.animate().cancel();
-            volumeIcon.setScaleX(0.76f);
-            volumeIcon.setScaleY(0.76f);
-            volumeIcon.animate().scaleX(1f).scaleY(1f).setDuration(220L)
-                    .setInterpolator(new android.view.animation.OvershootInterpolator(2.4f))
-                    .start();
+            // 弹一下的动效交给自绘层做（做在 ImageView 上会被缓存成缩小帧卡住）
+            if (volumeTrack != null) volumeTrack.popIcon();
         }
         // 图标周围被深色段盖住时改用同色系近白，避免看不清；
         // 否则用已播放段的深色，压在浅色轨道上。
