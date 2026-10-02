@@ -31,8 +31,8 @@ public class BukaSwitch extends View {
 
     private static final float WIDTH_DP = 52f;
     private static final float HEIGHT_DP = 32f;
-    private static final float THUMB_OFF_DP = 10f;
-    private static final float THUMB_ON_DP = 13f;
+    // Canary 那种开关的滑块很大，而且开 / 关大小一样（关闭时不缩小）
+    private static final float THUMB_SIZE_DP = 24f;
     private static final float PAD_DP = 2f;
 
     private boolean checked;
@@ -136,7 +136,7 @@ public class BukaSwitch extends View {
         canvas.drawRoundRect(rect, radius, radius, paint);
 
         // 滑块：垫圈大小随开关变化，位置从左边滑到右边
-        float thumbRadius = dp(THUMB_OFF_DP + (THUMB_ON_DP - THUMB_OFF_DP) * fraction) / 2f;
+        float thumbRadius = dp(THUMB_SIZE_DP) / 2f;
         float pad = dp(PAD_DP);
         float cx = pad + thumbRadius + (w - 2f * (pad + thumbRadius)) * fraction;
         float cy = h / 2f;

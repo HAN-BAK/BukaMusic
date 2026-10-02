@@ -34,6 +34,8 @@ public class SliderTrackView extends View {
     private float thumbHeightDp = 48f;
     private float thumbGapDp = 8f;
     private float fraction = 0f;
+    /** 嵌在条里的图标（音量图标）：它也要跟着切口一起被切掉。 */
+    private View iconSource;
 
     public SliderTrackView(Context context) {
         this(context, null);
@@ -81,6 +83,13 @@ public class SliderTrackView extends View {
         invalidate();
     }
 
+    /** 嵌在条左侧的图标控件；它的 drawable 由本 View 代画，才能被切口裁开。 */
+    public void setIconSource(View icon) {
+        if (iconSource == icon) return;
+        iconSource = icon;
+        invalidate();
+    }
+
     private float density() {
         return getResources().getDisplayMetrics().density;
     }
@@ -119,33 +128,39 @@ public class SliderTrackView extends View {
         float trackBottom = trackTop + trackHeight;
         float radius = Math.min(cornerDp * d, trackHeight / 2f);
 
-        float cutHalf = half + thumbGapDp * d;
-        float thumbCenterX = half + fraction * (right - left);
-        // 切口不要把两端的半圆吃掉：手柄贴边时，条的两端也要一直是圆的。
+        // 手柄行程在轨道内部再各让出半个手柄宽：拖到两端时手柄正好贴在条的内侧，
+        // 不会半个身子探到条外面去（那样看着像渲染错位）。
+        float thumbCenterX = left + half + fraction * Math.max(0f, (right - left) - half * 2f);
+        float gapPx = thumbGapDp * d;
+        // 切口（断口）只在这侧有足够空间时才留：手柄贴到端点时这一侧不留切口，
+        // 轨道直接画到手柄下面——否则端点会剩下一小块孤零零的端头，看着像渲染错误。
         float capKeep = radius * 0.5f;
-        float cutLeft = Math.max(left + capKeep, thumbCenterX - cutHalf);
-        float cutRight = Math.min(right - capKeep, thumbCenterX + cutHalf);
+        float leftCut = thumbCenterX - half - gapPx;
+        boolean leftGap = leftCut > left + capKeep;
+        float leftPieceEnd = leftGap ? leftCut : thumbCenterX;
+        float rightCut = thumbCenterX + half + gapPx;
+        boolean rightGap = rightCut < right - capKeep;
+        float rightPieceStart = rightGap ? rightCut : thumbCenterX;
 
-        // 轨道两端永远是半圆：先按整条胶囊算形状，再按左右两段分别裁切，
-        // 这样手柄靠边时剩下的那一段只是被切短，端头依旧是圆的（不会变直角）。
-        if (cutLeft > left + 0.5f) {
+        // 轨道两端永远是半圆：先按整条胶囊算形状，再按左右两段分别裁切。
+        if (leftPieceEnd > left + 0.5f) {
             paint.setColor(trackColor);
             canvas.save();
-            canvas.clipRect(left, 0f, cutLeft, h);
+            canvas.clipRect(left, 0f, leftPieceEnd, h);
             rect.set(left, trackTop, right, trackBottom);
             canvas.drawRoundRect(rect, radius, radius, paint);
             canvas.restore();
         }
-        if (right > cutRight + 0.5f) {
+        if (right > rightPieceStart + 0.5f) {
             paint.setColor(trackColor);
             canvas.save();
-            canvas.clipRect(cutRight, 0f, right, h);
+            canvas.clipRect(rightPieceStart, 0f, right, h);
             rect.set(left, trackTop, right, trackBottom);
             canvas.drawRoundRect(rect, radius, radius, paint);
             canvas.restore();
         }
         // 已播放段：左端跟着轨道圆角，靠手柄那头是直角切口
-        float edge = Math.min(cutLeft, Math.max(left, fillRight()));
+        float edge = Math.min(leftPieceEnd, Math.max(left, fillRight()));
         if (edge > left + 0.5f) {
             paint.setColor(fillColor);
             // 同样用「整条胶囊 + 裁切」：左端永远是圆的，右端被裁成直角
@@ -163,6 +178,44 @@ public class SliderTrackView extends View {
                 thumbCenterX + half, (h + thumbHeight) / 2f);
         float thumbRadius = Math.min(half, thumbHeight / 2f);
         canvas.drawRoundRect(rect, thumbRadius, thumbRadius, paint);
+
+        // 图标最后画（压在手柄上面），但同样被切口裁掉
+        drawIcon(canvas, leftPieceEnd, rightPieceStart, left, right);
+    }
+
+    /** 图标分左右两段裁切绘制：切口那一段不画，视觉上就是被切断。 */
+    private void drawIcon(Canvas canvas, float leftPieceEnd, float rightPieceStart,
+                          float left, float right) {
+        if (iconSource == null) return;
+        if (iconSource.getVisibility() == View.GONE) return;
+        int iconW = iconSource.getWidth();
+        int iconH = iconSource.getHeight();
+        if (iconW <= 0 || iconH <= 0) return;
+        // 本 View 在音量条里是垂直居中的，坐标原点和图标控件不一样，必须先换算
+        float iconX = iconSource.getLeft() - getLeft();
+        float iconY = iconSource.getTop() - getTop();
+        int save = canvas.save();
+        // 音量换档时那个「弹一下」的动效（缩放在图标控件上）
+        float scaleX = iconSource.getScaleX();
+        float scaleY = iconSource.getScaleY();
+        if (scaleX != 1f || scaleY != 1f) {
+            canvas.scale(scaleX, scaleY, iconX + iconW / 2f, iconY + iconH / 2f);
+        }
+        if (leftPieceEnd > left + 0.5f) {
+            canvas.save();
+            canvas.clipRect(left, 0f, leftPieceEnd, getHeight());
+            canvas.translate(iconX, iconY);
+            iconSource.draw(canvas);
+            canvas.restore();
+        }
+        if (right > rightPieceStart + 0.5f) {
+            canvas.save();
+            canvas.clipRect(rightPieceStart, 0f, right, getHeight());
+            canvas.translate(iconX, iconY);
+            iconSource.draw(canvas);
+            canvas.restore();
+        }
+        canvas.restoreToCount(save);
     }
 
 }
