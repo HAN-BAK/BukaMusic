@@ -24,19 +24,9 @@ public final class BukaIcons {
     /** 给 TextView / Button 左侧加图标（颜色走动态主色）。 */
     public static void row(TextView view, @DrawableRes int icon) {
         if (view == null) return;
-        view.setIncludeFontPadding(false);
-        float density = view.getResources().getDisplayMetrics().density;
-        int gap = Math.round(10f * density);
+        int gap = Math.round(10f * view.getResources().getDisplayMetrics().density);
         view.setCompoundDrawablePadding(gap);
-        // compoundDrawable 是按「行盒」居中的，而字形实际比行盒靠上，
-        // 所以图标看着会偏低；这里在下侧补一点内边距把图标顶上去。
-        android.graphics.drawable.Drawable drawable =
-                androidx.core.content.ContextCompat.getDrawable(view.getContext(), icon);
-        if (drawable != null) {
-            int shift = Math.round(5f * density);
-            drawable = new android.graphics.drawable.InsetDrawable(drawable, 0, 0, 0, shift);
-        }
-        view.setCompoundDrawablesRelativeWithIntrinsicBounds(drawable, null, null, null);
+        view.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
         tint(view);
     }
 
