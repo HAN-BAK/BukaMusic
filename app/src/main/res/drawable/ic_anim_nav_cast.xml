@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 点底栏「多房间」时波纹扩散再收回 -->
+<!-- 点底栏「多房间」时整组音箱弹一下 -->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/ic_nav_cast">
-    <target android:name="wave">
+    <target android:name="cast">
         <objectAnimator
-            android:duration="620"
-            android:interpolator="@android:anim/decelerate_interpolator"
+            android:duration="380"
+            android:interpolator="@android:anim/overshoot_interpolator"
             android:propertyName="scaleX"
             android:repeatCount="0"
-            android:valueFrom="0.7"
-            android:valueTo="1.28"
+            android:valueFrom="0.78"
+            android:valueTo="1"
             android:valueType="floatType" />
     </target>
-    <target android:name="wave">
+    <target android:name="cast">
         <objectAnimator
-            android:duration="620"
-            android:interpolator="@android:anim/decelerate_interpolator"
+            android:duration="380"
+            android:interpolator="@android:anim/overshoot_interpolator"
             android:propertyName="scaleY"
             android:repeatCount="0"
-            android:valueFrom="0.7"
-            android:valueTo="1.28"
+            android:valueFrom="0.78"
+            android:valueTo="1"
             android:valueType="floatType" />
     </target>
 </animated-vector>

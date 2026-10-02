@@ -86,6 +86,10 @@ public final class BukaTheme {
             // 换歌时文字颜色就不刷新了（歌手名不刷新就是这个原因）。
             Object tagged = text.getTag(R.id.palette_role_tag);
             String role = tagged instanceof String ? (String) tagged : null;
+            // 歌手名固定用「进度条浅色部分」那个颜色（跟着封面走）
+            if (text.getId() == R.id.track_artist) {
+                role = "track";
+            }
             if (role == null) {
                 android.content.res.ColorStateList list = text.getTextColors();
                 if (list != null) {
@@ -110,6 +114,9 @@ public final class BukaTheme {
                 } else if ("secondary".equals(role)) {
                     // 次级灰字（歌手名、专辑名、说明）掺一半主色，跟着封面变
                     text.setTextColor(ColorTheme.textSecondary());
+                } else if ("track".equals(role)) {
+                    // 和进度条浅色部分同色
+                    text.setTextColor(ColorTheme.sliderInactive());
                 }
             }
             // 行首的线性图标（compound drawable）同样要保持当前主色。
@@ -182,6 +189,7 @@ public final class BukaTheme {
             if (track != null) {
                 track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive(),
                         ColorTheme.sliderThumb());
+                track.setCutColor(ColorTheme.trackCut());
             }
         }
         if (view instanceof ViewGroup) {

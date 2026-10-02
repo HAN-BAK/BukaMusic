@@ -28,11 +28,12 @@ public class SliderTrackView extends View {
     private int trackColor = 0xFF9DB2C4;
     private int fillColor = 0xFF13293D;
     private int thumbColor = 0xFF0F2436;
+    private int cutColor = 0xFF0A1428;
     private float cornerDp = 999f;
     private float trackHeightDp = 0f;
     private float thumbHalfDp = 4f;
     private float thumbHeightDp = 48f;
-    private float thumbGapDp = 6f;
+    private float thumbGapDp = 8f;
     private float fraction = 0f;
 
     public SliderTrackView(Context context) {
@@ -52,6 +53,14 @@ public class SliderTrackView extends View {
         trackColor = track;
         fillColor = fill;
         thumbColor = thumb;
+        invalidate();
+    }
+
+    /** 手柄两侧挖空的底色（页面深色，不是未播放段的浅色）。 */
+    public void setCutColor(int color) {
+        int opaque = 0xFF000000 | (color & 0xFFFFFF);
+        if (opaque == cutColor) return;
+        cutColor = opaque;
         invalidate();
     }
 
@@ -120,18 +129,34 @@ public class SliderTrackView extends View {
         rect.set(left, trackTop, right, trackBottom);
         canvas.drawRoundRect(rect, radius, radius, paint);
 
-        // 已播放段
+        // 已播放段：外端（左边）跟着轨道做圆角，靠手柄的一头是**直角切口**
         float edge = Math.min(right, Math.max(left, fillRight()));
         if (edge > left + 1f) {
-            float fillRadius = Math.min(radius, (edge - left) / 2f);
             paint.setColor(fillColor);
             rect.set(left, trackTop, edge, trackBottom);
-            canvas.drawRoundRect(rect, fillRadius, fillRadius, paint);
+            float fillRadius = Math.min(radius, Math.min((edge - left) / 2f, trackHeight / 2f));
+            android.graphics.Path path = new android.graphics.Path();
+            path.addRoundRect(rect, new float[]{
+                    fillRadius, fillRadius,   // 左上
+                    0f, 0f,                   // 右上（靠手柄：直角）
+                    0f, 0f,                   // 右下（靠手柄：直角）
+                    fillRadius, fillRadius},  // 左下
+                    android.graphics.Path.Direction.CW);
+            canvas.drawPath(path, paint);
         }
 
         // 手柄：竖着的圆角条，和轨道断开
         float thumbHeight = Math.min(h, thumbHeightDp * d);
         float thumbCenterX = half + fraction * (right - left);
+        // 先把手柄两侧挖空（露出页面深色），断口才像真的切断
+        float cutHalf = half + thumbGapDp * d;
+        float cutTop = 0f;
+        float cutBottom = h;
+        paint.setColor(cutColor);
+        rect.set(thumbCenterX - cutHalf, cutTop, thumbCenterX + cutHalf, cutBottom);
+        float cutRadius = Math.min(half, h / 2f);
+        canvas.drawRoundRect(rect, cutRadius, cutRadius, paint);
+
         paint.setColor(thumbColor);
         rect.set(thumbCenterX - half, (h - thumbHeight) / 2f,
                 thumbCenterX + half, (h + thumbHeight) / 2f);
