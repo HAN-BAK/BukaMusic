@@ -300,8 +300,9 @@ public final class ColorTheme {
     public static int tooltipText() {
         float[] hsv = new float[3];
         Color.colorToHSV(accent, hsv);
-        hsv[1] = Math.min(hsv[1], 0.16f);
-        hsv[2] = 0.97f;
+        // 只保留极淡的一点封面色：看着就是白字，不会整页发灰
+        hsv[1] = Math.min(hsv[1], 0.09f);
+        hsv[2] = 0.99f;
         return Color.HSVToColor(0xFF, hsv);
     }
 
