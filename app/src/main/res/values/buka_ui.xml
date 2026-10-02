@@ -25,8 +25,8 @@
          这样各处 MaterialButton 不用逐个改布局 -->
     <style name="Widget.MaterialComponents.Button.OutlinedButton"
         parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">#26FFFFFF</item>
-        <item name="strokeColor">#33FFFFFF</item>
+        <item name="backgroundTint">#334FC3F7</item>
+        <item name="strokeColor">#804FC3F7</item>
         <item name="strokeWidth">1dp</item>
         <item name="cornerRadius">14dp</item>
         <item name="android:textColor">@color/text_primary</item>
@@ -43,8 +43,13 @@
          基础 Button，再用属性还原成「文字按钮」的样子 -->
     <style name="Widget.MaterialComponents.Button.TextButton"
         parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">@android:color/transparent</item>
-        <item name="strokeWidth">0dp</item>
+        <!-- 所有可交互按钮都用同一种边框（对话框「已选中选项」那套） -->
+        <item name="backgroundTint">#334FC3F7</item>
+        <item name="strokeColor">#804FC3F7</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
         <item name="android:textColor">@color/accent</item>
         <item name="android:textSize">14sp</item>
         <item name="android:minHeight">36dp</item>

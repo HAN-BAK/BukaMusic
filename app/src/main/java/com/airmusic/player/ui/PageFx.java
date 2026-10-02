@@ -5,6 +5,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 
+import com.airmusic.player.R;
+
 /**
  * 页面动效：进入页面时内容分层淡入（顶栏自上而下、主体自下而上），
  * 并给页面里所有可点击控件挂上按压动效。
@@ -19,6 +21,7 @@ public final class PageFx {
     /** 给整棵视图树里的可点击控件加按压动效（按 id 去重，可重复调用）。 */
     public static void attachPress(View root) {
         if (root == null) return;
+        applyButtonOutline(root);
         // 输入框、进度条/滑杆有自己的触摸语义，加缩放会干扰，跳过。
         boolean skip = root instanceof android.widget.EditText
                 || root instanceof android.widget.SeekBar
@@ -31,6 +34,25 @@ public final class PageFx {
         for (int i = 0; i < group.getChildCount(); i++) {
             attachPress(group.getChildAt(i));
         }
+    }
+
+    /**
+     * 图标按钮（返回、上一曲/下一曲、底栏各项…）原本背景是透明的，这里统一
+     * 套上与对话框「已选中选项」一致的外观：主色淡填充 + 主色描边 + 圆角。
+     * 只处理 ImageButton 这类图标按钮，列表行不受影响。
+     */
+    private static void applyButtonOutline(View view) {
+        if (!(view instanceof android.widget.ImageButton)) return;
+        if (!view.isClickable()) return;
+        android.graphics.drawable.Drawable background = view.getBackground();
+        boolean plain = background == null
+                || (background instanceof android.graphics.drawable.ColorDrawable
+                    && ((android.graphics.drawable.ColorDrawable) background).getColor() == 0);
+        if (!plain) return;
+        view.setBackgroundResource(R.drawable.bg_btn_outline);
+        // 图标与描边之间留一点呼吸空间。
+        int pad = Math.round(8f * view.getResources().getDisplayMetrics().density);
+        view.setPadding(pad, pad, pad, pad);
     }
 
     /**
