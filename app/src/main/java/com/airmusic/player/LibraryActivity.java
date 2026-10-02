@@ -144,11 +144,19 @@ public class LibraryActivity extends BaseActivity {
             for (int i = 0; i < count; i++) {
                 android.view.View child = list.getChildAt(i);
                 if (child == null) continue;
+                // Never stack a new fade on top of an unfinished one, and make
+                // sure the row ends up fully visible even if the animation is
+                // cut short.
+                child.animate().cancel();
                 child.setAlpha(0f);
                 child.setTranslationY(shift);
                 child.animate()
                         .alpha(1f)
                         .translationY(0f)
+                        .withEndAction(() -> {
+                            child.setAlpha(1f);
+                            child.setTranslationY(0f);
+                        })
                         .setStartDelay(Math.min(260L, i * 28L))
                         .setDuration(280L)
                         .setInterpolator(ease)

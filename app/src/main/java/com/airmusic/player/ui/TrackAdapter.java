@@ -346,6 +346,14 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        // The list fades its rows in (LibraryActivity.animateListIn sets alpha 0
+        // and animates back). A row that gets recycled or rebound while that
+        // animation is still pending keeps alpha 0 - the text disappears while
+        // the row stays clickable. Every bind therefore starts from a clean
+        // state.
+        holder.itemView.animate().cancel();
+        holder.itemView.setAlpha(1f);
+        holder.itemView.setTranslationY(0f);
         Object row = rows.get(position);
         if (row instanceof GroupCard) {
             GroupCard card = (GroupCard) row;
