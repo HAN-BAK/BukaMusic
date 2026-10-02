@@ -182,6 +182,38 @@ public final class ColorTheme {
         return drawable;
     }
 
+    /**
+     * 对话框卡片：深色底 + 一点点主色，描边用主色的一半，
+     * 于是卡片也跟着当前封面走，但依然是深色不刺眼。
+     */
+    public static GradientDrawable dialogCard(Context context) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setColor(blend(0xFF141A22, accent, 0.12f));
+        drawable.setCornerRadius(dp(context, 24f));
+        drawable.setStroke(Math.max(1, Math.round(dp(context, 1f))), stroke());
+        return drawable;
+    }
+
+    /** 把主色按比例混进某个基色（用于派生深浅不同的同色系）。 */
+    public static int blend(int base, int tint, float amount) {
+        float a = Math.max(0f, Math.min(1f, amount));
+        int r = Math.round(Color.red(base) * (1 - a) + Color.red(tint) * a);
+        int g = Math.round(Color.green(base) * (1 - a) + Color.green(tint) * a);
+        int b = Math.round(Color.blue(base) * (1 - a) + Color.blue(tint) * a);
+        return Color.argb(0xF2, r, g, b);
+    }
+
+    /** 选项行（未选中）。 */
+    public static GradientDrawable optionIdle(Context context) {
+        return shape(context, blend(0xFF12161C, accent, 0.06f), Color.TRANSPARENT, false, 14f);
+    }
+
+    /** 选项行（选中）。 */
+    public static GradientDrawable optionSelected(Context context) {
+        return shape(context, withAlpha(accent, 0.20f), stroke(), false, 14f);
+    }
+
     private static GradientDrawable shape(Context context, int fillColor, int strokeColor,
                                          boolean circle) {
         return shape(context, fillColor, strokeColor, circle, 14f);

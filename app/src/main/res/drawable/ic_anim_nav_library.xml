@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 点底栏「曲库」时音符轻轻跳一下 -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_nav_library">
+    <target android:name="notes">
+        <objectAnimator
+            android:duration="320"
+            android:interpolator="@android:anim/overshoot_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="0"
+            android:valueFrom="1"
+            android:valueTo="1.14"
+            android:valueType="floatType" />
+    </target>
+</animated-vector>

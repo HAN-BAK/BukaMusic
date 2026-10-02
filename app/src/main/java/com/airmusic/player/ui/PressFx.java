@@ -46,6 +46,15 @@ public final class PressFx {
 
     private static void press(View v, float scale) {
         v.animate().cancel();
+        // 图标本身是 AnimatedVectorDrawable 的话，按下时顺手播放一次动画
+        // （底栏的曲库 / 应用 / 多房间 / 设置都是这种）。
+        if (v instanceof android.widget.ImageView) {
+            android.graphics.drawable.Drawable drawable =
+                    ((android.widget.ImageView) v).getDrawable();
+            if (drawable instanceof android.graphics.drawable.Animatable) {
+                ((android.graphics.drawable.Animatable) drawable).start();
+            }
+        }
         v.animate()
                 .scaleX(scale).scaleY(scale)
                 .alpha(DEFAULT_ALPHA)

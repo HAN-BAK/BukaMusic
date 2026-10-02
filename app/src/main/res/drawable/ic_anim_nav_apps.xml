@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 点底栏「应用」时九宫格弹一下 -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_nav_apps">
+    <target android:name="grid">
+        <objectAnimator
+            android:duration="340"
+            android:interpolator="@android:anim/overshoot_interpolator"
+            android:propertyName="scaleX"
+            android:repeatCount="0"
+            android:valueFrom="1"
+            android:valueTo="1.16"
+            android:valueType="floatType" />
+    </target>
+    <target android:name="grid">
+        <objectAnimator
+            android:duration="340"
+            android:interpolator="@android:anim/overshoot_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="0"
+            android:valueFrom="1"
+            android:valueTo="1.16"
+            android:valueType="floatType" />
+    </target>
+</animated-vector>

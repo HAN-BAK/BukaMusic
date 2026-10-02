@@ -13,7 +13,6 @@ import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -50,7 +49,7 @@ public class BukaDialog extends Dialog {
     private final ScrollView scroll;
     private final LinearLayout options;
     private final LinearLayout loadingRow;
-    private final ProgressBar spinner;
+    private final com.airbnb.lottie.LottieAnimationView spinner;
     private final TextView loadingText;
     private final TextView negative;
     private final TextView positive;
@@ -63,9 +62,12 @@ public class BukaDialog extends Dialog {
         super(context, R.style.BukaDialogTheme);
         setContentView(R.layout.dialog_buka);
         card = findViewById(R.id.buka_card);
+        // 卡片也跟着当前封面主色走
+        card.setBackground(ColorTheme.dialogCard(context));
         title = findViewById(R.id.buka_title);
         message = findViewById(R.id.buka_message);
         input = findViewById(R.id.buka_input);
+        input.setBackground(ColorTheme.optionIdle(context));
         scroll = findViewById(R.id.buka_scroll);
         options = findViewById(R.id.buka_options);
         loadingRow = findViewById(R.id.buka_loading_row);
@@ -232,8 +234,8 @@ public class BukaDialog extends Dialog {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundResource(selected
-                ? R.drawable.bg_dialog_option_selected : R.drawable.bg_dialog_option);
+        row.setBackground(selected
+                ? ColorTheme.optionSelected(context) : ColorTheme.optionIdle(context));
         int padH = Math.round(16f * context.getResources().getDisplayMetrics().density);
         int padV = Math.round(13f * context.getResources().getDisplayMetrics().density);
         row.setPadding(padH, padV, padH, padV);
@@ -275,8 +277,9 @@ public class BukaDialog extends Dialog {
             if (tag instanceof TextView) {
                 ((TextView) tag).setVisibility(state[i] ? View.VISIBLE : View.INVISIBLE);
             }
-            row.setBackgroundResource(state[i]
-                    ? R.drawable.bg_dialog_option_selected : R.drawable.bg_dialog_option);
+            row.setBackground(state[i]
+                    ? ColorTheme.optionSelected(getContext())
+                    : ColorTheme.optionIdle(getContext()));
             optionViews.get(i).setTextColor(getContext().getResources().getColor(
                     state[i] ? R.color.accent : R.color.text_primary));
         }

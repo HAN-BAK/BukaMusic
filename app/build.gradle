@@ -61,4 +61,8 @@ dependencies {
     implementation 'org.jmdns:jmdns:3.5.7'
     implementation 'io.netty:netty:3.10.6.Final'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.65'
+
+    // 动态图标（Lottie）：载入 / 等待这类动画用它，图标本身的路径动画仍用
+    // 原生 AnimatedVectorDrawable（矢量、无额外资源、TV 盒子上更省）。
+    implementation 'com.airbnb.android:lottie:6.6.0'
 }

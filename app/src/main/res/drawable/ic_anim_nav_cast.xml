@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 点底栏「多房间」时波纹扩散再收回 -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_nav_cast">
+    <target android:name="wave">
+        <objectAnimator
+            android:duration="520"
+            android:interpolator="@android:anim/decelerate_interpolator"
+            android:propertyName="scaleX"
+            android:repeatCount="0"
+            android:valueFrom="0.86"
+            android:valueTo="1.12"
+            android:valueType="floatType" />
+    </target>
+    <target android:name="wave">
+        <objectAnimator
+            android:duration="520"
+            android:interpolator="@android:anim/decelerate_interpolator"
+            android:propertyName="scaleY"
+            android:repeatCount="0"
+            android:valueFrom="0.86"
+            android:valueTo="1.12"
+            android:valueType="floatType" />
+    </target>
+</animated-vector>

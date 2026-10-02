@@ -48,6 +48,7 @@ import java.util.Locale;
 import com.airmusic.player.ui.BukaDialog;
 import com.airmusic.player.ui.BukaTheme;
 import com.airmusic.player.ui.ColorTheme;
+import com.airmusic.player.ui.BukaIcons;
 
 public class MainActivity extends BaseActivity {
 
@@ -162,6 +163,11 @@ public class MainActivity extends BaseActivity {
         // 播放键保持原来的实心主色圆，不加描边
         BukaTheme.circleButtons(this, R.id.btn_prev, R.id.btn_next,
                 R.id.btn_multicast, R.id.btn_library, R.id.btn_settings, R.id.btn_apps);
+        // 底栏换成新的线性图标，并作为动效图标（按下时播放一次动画）
+        BukaIcons.view(findViewById(R.id.btn_library), R.drawable.ic_anim_nav_library, false);
+        BukaIcons.view(findViewById(R.id.btn_settings), R.drawable.ic_anim_gear, false);
+        BukaIcons.view(findViewById(R.id.btn_apps), R.drawable.ic_anim_nav_apps, false);
+        BukaIcons.view(findViewById(R.id.btn_multicast), R.drawable.ic_anim_nav_cast, false);
         View leftPanel = findViewById(R.id.left_panel);
 
         setupVolumeSlider();
