@@ -60,6 +60,84 @@ public final class BukaTheme {
         }
     }
 
+    /**
+     * 播放界面的按钮用圆形边框（同一套主色填充 + 描边）。
+     * 这里先设好背景，PageFx 的通用描边逻辑看到已有背景就会跳过，不会覆盖成圆角方形。
+     */
+    public static void circleButtons(Activity activity, int... viewIds) {
+        for (int id : viewIds) {
+            View view = activity.findViewById(id);
+            if (view == null) continue;
+            view.setBackgroundResource(R.drawable.bg_btn_circle);
+            int pad = dp(activity, 10f);
+            view.setPadding(pad, pad, pad, pad);
+        }
+    }
+
+    /**
+     * 相邻按钮之间留出间距：所有「横向一行里放了两个以上按钮」的容器，给除第一个
+     * 之外的子项加 marginStart。之前底栏、传输栏、均衡器预设那一排的边框是贴在一起的。
+     */
+    public static void spaceButtons(Activity activity) {
+        spaceButtons(activity, activity.findViewById(android.R.id.content));
+    }
+
+    private static void spaceButtons(Activity activity, View root) {
+        if (root == null) return;
+        int gap = dp(activity, 16f);
+        int vGap = dp(activity, 12f);
+        if (root instanceof android.widget.LinearLayout) {
+            android.widget.LinearLayout row = (android.widget.LinearLayout) root;
+            if (row.getOrientation() == android.widget.LinearLayout.HORIZONTAL) {
+                int buttons = 0;
+                for (int i = 0; i < row.getChildCount(); i++) {
+                    if (isButtonLike(row.getChildAt(i))) buttons++;
+                }
+                if (buttons >= 2) {
+                    boolean first = true;
+                    for (int i = 0; i < row.getChildCount(); i++) {
+                        View child = row.getChildAt(i);
+                        ViewGroup.LayoutParams params = child.getLayoutParams();
+                        if (params instanceof ViewGroup.MarginLayoutParams) {
+                            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+                            margins.setMarginStart(first ? margins.leftMargin : gap);
+                            child.setLayoutParams(params);
+                        }
+                        first = false;
+                    }
+                }
+            } else {
+                // 竖排里相邻的两个按钮也要留出间距（原来只有 8dp，几乎贴着）。
+                View previous = null;
+                for (int i = 0; i < row.getChildCount(); i++) {
+                    View child = row.getChildAt(i);
+                    ViewGroup.LayoutParams params = child.getLayoutParams();
+                    if (isButtonLike(child) && previous != null
+                            && params instanceof ViewGroup.MarginLayoutParams) {
+                        ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+                        if (margins.topMargin < vGap) {
+                            margins.topMargin = vGap;
+                            child.setLayoutParams(params);
+                        }
+                    }
+                    previous = child;
+                }
+            }
+        }
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                spaceButtons(activity, group.getChildAt(i));
+            }
+        }
+    }
+
+    private static boolean isButtonLike(View view) {
+        return view instanceof com.google.android.material.button.MaterialButton
+                || view instanceof android.widget.ImageButton
+                || view instanceof android.widget.Button;
+    }
+
     private static int dp(Activity activity, float value) {
         return Math.round(value * activity.getResources().getDisplayMetrics().density);
     }

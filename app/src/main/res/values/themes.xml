@@ -16,6 +16,9 @@
         <item name="android:windowBackground">@color/background</item>
         <!-- 页面转场：自己的淡入淡出 + 缩放，不再用系统默认 -->
         <item name="android:windowAnimationStyle">@style/BukaWindowAnimation</item>
+        <!-- 没写 style 的 MaterialButton 也统一成胶囊外观（自带阴影/48dp 高的
+             Material 实心按钮样式不再使用） -->
+        <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
     </style>
 
     <style name="ShapeAppearance.AirMusic.Rounded" parent="">

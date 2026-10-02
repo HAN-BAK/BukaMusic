@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import com.airmusic.player.ui.BukaDialog;
+import com.airmusic.player.ui.BukaTheme;
 
 public class MainActivity extends BaseActivity {
 
@@ -156,6 +157,10 @@ public class MainActivity extends BaseActivity {
         seekBar = findViewById(R.id.seek_bar);
         volumeSeek = findViewById(R.id.volume_seek);
         seekRow = findViewById(R.id.seek_row);
+        // 播放界面的按钮统一用圆形边框（其它页面是圆角方形）。
+        // 播放键保持原来的实心主色圆，不加描边
+        BukaTheme.circleButtons(this, R.id.btn_prev, R.id.btn_next,
+                R.id.btn_multicast, R.id.btn_library, R.id.btn_settings, R.id.btn_apps);
         View leftPanel = findViewById(R.id.left_panel);
 
         setupVolumeSlider();

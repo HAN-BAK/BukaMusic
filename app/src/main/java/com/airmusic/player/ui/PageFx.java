@@ -107,6 +107,9 @@ public final class PageFx {
         if (content == null) return;
         enter(content);
         // 控件监听器通常在 onCreate 里才设置，所以延后一帧再挂按压动效。
-        content.post(() -> attachPress(content));
+        content.post(() -> {
+            attachPress(content);
+            BukaTheme.spaceButtons(activity);
+        });
     }
 }
