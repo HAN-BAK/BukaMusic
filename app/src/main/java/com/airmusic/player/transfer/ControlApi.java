@@ -208,6 +208,9 @@ public final class ControlApi {
             json.put("blurMode", prefs.getBlurMode());
             json.put("language", prefs.getLanguage());
             json.put("onlineLyrics", prefs.isOnlineLyrics());
+            // 曲库上次用哪种方式浏览（NONE / ALBUM / ARTIST）：控制台在按专辑 /
+            // 按歌手模式下控制播放时，会把设备端也切到同一种。
+            json.put("libraryGroup", prefs.getLibraryGroup());
             double[] gains = prefs.getEqGains();
             JSONArray eq = new JSONArray();
             if (gains != null) {
@@ -803,6 +806,11 @@ public final class ControlApi {
             }
             if (request.has("onlineLyrics")) {
                 prefs.setOnlineLyrics(request.optBoolean("onlineLyrics", true));
+            }
+            if (request.has("libraryGroup")) {
+                String group = request.optString("libraryGroup", "NONE");
+                if (!"ALBUM".equals(group) && !"ARTIST".equals(group)) group = "NONE";
+                prefs.setLibraryGroup(group);
             }
             if (request.has("eqGains") && service != null) {
                 JSONArray gains = request.optJSONArray("eqGains");

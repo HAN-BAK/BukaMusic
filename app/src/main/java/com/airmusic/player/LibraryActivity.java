@@ -175,7 +175,22 @@ public class LibraryActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         BlurBackground.apply(this, R.color.background);
+        // 控制台可能在后台改过浏览方式（按专辑 / 按歌手控制播放时会一并下发），
+        // 所以每次显示曲库都跟随一次设置。
+        applySavedGroup();
         loadTracks();
+    }
+
+    /** Applies the remembered NONE / ALBUM / ARTIST mode to the list. */
+    private void applySavedGroup() {
+        TrackAdapter.GroupBy saved = TrackAdapter.GroupBy.NONE;
+        try {
+            saved = TrackAdapter.GroupBy.valueOf(new Prefs(this).getLibraryGroup());
+        } catch (Throwable ignored) {
+        }
+        if (saved == adapter.getGroupBy()) return;
+        adapter.setGroupBy(saved);
+        applyLayoutMode();
     }
 
     private void loadTracks() {
