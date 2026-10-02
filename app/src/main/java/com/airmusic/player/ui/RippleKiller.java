@@ -38,6 +38,9 @@ public final class RippleKiller {
     private static final String TAG = "BukaRipple";
     private static final ColorStateList TRANSPARENT =
             ColorStateList.valueOf(Color.TRANSPARENT);
+    private static ColorStateList killColor() {
+        return TRANSPARENT;
+    }
 
     private RippleKiller() {
     }
@@ -72,14 +75,24 @@ public final class RippleKiller {
     }
 
     private static void killOne(View view) {
+        // 这里跑在布局过程中（RecyclerView 填充行会走 onChildViewAdded），
+        // 任何异常都会直接把应用带崩，所以单个视图出问题只记日志、跳过。
+        try {
+            killOneOrThrow(view);
+        } catch (Throwable t) {
+            Log.w(TAG, "去涟漪失败，已跳过：" + idName(view), t);
+        }
+    }
+
+    private static void killOneOrThrow(View view) {
         boolean touched = false;
         if (view instanceof com.google.android.material.button.MaterialButton) {
             ((com.google.android.material.button.MaterialButton) view)
-                    .setRippleColor(TRANSPARENT);
+                    .setRippleColor(killColor());
             touched = true;
         } else if (view instanceof com.google.android.material.card.MaterialCardView) {
             ((com.google.android.material.card.MaterialCardView) view)
-                    .setRippleColor(TRANSPARENT);
+                    .setRippleColor(killColor());
             touched = true;
         }
         Drawable background = view.getBackground();
@@ -105,9 +118,13 @@ public final class RippleKiller {
         if (drawable == null) return false;
         if (drawable instanceof RippleDrawable) {
             RippleDrawable ripple = (RippleDrawable) drawable;
-            ripple.setColor(TRANSPARENT);
-            // 内容层里还可能套着别的涟漪（罕见），一并处理。
-            neutralize(ripple.getDrawable(0));
+            ripple.setColor(killColor());
+            // 内容层可能不存在（有些涟漪是「只有遮罩、没有内容」的空层），
+            // 直接 getDrawable(0) 会 IndexOutOfBounds。
+            if (ripple.getNumberOfLayers() > 0) {
+                // 内容层里还可能套着别的涟漪（罕见），一并处理。
+                neutralize(ripple.getDrawable(0));
+            }
             return true;
         }
         if (drawable instanceof LayerDrawable) {
@@ -120,10 +137,36 @@ public final class RippleKiller {
         }
         if (drawable instanceof com.google.android.material.ripple.RippleDrawableCompat) {
             // 材料库给低版本准备的自绘涟漪
-            DrawableCompat.setTintList(drawable, TRANSPARENT);
+            DrawableCompat.setTintList(drawable, killColor());
             return true;
         }
+        // 涟漪也可能被 InsetDrawable / DrawableWrapper 包着（材料的
+        // wrapDrawableWithInset、以及各种 LayerDrawable 嵌套），必须拆开看，
+        // 否则会整层漏掉。
+        Drawable wrapped = unwrap(drawable);
+        if (wrapped != null && wrapped != drawable) {
+            return neutralize(wrapped);
+        }
         return false;
+    }
+
+    private static Drawable unwrap(Drawable drawable) {
+        // 最常见的一层包装：InsetDrawable（材料库给按钮加内缩用的就是它）
+        if (drawable instanceof android.graphics.drawable.InsetDrawable) {
+            return ((android.graphics.drawable.InsetDrawable) drawable).getDrawable();
+        }
+        // 平台的 DrawableWrapper 是隐藏类，androidx 的版本各版本名称不稳，
+        // 统一用反射取内层。
+        for (String method : new String[]{"getWrappedDrawable", "getDrawable"}) {
+            try {
+                Object inner = drawable.getClass().getMethod(method).invoke(drawable);
+                if (inner instanceof Drawable && inner != drawable) {
+                    return (Drawable) inner;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
     }
 
     private static String bgClass(Drawable drawable) {
