@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 页面面板：柔和竖向渐变、无描边、20dp 圆角。
+     整页大卡片不适合画主色描边（会变成刺眼的大蓝框），
+     蓝色描边只留给按钮、小卡片和对话框。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="#8C0A1428"
+        android:startColor="#B8163040"
+        android:type="linear" />
+    <corners android:radius="20dp" />
+</shape>

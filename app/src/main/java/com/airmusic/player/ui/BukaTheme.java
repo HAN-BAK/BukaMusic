@@ -23,9 +23,11 @@ public final class BukaTheme {
         for (int id : viewIds) {
             View view = activity.findViewById(id);
             if (view == null) continue;
-            view.setBackgroundResource(R.drawable.bg_card);
+            view.setBackgroundResource(R.drawable.bg_page);
             int pad = dp(activity, 16f);
             view.setPadding(pad, pad, pad, pad);
+            // 轻微投影代替描边：有层次但不抢眼。
+            view.setElevation(dp(activity, 2f));
         }
     }
 
@@ -38,12 +40,23 @@ public final class BukaTheme {
         }
     }
 
+    /** 次级卡片 + 内边距：设置页的分组内容这类成块但不需要描边的地方。 */
+    public static void softBlock(Activity activity, int... viewIds) {
+        for (int id : viewIds) {
+            View view = activity.findViewById(id);
+            if (view == null) continue;
+            view.setBackgroundResource(R.drawable.bg_card_soft);
+            int pad = dp(activity, 14f);
+            view.setPadding(pad, pad, pad, pad);
+        }
+    }
+
     /** 只换背景、不加内边距（列表、网格这类自己带间距的容器）。 */
     public static void backdrop(Activity activity, int... viewIds) {
         for (int id : viewIds) {
             View view = activity.findViewById(id);
             if (view == null) continue;
-            view.setBackgroundResource(R.drawable.bg_card);
+            view.setBackgroundResource(R.drawable.bg_page);
         }
     }
 
@@ -66,7 +79,8 @@ public final class BukaTheme {
             margins.setMargins(side, dp(activity, 6f), side, dp(activity, 14f));
             content.setLayoutParams(params);
         }
-        content.setBackgroundResource(R.drawable.bg_card);
+        content.setBackgroundResource(R.drawable.bg_page);
+        content.setElevation(dp(activity, 2f));
     }
 
     private static ScrollView findScrollView(View root) {
