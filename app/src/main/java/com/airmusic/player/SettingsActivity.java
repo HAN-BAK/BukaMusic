@@ -38,9 +38,9 @@ public class SettingsActivity extends BaseActivity {
     private TextInputEditText inputName;
     private TextView pathDisplay;
     private com.google.android.material.button.MaterialButton btnPlayMode;
-    private Switch switchAutoPlay;
-    private Switch switchOnlineLyrics;
-    private Switch switchShowApps;
+    private com.airmusic.player.ui.BukaSwitch switchAutoPlay;
+    private com.airmusic.player.ui.BukaSwitch switchOnlineLyrics;
+    private com.airmusic.player.ui.BukaSwitch switchShowApps;
     private com.google.android.material.button.MaterialButton btnBlurMode;
     private SeekBar seekBalance;
     private TextView airplayStatus;
@@ -368,11 +368,11 @@ public class SettingsActivity extends BaseActivity {
         // 开关 / 滑条 / 信息行：图标必须贴到「那一行自己的标签」上。
         // 之前用 rowLabel 找父容器里第一个 TextView，开关那几行的父容器是整个分组，
         // 结果图标全贴到了同一行（音乐目录路径）上——这就是设置页图标看着没对齐的原因。
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.switch_auto_play),
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_auto_play),
                 R.drawable.ic_row_autoplay);
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.switch_online_lyrics),
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_online_lyrics),
                 R.drawable.ic_row_lyrics);
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.switch_show_apps),
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_show_apps),
                 R.drawable.ic_row_apps);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_balance),
                 R.drawable.ic_row_balance);

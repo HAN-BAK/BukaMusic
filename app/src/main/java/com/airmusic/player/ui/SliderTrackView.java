@@ -121,23 +121,39 @@ public class SliderTrackView extends View {
 
         float cutHalf = half + thumbGapDp * d;
         float thumbCenterX = half + fraction * (right - left);
-        float cutLeft = Math.max(left, thumbCenterX - cutHalf);
-        float cutRight = Math.min(right, thumbCenterX + cutHalf);
+        // 切口不要把两端的半圆吃掉：手柄贴边时，条的两端也要一直是圆的。
+        float capKeep = radius * 0.5f;
+        float cutLeft = Math.max(left + capKeep, thumbCenterX - cutHalf);
+        float cutRight = Math.min(right - capKeep, thumbCenterX + cutHalf);
 
-        // 左段：未播放底色 + 已播放段（靠手柄那头是直角）
+        // 轨道两端永远是半圆：先按整条胶囊算形状，再按左右两段分别裁切，
+        // 这样手柄靠边时剩下的那一段只是被切短，端头依旧是圆的（不会变直角）。
         if (cutLeft > left + 0.5f) {
             paint.setColor(trackColor);
-            drawSegment(canvas, left, cutLeft, trackTop, trackBottom, radius, true, false);
-            float edge = Math.min(cutLeft, Math.max(left, fillRight()));
-            if (edge > left + 0.5f) {
-                paint.setColor(fillColor);
-                drawSegment(canvas, left, edge, trackTop, trackBottom, radius, true, false);
-            }
+            canvas.save();
+            canvas.clipRect(left, 0f, cutLeft, h);
+            rect.set(left, trackTop, right, trackBottom);
+            canvas.drawRoundRect(rect, radius, radius, paint);
+            canvas.restore();
         }
-        // 右段：只剩未播放底色
         if (right > cutRight + 0.5f) {
             paint.setColor(trackColor);
-            drawSegment(canvas, cutRight, right, trackTop, trackBottom, radius, false, true);
+            canvas.save();
+            canvas.clipRect(cutRight, 0f, right, h);
+            rect.set(left, trackTop, right, trackBottom);
+            canvas.drawRoundRect(rect, radius, radius, paint);
+            canvas.restore();
+        }
+        // 已播放段：左端跟着轨道圆角，靠手柄那头是直角切口
+        float edge = Math.min(cutLeft, Math.max(left, fillRight()));
+        if (edge > left + 0.5f) {
+            paint.setColor(fillColor);
+            // 同样用「整条胶囊 + 裁切」：左端永远是圆的，右端被裁成直角
+            canvas.save();
+            canvas.clipRect(left, 0f, edge, h);
+            rect.set(left, trackTop, right, trackBottom);
+            canvas.drawRoundRect(rect, radius, radius, paint);
+            canvas.restore();
         }
 
         // 手柄：竖着的圆角条，悬在挖空处
@@ -149,19 +165,4 @@ public class SliderTrackView extends View {
         canvas.drawRoundRect(rect, thumbRadius, thumbRadius, paint);
     }
 
-    /** 画一段轨道：可以指定某一头是圆角（胶囊端），另一头直角。 */
-    private void drawSegment(Canvas canvas, float segLeft, float segRight,
-                             float top, float bottom, float radius,
-                             boolean roundLeft, boolean roundRight) {
-        if (segRight <= segLeft) return;
-        rect.set(segLeft, top, segRight, bottom);
-        float maxRadius = Math.min(radius, Math.min(segRight - segLeft, bottom - top) / 2f);
-        float tl = roundLeft ? maxRadius : 0f;
-        float tr = roundRight ? maxRadius : 0f;
-        android.graphics.Path path = new android.graphics.Path();
-        path.addRoundRect(rect, new float[]{
-                tl, tl, tr, tr, tr, tr, tl, tl},
-                android.graphics.Path.Direction.CW);
-        canvas.drawPath(path, paint);
-    }
 }

@@ -125,6 +125,10 @@ public final class BukaTheme {
                         android.content.res.ColorStateList.valueOf(ColorTheme.accent()));
             }
         }
+        // 自绘开关：打开时的跑道用动态主色
+        if (view instanceof BukaSwitch) {
+            ((BukaSwitch) view).setAccentColor(ColorTheme.accent());
+        }
         // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
         if (view instanceof android.widget.Switch) {
             android.widget.Switch toggle = (android.widget.Switch) view;
@@ -178,8 +182,12 @@ public final class BukaTheme {
             slider.setThumbTintList(
                     android.content.res.ColorStateList.valueOf(
                             customTrack ? transparent : ColorTheme.sliderThumb()));
-            slider.setHaloTintList(android.content.res.ColorStateList.valueOf(
-                    ColorTheme.withAlpha(ColorTheme.accent(), 0.18f)));
+            // 手柄按下/聚焦时 Material 会画一圈光晕（看着像水波纹），去掉；
+            // 连带把滑条自带的 ripple 背景也清掉。
+            slider.setHaloTintList(android.content.res.ColorStateList.valueOf(transparent));
+            slider.setHaloRadius(0);
+            slider.setThumbElevation(0f);
+            slider.setBackground(null);
             // 拖动时上方那个数值气泡也跟着封面主色走（深底 + 近白字）。
             SliderLabelTint.apply(slider);
             SliderTrackView track = null;
