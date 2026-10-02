@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 底栏：曲库（一个干净的八分音符，线条规格与其它图标一致） -->
+<!-- 底栏：曲库（Material outlined music_note，几何上左右居中，不再往左歪） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -8,21 +8,9 @@
     <group
         android:name="notes"
         android:pivotX="12"
-        android:pivotY="13">
+        android:pivotY="12">
         <path
-            android:pathData="M13.4,16.6 V5.4 l5.2,-1.4 v3.2"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.8"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:pathData="M9.9,16.6 a3.5,2.7 0 1 1 -0.01,5.4 a3.5,2.7 0 0 1 0.01,-5.4 z"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.8" />
-        <path
-            android:pathData="M13.4,9.6 l5.2,-1.4"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.8"
-            android:strokeLineCap="round" />
+            android:fillColor="#FFFFFF"
+            android:pathData="M12,3l0.01,10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55a4.001,4.001 0 1 0 0,8c2.22,0 3.99,-1.79 3.99,-4V7h4V3h-6zm-1.99,16c-1.1,0 -2,-0.9 -2,-2s0.9,-2 2,-2 2,0.9 2,2 -0.9,2 -2,2z" />
     </group>
 </vector>
