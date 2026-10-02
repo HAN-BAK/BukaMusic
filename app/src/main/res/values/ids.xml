@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="press_fx_tag" type="id" />
+    <item name="btn_shape_tag" type="id" />
 </resources>

@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import com.airmusic.player.ui.BukaDialog;
 import com.airmusic.player.ui.BukaTheme;
+import com.airmusic.player.ui.ColorTheme;
 
 public class MainActivity extends BaseActivity {
 
@@ -599,6 +600,20 @@ public class MainActivity extends BaseActivity {
                 }).show();
     }
 
+    /** 进度条 / 音量条跟随当前封面主色（动态配色）。 */
+    private void applyAccentTints() {
+        android.content.res.ColorStateList tint =
+                android.content.res.ColorStateList.valueOf(ColorTheme.accent());
+        if (seekBar != null) {
+            seekBar.setProgressTintList(tint);
+            seekBar.setThumbTintList(tint);
+        }
+        if (volumeSeek != null) {
+            volumeSeek.setProgressTintList(tint);
+            volumeSeek.setThumbTintList(tint);
+        }
+    }
+
     private void render(PlayerUiState s) {
         BlurBackground.apply(this, R.drawable.bg_main_gradient);
 
@@ -613,6 +628,10 @@ public class MainActivity extends BaseActivity {
         trackAlbum.setText(s.album);
 
         Bitmap art = s.art;
+        // 动态配色：从当前封面取主色（降饱和）后给按钮 / 滑块上色。
+        ColorTheme.update(art);
+        BukaTheme.tintButtons(this);
+        applyAccentTints();
         if (s.source == PlayerUiState.Source.AIRPLAY || s.source == PlayerUiState.Source.REMOTE) {
             if (art != null) {
                 albumArt.setImageBitmap(art);

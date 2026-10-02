@@ -21,6 +21,7 @@ import com.airmusic.player.util.LocaleHelper;
 import com.airmusic.player.service.PlaybackService;
 import com.airmusic.player.util.BlurBackground;
 import com.airmusic.player.ui.PageFx;
+import com.airmusic.player.ui.BukaTheme;
 import com.airmusic.player.view.BoxAspectFrameLayout;
 
 /** Applies the user-selected UI language to every activity. */
@@ -157,6 +158,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         // bar; re-apply the immersive hide every time we regain the screen.
         hideStatusBar();
         String current = LocaleHelper.currentLanguage(this);
+        // 其它页面回来时也按当前封面主色给按钮上色（同一主色只做一次）。
+        BukaTheme.tintButtons(this);
         if (createdLang != null && !createdLang.equals(current)) {
             createdLang = current;
             PlaybackService service = PlaybackService.getInstance();

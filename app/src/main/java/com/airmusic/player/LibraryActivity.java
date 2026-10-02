@@ -78,7 +78,6 @@ public class LibraryActivity extends BaseActivity {
         list.setLayoutManager(new LinearLayoutManager(this));
         list.setAdapter(adapter);
         // 全应用统一外观：列表本体也做成卡片（与对话框同一套）
-        BukaTheme.backdrop(this, R.id.track_list);
         // Remember how the library was presented last time (flat / by album /
         // by artist) and restore it right away.
         TrackAdapter.GroupBy saved = TrackAdapter.GroupBy.NONE;

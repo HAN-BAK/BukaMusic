@@ -49,7 +49,7 @@ public final class PageFx {
                 || (background instanceof android.graphics.drawable.ColorDrawable
                     && ((android.graphics.drawable.ColorDrawable) background).getColor() == 0);
         if (!plain) return;
-        view.setBackgroundResource(R.drawable.bg_btn_outline);
+        view.setBackground(ColorTheme.capsule(view.getContext()));
         // 图标与描边之间留一点呼吸空间。
         int pad = Math.round(8f * view.getResources().getDisplayMetrics().density);
         view.setPadding(pad, pad, pad, pad);
@@ -110,6 +110,7 @@ public final class PageFx {
         content.post(() -> {
             attachPress(content);
             BukaTheme.spaceButtons(activity);
+            BukaTheme.tintButtons(activity);
         });
     }
 }

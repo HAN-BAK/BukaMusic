@@ -36,7 +36,6 @@ public class AppsActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_apps);
         // 全应用统一外观：卡片 + 行样式（与自定义对话框同一套）
-        BukaTheme.backdrop(this, R.id.app_list);
         BlurBackground.apply(this, R.drawable.bg_main_gradient);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());

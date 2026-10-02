@@ -106,7 +106,7 @@ public class BukaDialog extends Dialog {
         dialog.message.setText(text);
         dialog.message.setVisibility(View.VISIBLE);
         dialog.positive.setText(android.R.string.ok);
-        dialog.positive.setBackgroundResource(R.drawable.bg_dialog_button_primary);
+        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
         dialog.positive.setOnClickListener(v -> dialog.dismiss());
         dialog.negative.setVisibility(View.GONE);
         return dialog;
@@ -121,13 +121,13 @@ public class BukaDialog extends Dialog {
             dialog.message.setVisibility(View.VISIBLE);
         }
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackgroundResource(R.drawable.bg_dialog_button_primary);
+        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
         dialog.positive.setOnClickListener(v -> {
             dialog.dismiss();
             if (onConfirm != null) onConfirm.run();
         });
         dialog.negative.setText(android.R.string.cancel);
-        dialog.negative.setBackgroundResource(R.drawable.bg_dialog_button);
+        dialog.negative.setBackground(ColorTheme.capsule(context));
         dialog.negative.setOnClickListener(v -> dialog.dismiss());
         return dialog;
     }
@@ -142,14 +142,14 @@ public class BukaDialog extends Dialog {
         dialog.input.setVisibility(View.VISIBLE);
         dialog.input.setSelection(dialog.input.getText().length());
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackgroundResource(R.drawable.bg_dialog_button_primary);
+        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
         dialog.positive.setOnClickListener(v -> {
             String value = dialog.input.getText().toString();
             dialog.dismiss();
             if (onConfirm != null) onConfirm.onText(value);
         });
         dialog.negative.setText(android.R.string.cancel);
-        dialog.negative.setBackgroundResource(R.drawable.bg_dialog_button);
+        dialog.negative.setBackground(ColorTheme.capsule(context));
         dialog.negative.setOnClickListener(v -> dialog.dismiss());
         return dialog;
     }
@@ -167,7 +167,7 @@ public class BukaDialog extends Dialog {
             });
         }
         dialog.negative.setText(android.R.string.cancel);
-        dialog.negative.setBackgroundResource(R.drawable.bg_dialog_button);
+        dialog.negative.setBackground(ColorTheme.capsule(context));
         dialog.negative.setOnClickListener(v -> dialog.dismiss());
         dialog.positive.setVisibility(View.GONE);
         return dialog;
@@ -188,13 +188,13 @@ public class BukaDialog extends Dialog {
             });
         }
         dialog.positive.setText(confirmText);
-        dialog.positive.setBackgroundResource(R.drawable.bg_dialog_button_primary);
+        dialog.positive.setBackground(ColorTheme.capsulePrimary(context));
         dialog.positive.setOnClickListener(v -> {
             dialog.dismiss();
             if (onConfirm != null) onConfirm.onConfirm(state);
         });
         dialog.negative.setText(android.R.string.cancel);
-        dialog.negative.setBackgroundResource(R.drawable.bg_dialog_button);
+        dialog.negative.setBackground(ColorTheme.capsule(context));
         dialog.negative.setOnClickListener(v -> dialog.dismiss());
         return dialog;
     }

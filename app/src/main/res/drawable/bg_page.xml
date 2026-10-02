@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 页面面板：纯色（不再用竖向渐变）、无描边、20dp 圆角。
-     整页大卡片不适合画主色描边（会变成刺眼的大蓝框），
-     蓝色描边只留给按钮、小卡片和对话框。 -->
+<!-- 页面面板：中性深灰（不偏蓝）、纯色、无描边、20dp 圆角。
+     整页大卡片既不适合主色描边，也不适合藏蓝底色。 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#B3163040" />
+    <solid android:color="#B81A1C21" />
     <corners android:radius="20dp" />
 </shape>
