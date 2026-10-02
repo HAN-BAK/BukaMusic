@@ -28,7 +28,6 @@ public class SliderTrackView extends View {
     private int trackColor = 0xFF9DB2C4;
     private int fillColor = 0xFF13293D;
     private int thumbColor = 0xFF0F2436;
-    private int cutColor = 0xFF0A1428;
     private float cornerDp = 999f;
     private float trackHeightDp = 0f;
     private float thumbHalfDp = 4f;
@@ -53,14 +52,6 @@ public class SliderTrackView extends View {
         trackColor = track;
         fillColor = fill;
         thumbColor = thumb;
-        invalidate();
-    }
-
-    /** 手柄两侧挖空的底色（页面深色，不是未播放段的浅色）。 */
-    public void setCutColor(int color) {
-        int opaque = 0xFF000000 | (color & 0xFFFFFF);
-        if (opaque == cutColor) return;
-        cutColor = opaque;
         invalidate();
     }
 
@@ -120,47 +111,57 @@ public class SliderTrackView extends View {
         float right = w - half;
         if (right <= left) return;
 
-        // 轨道：两头半圆的胶囊，垂直居中（比 View 矮的话上下就留出手柄的余地）
+        // 轨道：两头半圆的胶囊，垂直居中（比 View 矮的话上下就留出手柄的余地）。
+        // 手柄两侧要「挖空」——那里什么都不画，直接露出页面的背景模糊层，
+        // 所以轨道是分左右两段画的，而不是整条 + 一块遮挡色。
         float trackHeight = trackHeightDp > 0f ? Math.min(h, trackHeightDp * d) : h;
         float trackTop = (h - trackHeight) / 2f;
         float trackBottom = trackTop + trackHeight;
         float radius = Math.min(cornerDp * d, trackHeight / 2f);
-        paint.setColor(trackColor);
-        rect.set(left, trackTop, right, trackBottom);
-        canvas.drawRoundRect(rect, radius, radius, paint);
 
-        // 已播放段：外端（左边）跟着轨道做圆角，靠手柄的一头是**直角切口**
-        float edge = Math.min(right, Math.max(left, fillRight()));
-        if (edge > left + 1f) {
-            paint.setColor(fillColor);
-            rect.set(left, trackTop, edge, trackBottom);
-            float fillRadius = Math.min(radius, Math.min((edge - left) / 2f, trackHeight / 2f));
-            android.graphics.Path path = new android.graphics.Path();
-            path.addRoundRect(rect, new float[]{
-                    fillRadius, fillRadius,   // 左上
-                    0f, 0f,                   // 右上（靠手柄：直角）
-                    0f, 0f,                   // 右下（靠手柄：直角）
-                    fillRadius, fillRadius},  // 左下
-                    android.graphics.Path.Direction.CW);
-            canvas.drawPath(path, paint);
+        float cutHalf = half + thumbGapDp * d;
+        float thumbCenterX = half + fraction * (right - left);
+        float cutLeft = Math.max(left, thumbCenterX - cutHalf);
+        float cutRight = Math.min(right, thumbCenterX + cutHalf);
+
+        // 左段：未播放底色 + 已播放段（靠手柄那头是直角）
+        if (cutLeft > left + 0.5f) {
+            paint.setColor(trackColor);
+            drawSegment(canvas, left, cutLeft, trackTop, trackBottom, radius, true, false);
+            float edge = Math.min(cutLeft, Math.max(left, fillRight()));
+            if (edge > left + 0.5f) {
+                paint.setColor(fillColor);
+                drawSegment(canvas, left, edge, trackTop, trackBottom, radius, true, false);
+            }
+        }
+        // 右段：只剩未播放底色
+        if (right > cutRight + 0.5f) {
+            paint.setColor(trackColor);
+            drawSegment(canvas, cutRight, right, trackTop, trackBottom, radius, false, true);
         }
 
-        // 手柄：竖着的圆角条，和轨道断开
+        // 手柄：竖着的圆角条，悬在挖空处
         float thumbHeight = Math.min(h, thumbHeightDp * d);
-        float thumbCenterX = half + fraction * (right - left);
-        // 先把手柄两侧挖空（露出页面深色），断口才像真的切断
-        float cutHalf = half + thumbGapDp * d;
-        float cutTop = 0f;
-        float cutBottom = h;
-        paint.setColor(cutColor);
-        rect.set(thumbCenterX - cutHalf, cutTop, thumbCenterX + cutHalf, cutBottom);
-        float cutRadius = Math.min(half, h / 2f);
-        canvas.drawRoundRect(rect, cutRadius, cutRadius, paint);
-
         paint.setColor(thumbColor);
         rect.set(thumbCenterX - half, (h - thumbHeight) / 2f,
                 thumbCenterX + half, (h + thumbHeight) / 2f);
         float thumbRadius = Math.min(half, thumbHeight / 2f);
         canvas.drawRoundRect(rect, thumbRadius, thumbRadius, paint);
+    }
+
+    /** 画一段轨道：可以指定某一头是圆角（胶囊端），另一头直角。 */
+    private void drawSegment(Canvas canvas, float segLeft, float segRight,
+                             float top, float bottom, float radius,
+                             boolean roundLeft, boolean roundRight) {
+        if (segRight <= segLeft) return;
+        rect.set(segLeft, top, segRight, bottom);
+        float maxRadius = Math.min(radius, Math.min(segRight - segLeft, bottom - top) / 2f);
+        float tl = roundLeft ? maxRadius : 0f;
+        float tr = roundRight ? maxRadius : 0f;
+        android.graphics.Path path = new android.graphics.Path();
+        path.addRoundRect(rect, new float[]{
+                tl, tl, tr, tr, tr, tr, tl, tl},
+                android.graphics.Path.Direction.CW);
+        canvas.drawPath(path, paint);
     }
 }

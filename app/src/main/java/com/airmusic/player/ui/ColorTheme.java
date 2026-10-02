@@ -84,14 +84,6 @@ public final class ColorTheme {
         return blend(0xFFB9C0C9, accent, 0.5f);
     }
 
-    /**
-     * 手柄两侧「挖空」用的颜色：取页面底色的深色调（略微掺主色），
-     * 让断口看起来是真的把条挖掉一块，而不是露出未播放段的浅色。
-     */
-    public static int trackCut() {
-        return blend(0xFF0A1428, accent, 0.04f);
-    }
-
     public static int withAlpha(int color, float alpha) {
         int a = Math.round(Math.max(0f, Math.min(1f, alpha)) * 255f);
         return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color));

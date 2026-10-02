@@ -189,7 +189,6 @@ public final class BukaTheme {
             if (track != null) {
                 track.setColors(ColorTheme.sliderInactive(), ColorTheme.sliderActive(),
                         ColorTheme.sliderThumb());
-                track.setCutColor(ColorTheme.trackCut());
             }
         }
         if (view instanceof ViewGroup) {
