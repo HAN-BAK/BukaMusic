@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -207,7 +207,6 @@
                     android:text="@string/pref_auto_play"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:thumbTint="@color/accent"
                     android:trackTint="@color/surface_light" />
 
                 <Switch
@@ -218,7 +217,6 @@
                     android:text="@string/pref_online_lyrics"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:thumbTint="@color/accent"
                     android:trackTint="@color/surface_light" />
 
                 <TextView
@@ -279,9 +277,7 @@
                         android:layout_marginEnd="12dp"
                         android:layout_weight="1"
                         android:max="200"
-                        android:progress="100"
-                        android:progressTint="@color/accent"
-                        android:thumbTint="@color/accent" />
+                        android:progress="100" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -327,7 +323,6 @@
                     android:text="@string/pref_show_apps_button"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:thumbTint="@color/accent"
                     android:trackTint="@color/surface_light" />
 
                 <LinearLayout

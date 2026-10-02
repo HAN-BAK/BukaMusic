@@ -117,8 +117,6 @@ public class EqualizerActivity extends BaseActivity {
         SeekBar bar = new SeekBar(this);
         bar.setMax(240); // -12 .. +12 dB, 0.1 dB steps
         bar.setProgress((int) Math.round((gains[index] + 12) * 10));
-        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.accent)));
-        bar.setThumbTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.accent)));
         bar.setLayoutParams(new LinearLayout.LayoutParams(
                 0, dp(48), 3.0f));
         bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {

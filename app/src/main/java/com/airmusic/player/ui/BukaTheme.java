@@ -80,6 +80,11 @@ public final class BukaTheme {
             android.widget.SeekBar bar = (android.widget.SeekBar) view;
             bar.setProgressDrawable(ColorTheme.sliderTrack(activity));
             bar.setThumb(ColorTheme.sliderThumb(activity));
+            // 主题里的默认 tint 会盖掉自定义 drawable 的两段颜色，必须清空
+            bar.setProgressTintList(null);
+            bar.setBackgroundTintList(null);
+            bar.setProgressBackgroundTintList(null);
+            bar.setThumbTintList(null);
             bar.setThumbOffset(0);
             bar.setSplitTrack(false);
         }
