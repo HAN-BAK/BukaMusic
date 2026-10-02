@@ -85,6 +85,10 @@ public class LibraryActivity extends BaseActivity {
         });
         list.setLayoutManager(new LinearLayoutManager(this));
         list.setAdapter(adapter);
+        // 勾选某一行时（notifyItemChanged）默认的 item 动画会把这一行连同下面
+        // 的行做「移动/交叉淡入」处理，看着就是选中后整排往上挤。曲库有自己的
+        // 入场动效，这里直接关掉列表自带的动画。
+        list.setItemAnimator(null);
         // 全应用统一外观：列表本体也做成卡片（与对话框同一套）
         // Remember how the library was presented last time (flat / by album /
         // by artist) and restore it right away.
@@ -310,6 +314,11 @@ public class LibraryActivity extends BaseActivity {
 
     private void updateSelectionUi() {
         boolean selecting = adapter.isSelectionMode();
+        // 进出多选会让列表重新测量一次，RecyclerView 会把锚点算偏（看起来就是
+        // 选中时整排往上跳）。这里先记下第一可见项和偏移，换完再恢复。
+        boolean modeChanged = lastSelectionMode == null || lastSelectionMode != selecting;
+        if (modeChanged) snapshotScrollAnchor();
+        lastSelectionMode = selecting;
         txtTitle.setVisibility(selecting ? View.GONE : View.VISIBLE);
         btnGroup.setVisibility(selecting ? View.GONE : View.VISIBLE);
         txtSelectCount.setVisibility(selecting ? View.VISIBLE : View.GONE);
@@ -331,6 +340,26 @@ public class LibraryActivity extends BaseActivity {
             String open = adapter.getOpenGroupTitle();
             txtTitle.setText(open == null ? getString(R.string.library) : open);
         }
+        if (modeChanged) restoreScrollAnchor();
+    }
+
+    /** 进出多选时用到的滚动位置（像素）。 */
+    private Boolean lastSelectionMode;
+    private int anchorScrollOffset;
+
+    private void snapshotScrollAnchor() {
+        anchorScrollOffset = list.computeVerticalScrollOffset();
+    }
+
+    private void restoreScrollAnchor() {
+        // 两种模式下每行高度已经一致，这里只把切换前后差出来的滚动像素补回去，
+        // 列表就不会有那一下跳动。等 layout 落定再补。
+        final int before = anchorScrollOffset;
+        list.postDelayed(() -> {
+            if (isFinishing()) return;
+            int now = list.computeVerticalScrollOffset();
+            if (now != before) list.scrollBy(0, now - before);
+        }, 60L);
     }
 
     /** 多选标题：平铺列表只报首数，按专辑 / 按歌手还会报选中了几个分组。 */

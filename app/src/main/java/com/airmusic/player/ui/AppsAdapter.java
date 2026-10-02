@@ -66,12 +66,7 @@ public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.Holder> {
         holder.icon.setBackground(null);
         holder.label.setText(app.label);
         holder.label.setTextColor(ColorTheme.tooltipText());
-        // 每行做成柔和的圆角卡片（背景内缩，文字位置不变）
-        float density = ctx.getResources().getDisplayMetrics().density;
-        holder.itemView.setBackground(new android.graphics.drawable.InsetDrawable(
-                ColorTheme.softBlock(ctx),
-                Math.round(10f * density), Math.round(4f * density),
-                Math.round(10f * density), Math.round(4f * density)));
+        holder.itemView.setBackground(null);
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onAppClick(app);
         });

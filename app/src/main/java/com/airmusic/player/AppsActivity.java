@@ -84,10 +84,5 @@ public class AppsActivity extends BaseActivity {
             }
         });
         adapter.setApps(apps);
-        TextView count = findViewById(R.id.txt_app_count);
-        if (count != null) {
-            count.setText(getString(R.string.apps_count, apps.size()));
-            count.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
-        }
     }
 }

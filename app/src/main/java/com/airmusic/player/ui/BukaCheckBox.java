@@ -97,9 +97,9 @@ public class BukaCheckBox extends View {
         super.onSizeChanged(w, h, oldw, oldh);
         float size = Math.min(w, h);
         // 描边厚一点、框更「鼓」，贴近 Canary 那种厚重的手感
-        float stroke = Math.max(dp(2.6f), size * 0.10f);
+        float stroke = Math.max(dp(2.4f), size * 0.10f);
         strokePaint.setStrokeWidth(stroke);
-        checkPaint.setStrokeWidth(Math.max(dp(2.4f), size * 0.125f));
+        checkPaint.setStrokeWidth(Math.max(dp(2.2f), size * 0.125f));
         float inset = stroke / 2f + size * 0.03f;
         box.set(inset, inset, size - inset, size - inset);
         // 对勾：左下 -> 底 -> 右上，用 PathMeasure 做「画出来」的动画
@@ -118,22 +118,19 @@ public class BukaCheckBox extends View {
         float eased = progress * progress * (3f - 2f * progress);
 
         // 底色：未选中只有描边，选中后填主色
-        int fillColor = Color.argb(Math.round(255 * eased),
-                Color.red(accent), Color.green(accent), Color.blue(accent));
         fillPaint.setStyle(Paint.Style.FILL);
-        fillPaint.setColor(fillColor);
+        fillPaint.setColor(Color.argb(Math.round(255 * eased),
+                Color.red(accent), Color.green(accent), Color.blue(accent)));
         canvas.drawRoundRect(box, radius, radius, fillPaint);
 
-        int strokeColor = blendColor(idle, accent, eased);
-        strokePaint.setColor(strokeColor);
+        strokePaint.setColor(blendColor(idle, accent, eased));
         canvas.drawRoundRect(box, radius, radius, strokePaint);
 
         if (eased > 0.02f) {
             // 对勾在底色铺开一点之后再画
             float drawn = Math.max(0f, Math.min(1f, (eased - 0.25f) / 0.75f));
-            checkPaint.setColor(Color.argb(Math.round(255 * drawn),
-                    Color.red(Color.WHITE), Color.green(Color.WHITE), Color.blue(Color.WHITE)));
-            android.graphics.Path partial = new android.graphics.Path();
+            checkPaint.setColor(Color.argb(Math.round(255 * drawn), 255, 255, 255));
+            Path partial = new Path();
             new PathMeasure(checkPath, false).getSegment(0f, checkLength * drawn, partial, true);
             canvas.drawPath(partial, checkPaint);
         }

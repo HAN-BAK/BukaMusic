@@ -476,11 +476,11 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 }
                 return true;
             });
-            boolean cardSelected = selectionMode && isGroupSelected(card);
             h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
-            h.check.setChecked(cardSelected);
+            h.check.setChecked(isGroupSelected(card));
             h.check.setAccentColor(ColorTheme.accent());
-            h.itemView.setBackground(cardSelected ? selectedBackground(ctx) : null);
+            // 选中只靠勾选框表示，行/卡片不再套淡色框
+            h.itemView.setBackground(null);
             // A recycled tile must never keep the pressed-down scale.
             h.itemView.setScaleX(1f);
             h.itemView.setScaleY(1f);
@@ -533,7 +533,7 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
         h.check.setChecked(isSelected);
         h.check.setAccentColor(ColorTheme.accent());
-        h.itemView.setBackground(isSelected ? selectedBackground(ctx) : null);
+        h.itemView.setBackground(null);
         h.itemView.setOnLongClickListener(v -> {
             if (!selectionMode) {
                 setSelectionMode(true);
@@ -585,24 +585,11 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    /**
-     * 选中行 / 卡片外那圈「淡色大框」：左右几乎铺满，上下留一点边距，
-     * 边框保持和其他地方一样的 1dp 细线，不额外加粗。
-     * （背景内缩不影响行内文字的排布。）
-     */
-    private static android.graphics.drawable.Drawable selectedBackground(
-            android.content.Context ctx) {
-        float density = ctx.getResources().getDisplayMetrics().density;
-        android.graphics.drawable.GradientDrawable frame =
-                new android.graphics.drawable.GradientDrawable();
-        frame.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        frame.setColor(ColorTheme.withAlpha(ColorTheme.accent(), 0.20f));
-        frame.setStroke(Math.max(1, Math.round(density)), ColorTheme.stroke());
-        frame.setCornerRadius(16f * density);
-        return new android.graphics.drawable.InsetDrawable(
-                frame,
-                Math.round(4f * density), Math.round(3f * density),
-                Math.round(4f * density), Math.round(3f * density));
+    /** 勾选框颜色：选中=动态主色，未选=次级色。 */
+    private static android.content.res.ColorStateList checkColors() {
+        return new android.content.res.ColorStateList(
+                new int[][]{new int[]{android.R.attr.state_checked}, new int[]{}},
+                new int[]{ColorTheme.accent(), ColorTheme.textSecondary()});
     }
 
     @Override
