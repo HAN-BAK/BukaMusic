@@ -89,6 +89,12 @@ public class LyricsActivity extends BaseActivity {
         titleView = findViewById(R.id.lyrics_title);
         artistView = findViewById(R.id.lyrics_artist);
         headerView = findViewById(R.id.lyrics_header);
+        // 左上角的返回键 / 歌名也算「顶栏」：从舞台的缩放层里摘出来贴屏幕左上角，
+        // 否则在大屏上它会跟着舞台一起往里缩，看着不贴边。
+        View lyricsBox = findViewById(R.id.lyrics_box);
+        if (lyricsBox instanceof com.airmusic.player.view.BoxAspectFrameLayout) {
+            ((com.airmusic.player.view.BoxAspectFrameLayout) lyricsBox).addBar(headerView, true);
+        }
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {

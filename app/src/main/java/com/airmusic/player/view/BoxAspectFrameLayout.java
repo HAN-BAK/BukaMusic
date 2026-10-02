@@ -2,8 +2,12 @@ package com.airmusic.player.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.ViewGroup;
 import android.view.View;
 import android.widget.FrameLayout;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Locks its child content to the reference TV-box aspect ratio (16:9),
@@ -40,6 +44,9 @@ public class BoxAspectFrameLayout extends FrameLayout {
     private int insetBottom;
     /** When > 0 the box always uses this exact ratio (the lyric stage). */
     private float forcedAspect;
+    /** 贴屏幕上下沿、横向铺满整屏的例外组件（顶栏 / 底栏）。 */
+    private final List<View> topBars = new ArrayList<>();
+    private final List<View> bottomBars = new ArrayList<>();
 
     public BoxAspectFrameLayout(Context context) {
         super(context);
@@ -61,6 +68,42 @@ public class BoxAspectFrameLayout extends FrameLayout {
     public void setForcedAspect(float aspect) {
         forcedAspect = aspect;
         requestLayout();
+    }
+
+    /**
+     * 把顶栏 / 底栏登记成「贴边组件」：它们不再跟着内容一起缩放居中，
+     * 而是横向铺满整屏、纵向贴着屏幕的上沿 / 下沿。
+     */
+    public void addBar(View bar, boolean top) {
+        if (bar == null) return;
+        ViewGroup parent = bar.getParent() instanceof ViewGroup
+                ? (ViewGroup) bar.getParent() : null;
+        if (parent != null) parent.removeView(bar);
+        (top ? topBars : bottomBars).add(bar);
+        addView(bar);
+    }
+
+    private boolean isBar(View view) {
+        return topBars.contains(view) || bottomBars.contains(view);
+    }
+
+    private int measuredBarHeight(List<View> bars) {
+        int height = 0;
+        for (View bar : bars) height = Math.max(height, bar.getMeasuredHeight());
+        return height;
+    }
+
+    /** 内容区（去掉两条栏）的排版高度：栏本来就在页面里占这么多，摘出来之后要补回去。 */
+    private int contentLayoutHeight(int topH, int bottomH) {
+        return Math.max(1, referenceHeight() - topH - bottomH);
+    }
+
+    /** 整体缩放倍数：两条栏 + 内容合起来正好是盒子的高度，盒子本身为 1:1。 */
+    private float scaleFor(int cw, int ch) {
+        float density = getResources().getDisplayMetrics().density;
+        float baseW = REF_WIDTH_DP * density;
+        float baseH = REF_HEIGHT_DP * density;
+        return Math.min(cw / baseW, ch / baseH);
     }
 
     private int contentWidth(int totalW, int totalH) {
@@ -122,13 +165,29 @@ public class BoxAspectFrameLayout extends FrameLayout {
         setMeasuredDimension(totalW, totalH);
         int cw = contentWidth(totalW, totalH);
         int ch = contentHeight(totalW, totalH);
-        boolean scaled = usesReferenceLayout();
-        int specW = MeasureSpec.makeMeasureSpec(scaled ? referenceWidth() : cw,
-                MeasureSpec.EXACTLY);
-        int specH = MeasureSpec.makeMeasureSpec(scaled ? referenceHeight() : ch,
-                MeasureSpec.EXACTLY);
+        if (!usesReferenceLayout()) {
+            // 歌词页：铺满整屏，保持原样
+            int specW = MeasureSpec.makeMeasureSpec(cw, MeasureSpec.EXACTLY);
+            int specH = MeasureSpec.makeMeasureSpec(ch, MeasureSpec.EXACTLY);
+            for (int i = 0; i < getChildCount(); i++) {
+                measureChild(getChildAt(i), specW, specH);
+            }
+            return;
+        }
+        // 顶栏 / 底栏：按盒子宽度测一次，拿到它们的高度
+        int barW = MeasureSpec.makeMeasureSpec(referenceWidth(), MeasureSpec.EXACTLY);
+        int barH = MeasureSpec.makeMeasureSpec(ch, MeasureSpec.AT_MOST);
+        for (View bar : topBars) bar.measure(barW, barH);
+        for (View bar : bottomBars) bar.measure(barW, barH);
+        int topBarHeight = measuredBarHeight(topBars);
+        int bottomBarHeight = measuredBarHeight(bottomBars);
+        int scaleW = MeasureSpec.makeMeasureSpec(referenceWidth(), MeasureSpec.EXACTLY);
+        int scaleH = MeasureSpec.makeMeasureSpec(
+                contentLayoutHeight(topBarHeight, bottomBarHeight), MeasureSpec.EXACTLY);
         for (int i = 0; i < getChildCount(); i++) {
-            measureChild(getChildAt(i), specW, specH);
+            View child = getChildAt(i);
+            if (isBar(child)) continue;
+            child.measure(scaleW, scaleH);
         }
     }
 
@@ -142,26 +201,62 @@ public class BoxAspectFrameLayout extends FrameLayout {
         int ch = contentHeight(totalW, totalH);
         int cx = insetLeft + (availW - cw) / 2;
         int cy = insetTop + (availH - ch) / 2;
-        float scale = referenceScale(cw, ch);
-        for (int i = 0; i < getChildCount(); i++) {
-            View child = getChildAt(i);
-            if (usesReferenceLayout()) {
-                int layoutW = referenceWidth();
-                int layoutH = referenceHeight();
-                int ox = cx + Math.round((cw - layoutW * scale) / 2f);
-                int oy = cy + Math.round((ch - layoutH * scale) / 2f);
-                child.layout(ox, oy, ox + layoutW, oy + layoutH);
-                child.setPivotX(0f);
-                child.setPivotY(0f);
-                child.setScaleX(scale);
-                child.setScaleY(scale);
-            } else {
+        if (!usesReferenceLayout()) {
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
                 child.layout(cx, cy, cx + cw, cy + ch);
                 child.setPivotX(0f);
                 child.setPivotY(0f);
                 child.setScaleX(1f);
                 child.setScaleY(1f);
             }
+            return;
+        }
+        int baseW = referenceWidth();
+        int baseH = referenceHeight();
+        int topBarHeight = measuredBarHeight(topBars);
+        int bottomBarHeight = measuredBarHeight(bottomBars);
+        int contentLayoutH = contentLayoutHeight(topBarHeight, bottomBarHeight);
+        float scale = scaleFor(cw, ch);
+        // 栏按「屏幕宽度 / scale」排版再整体放大，放大后正好铺满整屏且不拉伸变形
+        int barWidth = Math.max(1, Math.round(cw / scale));
+
+        // 顶栏：贴上沿
+        for (View bar : topBars) {
+            int height = bar.getMeasuredHeight();
+            bar.layout(cx, cy, cx + barWidth, cy + height);
+            bar.setPivotX(0f);
+            bar.setPivotY(0f);
+            bar.setScaleX(scale);
+            bar.setScaleY(scale);
+        }
+        // 底栏：贴下沿（以底边为基准放大）
+        int bottomTop = cy + ch - bottomBarHeight;
+        for (View bar : bottomBars) {
+            int height = bar.getMeasuredHeight();
+            bar.layout(cx, bottomTop + (bottomBarHeight - height), cx + barWidth,
+                    bottomTop + bottomBarHeight);
+            bar.setPivotX(0f);
+            bar.setPivotY(bottomBarHeight);
+            bar.setScaleX(scale);
+            bar.setScaleY(scale);
+        }
+        // 内容：夹在两条栏之间，按盒子尺寸等比缩放
+        int regionTop = cy + Math.round(topBarHeight * scale);
+        int regionBottom = cy + ch - Math.round(bottomBarHeight * scale);
+        int contentHeight = Math.round(contentLayoutH * scale);
+        int contentTop = regionTop
+                + Math.max(0, (regionBottom - regionTop - contentHeight) / 2);
+        int contentLeft = cx + Math.round((cw - baseW * scale) / 2f);
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (isBar(child)) continue;
+            child.layout(contentLeft, contentTop, contentLeft + baseW,
+                    contentTop + contentLayoutH);
+            child.setPivotX(0f);
+            child.setPivotY(0f);
+            child.setScaleX(scale);
+            child.setScaleY(scale);
         }
     }
 }

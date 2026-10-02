@@ -268,8 +268,12 @@ public class SettingsActivity extends BaseActivity {
         View back = findViewById(R.id.btn_back);
         if (back == null || !(back.getParent() instanceof View)) return;
         View topBar = (View) back.getParent();
-        if (!(topBar.getParent() instanceof ViewGroup)) return;
-        ViewGroup page = (ViewGroup) topBar.getParent();
+        // 顶栏现在被 BaseActivity 摘到缩放层外面（贴屏幕边缘），所以页面内容层
+        // 要用 box 里那一层；没被摘走时（歌词页等）仍用顶栏原来的父容器。
+        ViewGroup extracted = pageContent();
+        ViewGroup page = extracted != null ? extracted
+                : (topBar.getParent() instanceof ViewGroup ? (ViewGroup) topBar.getParent() : null);
+        if (page == null) return;
 
         android.widget.HorizontalScrollView scroller = new android.widget.HorizontalScrollView(this);
         scroller.setHorizontalScrollBarEnabled(false);
@@ -300,8 +304,8 @@ public class SettingsActivity extends BaseActivity {
             bar.addView(tab);
             tabViews.add(tab);
         }
-        // 插在顶栏下面：滚动内容时标签栏不动
-        page.addView(scroller, Math.min(1, page.getChildCount()));
+        // 插在顶栏下面：滚动内容时标签栏不动。顶栏被摘走之后，标签栏就是第一个子视图。
+        page.addView(scroller, extracted != null ? 0 : Math.min(1, page.getChildCount()));
         // 原来的分组标题不再需要
         for (int id : TAB_SECTIONS) {
             View header = findViewById(id);

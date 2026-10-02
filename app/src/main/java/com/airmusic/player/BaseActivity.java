@@ -29,6 +29,8 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private String createdLang;
     private boolean boxAspectWrapped;
+    /** 被 BoxAspectFrameLayout 包住的那层页面内容（顶栏 / 底栏已摘走）。 */
+    private View boxAspectChild;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -115,11 +117,18 @@ public abstract class BaseActivity extends AppCompatActivity {
         View child = content.getChildAt(0);
         if (child instanceof BoxAspectFrameLayout) return;
         boxAspectWrapped = true;
+        boxAspectChild = child;
         content.removeView(child);
         final BoxAspectFrameLayout box = new BoxAspectFrameLayout(this);
         box.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
+        // 顶栏 / 底栏是「贴屏幕上下沿」的例外：从缩放层里摘出来交给 box 单独摆放，
+        // 这样其它设备上它们也能紧贴屏幕边缘（横向铺满），中间内容才按盒子比例缩放。
+        View topBar = child.findViewById(R.id.top_bar);
+        View bottomBar = child.findViewById(R.id.bottom_bar);
+        if (topBar != null) box.addBar(topBar, true);
+        if (bottomBar != null) box.addBar(bottomBar, false);
         box.addView(child, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
@@ -143,6 +152,14 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     protected boolean keepBoxAspectWrapper() {
         return true;
+    }
+
+    /**
+     * 页面内容层：顶栏 / 底栏被摘到缩放层外面之后，剩下承载页面内容的那一层。
+     * 需要在页面里动态插一层固定控件（例如设置页的选项卡）时用它当父容器。
+     */
+    protected ViewGroup pageContent() {
+        return boxAspectChild instanceof ViewGroup ? (ViewGroup) boxAspectChild : null;
     }
 
     @Override
