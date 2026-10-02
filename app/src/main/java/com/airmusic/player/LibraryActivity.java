@@ -20,6 +20,7 @@ import com.airmusic.player.library.Track;
 import com.airmusic.player.service.PlaybackService;
 import com.airmusic.player.util.BlurBackground;
 import com.airmusic.player.util.Prefs;
+import com.airmusic.player.util.StateBus;
 import com.airmusic.player.ui.TrackAdapter;
 import com.airmusic.player.ui.CoverArtLoader;
 
@@ -179,6 +180,47 @@ public class LibraryActivity extends BaseActivity {
         // 所以每次显示曲库都跟随一次设置。
         applySavedGroup();
         loadTracks();
+        // 曲库页面停留期间换歌（自动下一首、电脑端切歌、多房间接收）也要更新
+        // 高亮：以前只有打开 / 回到本页时才刷新。
+        StateBus.get().addListener(stateListener);
+        refreshCurrentHighlight();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        StateBus.get().removeListener(stateListener);
+    }
+
+    private final StateBus.Listener stateListener = state -> runOnUiThread(this::refreshCurrentHighlight);
+    /** Last highlighted track, so the log stays readable. */
+    private String lastHighlight = "";
+
+    /** Updates only the "now playing" highlight; never scrolls (that is the
+     *  user's job once the page is open). */
+    private void refreshCurrentHighlight() {
+        PlaybackService service = PlaybackService.getInstance();
+        if (service == null) return;
+        if (!service.isShowingLibraryTrack()) {
+            if (!lastHighlight.isEmpty()) {
+                Log.i("LibraryActivity", "曲库高亮：清空（当前不在本地 / 多房间播放）");
+                lastHighlight = "";
+            }
+            adapter.setCurrent(null, null, null);
+            return;
+        }
+        Track cur = service.getCurrentTrack();
+        String title = service.getCurrentDisplayTitle();
+        String artist = service.getCurrentDisplayArtist();
+        String key = cur != null
+                ? (cur.uri == null ? "" : cur.uri.toString())
+                : title + "|" + artist;
+        if (!key.equals(lastHighlight)) {
+            lastHighlight = key;
+            Log.i("LibraryActivity", "曲库高亮：" + (cur != null ? cur.displayTitle() : title));
+        }
+        adapter.setCurrent(cur == null ? null : cur.uri,
+                cur == null ? title : null, cur == null ? artist : null);
     }
 
     /** Applies the remembered NONE / ALBUM / ARTIST mode to the list. */
@@ -434,17 +476,18 @@ public class LibraryActivity extends BaseActivity {
         if (tracks == null || tracks.isEmpty()) return;
         PlaybackService service = PlaybackService.getInstance();
         if (service == null || !service.isShowingLibraryTrack()) {
-            adapter.setCurrentUri(null);
-            adapter.setCurrentTitleArtist(null, null);
+            adapter.setCurrent(null, null, null);
             return;
         }
         Track cur = service.getCurrentTrack();
         if (cur != null) {
-            adapter.setCurrentUri(cur.uri);
+            // 同时带上标题 / 艺术家：URI 不在列表里时（MediaStore 与文件路径不一致）
+            // 还能退化成按标题匹配。
+            adapter.setCurrent(cur.uri, cur.displayTitle(), cur.displayArtist());
         } else {
             String title = service.getCurrentDisplayTitle();
             String artist = service.getCurrentDisplayArtist();
-            adapter.setCurrentTitleArtist(title, artist);
+            adapter.setCurrent(null, title, artist);
         }
         scrollToCurrentTrack();
     }

@@ -233,15 +233,28 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     /** Highlights the track with this URI (local playback). */
     public void setCurrentUri(Uri uri) {
-        this.currentUri = uri;
-        this.currentTitle = null;
-        this.currentArtist = null;
-        notifyDataSetChanged();
+        setCurrent(uri, null, null);
     }
 
     /** Highlights the track matching this title/artist (multi-room receiver). */
     public void setCurrentTitleArtist(String title, String artist) {
-        this.currentUri = null;
+        setCurrent(null, title, artist);
+    }
+
+    /**
+     * Highlights one track, matching by URI first and by title / artist when the
+     * URI is not in the list (MediaStore entries and file paths differ).
+     *
+     * <p>State updates arrive every few hundred milliseconds, so an unchanged
+     * track must not trigger a full {@code notifyDataSetChanged}: that would
+     * rebind every row and fight the user's scrolling.
+     */
+    public void setCurrent(Uri uri, String title, String artist) {
+        boolean sameUri = uri == null ? currentUri == null : uri.equals(currentUri);
+        boolean sameTitle = title == null ? currentTitle == null : title.equals(currentTitle);
+        boolean sameArtist = artist == null ? currentArtist == null : artist.equals(currentArtist);
+        if (sameUri && sameTitle && sameArtist) return;
+        this.currentUri = uri;
         this.currentTitle = title;
         this.currentArtist = artist;
         notifyDataSetChanged();
