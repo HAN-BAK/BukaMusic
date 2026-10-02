@@ -21,6 +21,7 @@ public final class PageFx {
     /** 给整棵视图树里的可点击控件加按压动效（按 id 去重，可重复调用）。 */
     public static void attachPress(View root) {
         if (root == null) return;
+        stripRipple(root);
         applyButtonOutline(root);
         // 输入框、进度条/滑杆有自己的触摸语义，加缩放会干扰，跳过。
         boolean skip = root instanceof android.widget.EditText
@@ -33,6 +34,31 @@ public final class PageFx {
         ViewGroup group = (ViewGroup) root;
         for (int i = 0; i < group.getChildCount(); i++) {
             attachPress(group.getChildAt(i));
+        }
+    }
+
+    /**
+     * 去掉水波纹：MaterialButton 只清它自己的 ripple 颜色（不能拆背景，
+     * 否则材质背景/动态取色会坏），其余视图把 RippleDrawable 层拆掉只留内容层。
+     *
+     * <p>放在这里而不是只放在主题上色流程里：主题上色是按「封面主色是否变化」
+     * 触发一次的，某些页面/机型（例如平板的 Android 版本）可能没走到那一步，
+     * 于是涟漪还在。这里每个页面都会执行，和主题无关。
+     */
+    private static void stripRipple(View view) {
+        if (view instanceof com.google.android.material.button.MaterialButton) {
+            ((com.google.android.material.button.MaterialButton) view)
+                    .setRippleColor(android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.TRANSPARENT));
+        } else if (view.getBackground() instanceof android.graphics.drawable.RippleDrawable) {
+            android.graphics.drawable.RippleDrawable ripple =
+                    (android.graphics.drawable.RippleDrawable) view.getBackground();
+            android.graphics.drawable.Drawable content =
+                    ripple.getNumberOfLayers() > 0 ? ripple.getDrawable(0) : null;
+            view.setBackground(content);
+        }
+        if (view.getForeground() instanceof android.graphics.drawable.RippleDrawable) {
+            view.setForeground(null);
         }
     }
 

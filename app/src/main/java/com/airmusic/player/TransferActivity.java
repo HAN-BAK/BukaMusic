@@ -54,6 +54,12 @@ public class TransferActivity extends BaseActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         TextView txtAddress = findViewById(R.id.txt_address);
+        // 地址做成和按钮同一套动态取色的胶囊卡片
+        txtAddress.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+        txtAddress.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+        int addrPadH = Math.round(18 * getResources().getDisplayMetrics().density);
+        int addrPadV = Math.round(10 * getResources().getDisplayMetrics().density);
+        txtAddress.setPadding(addrPadH, addrPadV, addrPadH, addrPadV);
         TextView txtStatus = findViewById(R.id.txt_status);
         TextView txtFormats = findViewById(R.id.txt_formats);
         ImageView imgQr = findViewById(R.id.img_qr);
