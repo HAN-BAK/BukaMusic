@@ -86,7 +86,8 @@ public class MainActivity extends BaseActivity {
     private static final float VOLUME_TRACK_HEIGHT_DP = 44f;
     private static final float VOLUME_THUMB_WIDTH_DP = 8f;
     private static final float VOLUME_THUMB_HEIGHT_DP = 52f;
-    private static final float VOLUME_THUMB_GAP_DP = 6f;
+    /** 断口宽度和进度条保持一致（8dp）。 */
+    private static final float VOLUME_THUMB_GAP_DP = 8f;
     /** 进度条几何（dp）。 */
     private static final float SEEK_TRACK_HEIGHT_DP = 24f;
     private static final float SEEK_THUMB_WIDTH_DP = 7f;
