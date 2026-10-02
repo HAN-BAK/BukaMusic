@@ -347,12 +347,12 @@ public class SettingsActivity extends BaseActivity {
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_clear_path),
                 R.drawable.ic_row_rescan);
         // 播放方式 / 语言 / 背景模糊：图标放在左边的标签上，右侧的取值按钮不带图标
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_play_mode),
-                R.drawable.ic_row_playmode, -1.0f);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_play_mode),
+                R.drawable.ic_row_playmode);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_language),
                 R.drawable.ic_row_language);
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_blur_mode),
-                R.drawable.ic_row_blur, -1.0f);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_blur_mode),
+                R.drawable.ic_row_blur);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_set_home),
                 R.drawable.ic_row_launcher);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_export_logs),
@@ -366,16 +366,16 @@ public class SettingsActivity extends BaseActivity {
         // 开关 / 滑条 / 信息行：图标必须贴到「那一行自己的标签」上。
         // 之前用 rowLabel 找父容器里第一个 TextView，开关那几行的父容器是整个分组，
         // 结果图标全贴到了同一行（音乐目录路径）上——这就是设置页图标看着没对齐的原因。
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_auto_play),
-                R.drawable.ic_row_autoplay, 3.0f);
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_online_lyrics),
-                R.drawable.ic_row_lyrics, 3.0f);
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.label_show_apps),
-                R.drawable.ic_row_apps, 3.0f);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_auto_play),
+                R.drawable.ic_row_autoplay);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_online_lyrics),
+                R.drawable.ic_row_lyrics);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_show_apps),
+                R.drawable.ic_row_apps);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.label_balance),
                 R.drawable.ic_row_balance);
-        com.airmusic.player.ui.BukaIcons.rowTextShifted(findViewById(R.id.path_display),
-                R.drawable.ic_row_folder, 3.0f);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.path_display),
+                R.drawable.ic_row_folder);
         // 均衡器入口用动态图标（点击时播放动画，动画在原有的点击处理里启动）
         View eq = findViewById(R.id.btn_equalizer);
         if (eq instanceof TextView) {
