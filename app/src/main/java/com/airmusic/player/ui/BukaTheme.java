@@ -149,13 +149,25 @@ public final class BukaTheme {
         if (view instanceof com.google.android.material.textfield.TextInputLayout) {
             com.google.android.material.textfield.TextInputLayout input =
                     (com.google.android.material.textfield.TextInputLayout) view;
-            android.content.res.ColorStateList stroke =
-                    android.content.res.ColorStateList.valueOf(ColorTheme.stroke());
-            input.setBoxStrokeColorStateList(stroke);
-            input.setBoxStrokeErrorColor(
-                    android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
-            input.setHintTextColor(
-                    android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
+            View nameField = input.findViewById(R.id.input_airplay_name);
+            if (nameField != null) {
+                // 设备名称输入框和曲库搜索框统一：去掉外层方框，内层用动态胶囊底
+                input.setBoxBackgroundMode(
+                        com.google.android.material.textfield.TextInputLayout
+                                .BOX_BACKGROUND_NONE);
+                nameField.setBackground(ColorTheme.capsule(nameField.getContext()));
+                int padH = dp(activity, 14f);
+                int padV = dp(activity, 10f);
+                nameField.setPadding(padH, padV, padH, padV);
+            } else {
+                android.content.res.ColorStateList stroke =
+                        android.content.res.ColorStateList.valueOf(ColorTheme.stroke());
+                input.setBoxStrokeColorStateList(stroke);
+                input.setBoxStrokeErrorColor(
+                        android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
+                input.setHintTextColor(
+                        android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
+            }
         }
         // 曲库搜索框：底色也跟着封面主色走（只写一次的话换歌后不会更新）
         if (view.getId() == R.id.edit_search) {
