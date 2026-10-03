@@ -127,6 +127,18 @@ public final class OnlineLyrics {
      */
     public static long bestMatchId(String title, String artist, long durationMs) {
         if (title == null || title.trim().isEmpty()) return -1L;
+        long direct = searchBestId(title, artist, durationMs);
+        if (direct >= 0) return direct;
+        // 标题里常带「（游戏《xx》同人曲）」这类括号说明，会把搜索带偏：去掉括号再试一次
+        String cleaned = title.replaceAll("[（(\\[【].*?[）)\\]】]", "").trim();
+        if (!cleaned.isEmpty() && !cleaned.equals(title.trim())) {
+            Log.d(TAG, "retry netease search with cleaned title \"" + cleaned + "\"");
+            return searchBestId(cleaned, artist, durationMs);
+        }
+        return -1L;
+    }
+
+    private static long searchBestId(String title, String artist, long durationMs) {
         try {
             String keyword = title + " " + (artist == null ? "" : artist);
             String searchUrl = "https://music.163.com/api/search/get/web?type=1&limit=10&s="
