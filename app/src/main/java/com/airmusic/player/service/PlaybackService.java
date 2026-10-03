@@ -1026,6 +1026,8 @@ public class PlaybackService extends Service {
     private final AirPlayController.Events airPlayEvents = new AirPlayController.Events() {
         @Override
         public void onSessionStart(String clientName, String dacpId, String activeRemote, String remoteIp) {
+            // 新的 AirPlay 会话：清空 PCM 采集缓冲，避免上一首的音频残留在里面
+            com.airmusic.player.lyrics.AirplayPcmTap.nextSession();
             main.post(() -> handleAirPlayStart(clientName, dacpId, activeRemote, remoteIp, true));
         }
 
@@ -1043,6 +1045,7 @@ public class PlaybackService extends Service {
 
         @Override
         public void onSessionStop() {
+            com.airmusic.player.lyrics.AirplayPcmTap.clear();
             main.post(PlaybackService.this::handleAirPlayStop);
         }
 
@@ -1053,6 +1056,8 @@ public class PlaybackService extends Service {
 
         @Override
         public void onTrackInfo(String title, String artist, String album, Bitmap art, long durationMs) {
+            // 换歌：重新开始采集（位置识别的缓冲只对当前这首有效）
+            com.airmusic.player.lyrics.AirplayPcmTap.nextSession();
             main.post(() -> applyAirPlayTrackInfo(title, artist, album, art, durationMs));
         }
 
