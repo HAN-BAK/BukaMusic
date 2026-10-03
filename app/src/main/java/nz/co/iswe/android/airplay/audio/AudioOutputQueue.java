@@ -491,6 +491,11 @@ public class AudioOutputQueue implements AudioClock {
 			}
 
 			final FirEqualizer eq = firEqualizer;
+			/* 歌词位置识别用：把均衡器之前的原始 PCM 喂给采集缓冲
+			 * （AirPlay 只有音频流没有进度，靠它和参考音频做互相关定位）。 */
+			com.airmusic.player.lyrics.AirplayPcmTap.push(samplesConverted,
+					samplesConverted.length, sampleRateInHz,
+					channelConfig == android.media.AudioFormat.CHANNEL_OUT_STEREO ? 2 : 1);
 			if (eq != null) {
 				/* The shared equalizer is also used by local playback, so its
 				 * kernel may have been built for a different sample rate.
