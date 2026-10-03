@@ -717,8 +717,13 @@ public class AudioOutputQueue implements AudioClock {
 	public void flush() {
 		frameQueue.clear();
 		/* 发送端拖动进度 / 暂停会 flush：采集缓冲里还混着跳转前的音频，
-		 * 不清掉的话互相关会匹配到旧位置（歌词进度就卡住不动）。 */
-		com.airmusic.player.lyrics.AirplayPcmTap.clear();
+		 * 不清掉的话互相关会匹配到旧位置（歌词进度就卡住不动）。
+		 * 但「开始推流」时引擎也会 flush，那时缓冲是空的——只有缓冲里已经有
+		 * 超过 1 秒音频才清，否则启动阶段一直被清空、永远凑不满校准所需长度。 */
+		if (com.airmusic.player.lyrics.AirplayPcmTap.available()
+				> com.airmusic.player.lyrics.AirplayPcmTap.TARGET_RATE) {
+			com.airmusic.player.lyrics.AirplayPcmTap.clear();
+		}
 	}
 
 	@Override
