@@ -261,7 +261,15 @@ public class LibraryActivity extends BaseActivity {
         StateBus.get().removeListener(stateListener);
     }
 
-    private final StateBus.Listener stateListener = state -> runOnUiThread(this::refreshCurrentHighlight);
+    private final StateBus.Listener stateListener = state -> runOnUiThread(() -> {
+        // 停在曲库页时突然进入 AirPlay / 多房间接收：自动回到播放界面
+        if (state.source == com.airmusic.player.util.PlayerUiState.Source.AIRPLAY
+                || state.source == com.airmusic.player.util.PlayerUiState.Source.REMOTE) {
+            if (!isFinishing()) finish();
+            return;
+        }
+        refreshCurrentHighlight();
+    });
     /** Last highlighted track, so the log stays readable. */
     private String lastHighlight = "";
 
