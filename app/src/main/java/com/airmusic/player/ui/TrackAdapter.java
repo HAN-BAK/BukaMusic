@@ -362,6 +362,8 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
      * "已选 12 首 · 2 个专辑"）；平铺列表返回 0。
      */
     public int getSelectedGroupCount() {
+        // 搜索状态下选的是「筛选出来的单曲」，不算整张专辑 / 整个歌手被选中
+        if (!query.isEmpty()) return 0;
         int groups = 0;
         boolean anyCard = false;
         for (Object row : rows) {
