@@ -33,6 +33,8 @@ public final class AirplayLyricLocator {
     private static volatile long positionMs = -1L;
     /** 上一次成功定位的时刻（elapsedRealtime），用于两次校准之间按时钟推进位置。 */
     private static volatile long lastMatchAt;
+    /** 当前这首歌的时长（用来给「按时钟推进」兜底封顶）。 */
+    private static volatile long durationMs;
     private static volatile boolean running;
 
     private AirplayLyricLocator() {
@@ -46,8 +48,11 @@ public final class AirplayLyricLocator {
         // 停在最后那一句不动（表现就是「切歌后卡在某句」）。
         long elapsed = android.os.SystemClock.elapsedRealtime() - lastMatchAt;
         if (elapsed < 0) elapsed = 0;
-        if (elapsed > 8000L) elapsed = 8000L;   // 长时间没校准就别再猜了
-        return base + elapsed;
+        long limit = durationMs > 0 ? durationMs : 30L * 60L * 1000L;
+        long advanced = base + elapsed;
+        // 不再用「8 秒硬上限」：那会导致某段校准没通过时位置冻结、歌词卡在一句上。
+        // 只在超过歌曲时长（或未知时长时的 30 分钟）后停下。
+        return Math.min(advanced, limit);
     }
 
     public static boolean ready() {
@@ -82,6 +87,8 @@ public final class AirplayLyricLocator {
         stop(context);
         currentKey = key;
         positionMs = -1L;
+        lastMatchAt = 0L;
+        AirplayLyricLocator.durationMs = durationMs > 0 ? durationMs : 0L;
         lastMatchAt = 0L;
         running = true;
         if (!PREPARING.compareAndSet(false, true)) return;
