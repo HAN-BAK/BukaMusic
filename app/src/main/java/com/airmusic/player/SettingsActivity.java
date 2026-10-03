@@ -35,6 +35,13 @@ import com.airmusic.player.ui.BukaTheme;
 public class SettingsActivity extends BaseActivity {
 
     private Prefs prefs;
+    /** 设备名防抖：输入停顿 800ms 后再重启服务，避免每敲一个字母就重启一次。 */
+    private final android.os.Handler nameHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable nameApply = () -> {
+        PlaybackService service = PlaybackService.getInstance();
+        if (service != null) service.restartAirPlay();
+    };
     private TextInputEditText inputName;
     private TextView pathDisplay;
     private com.google.android.material.button.MaterialButton btnPlayMode;
@@ -131,6 +138,9 @@ public class SettingsActivity extends BaseActivity {
                 String name = s.toString().trim();
                 if (name.length() > 0) {
                     prefs.setAirPlayName(name);
+                    // 改完名字就（防抖 800ms）立刻重启 AirPlay 服务，不用等失焦
+                    nameHandler.removeCallbacks(nameApply);
+                    nameHandler.postDelayed(nameApply, 800L);
                 }
             }
         });
