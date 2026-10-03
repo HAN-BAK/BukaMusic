@@ -27,6 +27,8 @@ public final class AirplayLyricLocator {
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final AtomicBoolean PREPARING = new AtomicBoolean(false);
+    /** 准备代次：切歌自增，晚到的旧任务结果会被丢弃。 */
+    private static volatile int prepareGeneration;
 
     private static volatile String currentKey;
     private static volatile short[] referencePcm;
@@ -91,16 +93,21 @@ public final class AirplayLyricLocator {
         AirplayLyricLocator.durationMs = durationMs > 0 ? durationMs : 0L;
         lastMatchAt = 0L;
         running = true;
-        if (!PREPARING.compareAndSet(false, true)) return;
+        // 用「代次」而不是「只允许一个准备任务」：切歌时上一个参考音频可能还在
+        // 下载/解码，旧写法会直接 return（新歌永远不准备），旧任务完成后还会把
+        // referencePcm 覆盖成上一首的音频——表现就是「只有第一次投送是正常的」。
+        final int generation = ++prepareGeneration;
         final Context appContext = context.getApplicationContext();
         EXECUTOR.execute(() -> {
             try {
                 File file = NeteaseReferenceAudio.fetch(appContext, title, artist, durationMs);
+                if (generation != prepareGeneration) return;   // 已经换歌，结果作废
                 if (file == null) {
                     Log.i(TAG, "no reference audio for \"" + title + "\"");
                     return;
                 }
                 short[] pcm = ReferenceAudioDecoder.load(file);
+                if (generation != prepareGeneration) return;
                 if (pcm == null || pcm.length == 0) {
                     Log.i(TAG, "reference decode failed for \"" + title + "\"");
                     return;
@@ -108,8 +115,8 @@ public final class AirplayLyricLocator {
                 referencePcm = pcm;
                 Log.i(TAG, "reference ready: " + pcm.length + " samples for \"" + title + "\"");
                 MAIN.post(AirplayLyricLocator::schedule);
-            } finally {
-                PREPARING.set(false);
+            } catch (Throwable t) {
+                Log.w(TAG, "prepare failed: " + t, t);
             }
         });
     }
