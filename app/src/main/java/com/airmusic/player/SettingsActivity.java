@@ -40,7 +40,7 @@ public class SettingsActivity extends BaseActivity {
             new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable nameApply = () -> {
         PlaybackService service = PlaybackService.getInstance();
-        if (service != null) service.restartAirPlay();
+        if (service != null) service.applyDeviceName();
     };
     private TextInputEditText inputName;
     private TextView pathDisplay;

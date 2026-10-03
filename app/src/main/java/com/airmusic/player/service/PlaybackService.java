@@ -1683,6 +1683,14 @@ public class PlaybackService extends Service {
         airPlayController.restart(prefs.getAirPlayName());
     }
 
+    /** 设备改名后立刻生效：重启 AirPlay 服务 + 重新注册多房间广播名。 */
+    public void applyDeviceName() {
+        String name = prefs.getAirPlayName();
+        airPlayController.restart(name);
+        multiRoomManager.rename(name);
+        DiagnosticLog.i(TAG, "device name applied: " + name);
+    }
+
     public void rescanLibrary() {
         // The scan replaces the cached list when it finishes; clearing it up front
         // would make /api/library report an empty library for a few seconds.

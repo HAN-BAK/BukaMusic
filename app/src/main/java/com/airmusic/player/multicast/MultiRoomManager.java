@@ -127,6 +127,19 @@ public class MultiRoomManager {
         controlExecutor.shutdownNow();
     }
 
+    /**
+     * 设备改名后立刻用新名字重新注册广播 / 服务，不用等下一次广播周期。
+     * 已有的多房间连接不受影响。
+     */
+    public synchronized void rename(String deviceName) {
+        String name = deviceName == null || deviceName.trim().isEmpty()
+                ? lastDeviceName : deviceName.trim();
+        lastDeviceName = name == null ? "" : name;
+        if (started) {
+            discovery.register(lastDeviceName);
+        }
+    }
+
     // ------------------------------------------------------------------
     // Discovery (for the device dialog)
     // ------------------------------------------------------------------
