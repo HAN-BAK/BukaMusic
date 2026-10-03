@@ -161,6 +161,11 @@ public final class BukaTheme {
         if (view.getId() == R.id.edit_search) {
             view.setBackground(ColorTheme.optionIdle(view.getContext()));
         }
+        // AirPlay 状态框：底色 / 文字同样跟着封面走
+        if (view.getId() == R.id.airplay_status && view instanceof android.widget.TextView) {
+            view.setBackground(ColorTheme.softBlock(view.getContext()));
+            ((android.widget.TextView) view).setTextColor(ColorTheme.textSecondary());
+        }
         // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
         if (view instanceof android.widget.Switch) {
             android.widget.Switch toggle = (android.widget.Switch) view;
