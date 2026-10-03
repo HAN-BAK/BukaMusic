@@ -259,13 +259,24 @@ public class LyricsActivity extends BaseActivity {
         if (state.source == PlayerUiState.Source.AIRPLAY) {
             String key = (state.title == null ? "" : state.title) + "|"
                     + (state.artist == null ? "" : state.artist);
-            if (!key.equals(airplayPositionKey)) {
+            // 只有「真的换歌」才把位置清零；退出再进来时 key 从空变成当前歌，
+            // 这时不能当成换歌，否则会先从头渲染一遍（看起来就是异常显示）。
+            if (!airplayPositionKey.isEmpty() && !key.equals(airplayPositionKey)) {
                 airplayPositionKey = key;          // 换歌就从头开始等识别
                 airplayPositionMs = 0L;
+                airplayLyricsHidden = true;
+            } else if (airplayPositionKey.isEmpty()) {
+                airplayPositionKey = key;
             }
             AirplayLyricLocator.start(this, state.title, state.artist, state.durationMs);
             long located = AirplayLyricLocator.positionMs();
-            if (located >= 0) airplayPositionMs = located;
+            if (located >= 0) {
+                airplayPositionMs = located;
+            } else {
+                // 位置还没识别出来：先不显示歌词（等定时器定位成功后再显示）
+                airplayLyricsHidden = true;
+                lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
+            }
             // 关键：不要回落到 state.positionMs（AirPlay 一直是 0），否则每秒都被拉回开头
             playbackPosition = airplayPositionMs;
             uiHandler.removeCallbacks(airplayTick);
