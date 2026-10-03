@@ -90,8 +90,18 @@ public final class AirplayPcmTap {
                 position += 1.0;
             }
             phase = position;
+            // 采集诊断：每跨过 1 秒样本打一条日志，用来确认盒子上拿到的是有效音频
+            int seconds = filled / TARGET_RATE;
+            if (seconds != lastLoggedSeconds) {
+                lastLoggedSeconds = seconds;
+                android.util.Log.i("AirplayPcmTap", "session=" + session + " rate=" + rate
+                        + " ch=" + channels + " buffered=" + seconds + "s"
+                        + " last=" + RING[(writeIndex - 1 + CAPACITY) % CAPACITY]);
+            }
         }
     }
+
+    private static int lastLoggedSeconds = -1;
 
     /** 已缓存的有效样本数（8kHz 单声道）。 */
     public static int available() {
