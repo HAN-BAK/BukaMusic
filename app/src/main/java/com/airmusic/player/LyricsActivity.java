@@ -62,10 +62,23 @@ public class LyricsActivity extends BaseActivity {
         @Override
         public void run() {
             long located = AirplayLyricLocator.positionMs();
-            if (located >= 0) lyricsView.setPlaybackState(located, true);
+            if (located >= 0) {
+                if (airplayLyricsHidden && !displayedLyrics.isEmpty()) {
+                    // 定位成功：把歌词重新显示出来
+                    airplayLyricsHidden = false;
+                    lyricsView.setLyrics(displayedLyrics);
+                }
+                lyricsView.setPlaybackState(located, true);
+            } else if (!airplayLyricsHidden && !displayedLyrics.isEmpty()) {
+                // 还没定位到（拖动 / 换歌 / 参考音频准备中）：先不显示歌词
+                airplayLyricsHidden = true;
+                lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
+            }
             uiHandler.postDelayed(this, 1000L);
         }
     };
+    /** AirPlay 下「位置未知时先不显示歌词」的状态。 */
+    private boolean airplayLyricsHidden;
     private final Runnable hideHeaderRunnable = this::hideHeader;
     private GestureDetector gestureDetector;
 
