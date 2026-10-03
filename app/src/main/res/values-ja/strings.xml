@@ -12,6 +12,7 @@
     <string name="settings">設定</string>
     <string name="library">ライブラリ</string>
     <string name="search">検索</string>
+    <string name="lyrics_locating">歌詞を特定しています…</string>
     <string name="search_hint">曲 / アーティスト / アルバムを検索</string>
     <string name="search_no_result">一致する曲がありません</string>
     <string name="delete">削除</string>

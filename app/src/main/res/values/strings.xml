@@ -12,6 +12,7 @@
     <string name="settings">设置</string>
     <string name="library">曲库</string>
     <string name="search">搜索</string>
+    <string name="lyrics_locating">正在定位歌词…</string>
     <string name="search_hint">搜索歌曲 / 歌手 / 专辑</string>
     <string name="search_no_result">没有找到匹配的音乐</string>
     <string name="delete">删除</string>
