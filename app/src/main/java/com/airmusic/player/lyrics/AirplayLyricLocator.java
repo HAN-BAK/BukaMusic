@@ -53,9 +53,11 @@ public final class AirplayLyricLocator {
             return;
         }
         final String key = NeteaseReferenceAudio.keyOf(title, artist);
-        if (key.equals(currentKey) && referencePcm != null) {
+        if (key.equals(currentKey)) {
+            // 同一首歌：歌词页每次刷新都会调进来，这里只保证在校准即可，
+            // 绝不能把「正在准备参考音频」的会话停掉重来（那会永远准备不完）。
             running = true;
-            schedule();
+            if (referencePcm != null) schedule();
             return;
         }
         stop(context);
