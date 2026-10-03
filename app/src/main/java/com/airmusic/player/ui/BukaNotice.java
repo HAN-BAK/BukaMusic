@@ -111,7 +111,8 @@ public final class BukaNotice {
         android.graphics.drawable.GradientDrawable bg =
                 new android.graphics.drawable.GradientDrawable();
         bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        bg.setColor(ColorTheme.tooltipFill());
+        // tooltipFill 是给滑条气泡用的深色，看着几乎全黑；提示条混更多主色更明显
+        bg.setColor(ColorTheme.blend(0xFF1B2330, ColorTheme.accent(), 0.38f));
         bg.setCornerRadius(22f * density);
         bg.setStroke(Math.max(1, Math.round(density)), ColorTheme.stroke());
         return bg;
