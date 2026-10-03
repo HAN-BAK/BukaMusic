@@ -95,6 +95,8 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /** Non-null while the tracks of one album / artist are open. */
     private String openGroup;
     private boolean showingCards;
+    /** 当前搜索词（空 = 不搜索）；只在当前视图范围内过滤。 */
+    private String query = "";
     private OnGroupClick groupListener;
     private CoverArtLoader coverLoader;
 
@@ -112,6 +114,28 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         groupBy = next;
         openGroup = null;
         rebuild();
+    }
+
+    /** 设置搜索词：空字符串恢复原来的视图。 */
+    public void setQuery(String text) {
+        String next = text == null ? "" : text.trim().toLowerCase(java.util.Locale.ROOT);
+        if (next.equals(query)) return;
+        query = next;
+        rebuild();
+    }
+
+    public boolean hasQuery() {
+        return !query.isEmpty();
+    }
+
+    private boolean matches(Track track) {
+        if (query.isEmpty()) return true;
+        return contains(track.displayTitle()) || contains(track.displayArtist())
+                || contains(track.displayAlbum());
+    }
+
+    private boolean contains(String value) {
+        return value != null && value.toLowerCase(java.util.Locale.ROOT).contains(query);
     }
 
     public GroupBy getGroupBy() {
@@ -170,6 +194,19 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private void rebuild() {
         rows.clear();
         showingCards = false;
+        if (!query.isEmpty()) {
+            // 搜索：只显示匹配的曲目；已经打开某个专辑 / 歌手时只在该范围内搜
+            List<Track> scope = source;
+            if (openGroup != null) {
+                List<Track> bucket = group(source).get(openGroup);
+                scope = bucket == null ? java.util.Collections.<Track>emptyList() : bucket;
+            }
+            for (Track track : scope) {
+                if (matches(track)) rows.add(track);
+            }
+            notifyDataSetChanged();
+            return;
+        }
         if (groupBy == GroupBy.NONE) {
             openGroup = null;
             rows.addAll(source);
@@ -436,6 +473,10 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         holder.itemView.animate().cancel();
         holder.itemView.setAlpha(1f);
         holder.itemView.setTranslationY(0f);
+        // 多选里点一行会触发 notifyItemChanged→重新绑定，如果这里不把按压缩放
+        // 复位，松手回弹的动画会被取消，那一行就一直是缩小的（看起来像变小了）。
+        holder.itemView.setScaleX(1f);
+        holder.itemView.setScaleY(1f);
         Object row = rows.get(position);
         if (row instanceof GroupCard) {
             GroupCard card = (GroupCard) row;

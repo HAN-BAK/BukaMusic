@@ -56,7 +56,8 @@ public final class BukaNotice {
         notice.setTextSize(14f);
         // 提示条是动态创建的，走不到页面统一上色那一步，这里直接用动态近白。
         notice.setTextColor(ColorTheme.tooltipText());
-        notice.setBackgroundResource(R.drawable.bg_notice);
+        // 气泡底也跟着封面主色走（和滑条气泡同一套底色）
+        notice.setBackground(noticeBackground(activity));
         int padH = dp(activity, 20f);
         int padV = dp(activity, 12f);
         notice.setPadding(padH, padV, padH, padV);
@@ -102,5 +103,17 @@ public final class BukaNotice {
 
     private static int dp(Activity activity, float value) {
         return Math.round(value * activity.getResources().getDisplayMetrics().density);
+    }
+
+    /** 提示条底色：跟随封面的深色胶囊 + 主色描边。 */
+    private static android.graphics.drawable.Drawable noticeBackground(Activity activity) {
+        float density = activity.getResources().getDisplayMetrics().density;
+        android.graphics.drawable.GradientDrawable bg =
+                new android.graphics.drawable.GradientDrawable();
+        bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        bg.setColor(ColorTheme.tooltipFill());
+        bg.setCornerRadius(22f * density);
+        bg.setStroke(Math.max(1, Math.round(density)), ColorTheme.stroke());
+        return bg;
     }
 }

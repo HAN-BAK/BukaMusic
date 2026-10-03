@@ -11,6 +11,9 @@
     <string name="source_idle">재생 중 아님</string>
     <string name="settings">설정</string>
     <string name="library">라이브러리</string>
+    <string name="search">검색</string>
+    <string name="search_hint">곡 / 아티스트 / 앨범 검색</string>
+    <string name="search_no_result">일치하는 음악이 없습니다</string>
     <string name="delete">삭제</string>
     <string name="selected_count">%1$d곡 선택됨</string>
     <string name="select_all">전체 선택</string>

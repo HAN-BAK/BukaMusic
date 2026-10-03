@@ -11,6 +11,9 @@
     <string name="source_idle">再生していません</string>
     <string name="settings">設定</string>
     <string name="library">ライブラリ</string>
+    <string name="search">検索</string>
+    <string name="search_hint">曲 / アーティスト / アルバムを検索</string>
+    <string name="search_no_result">一致する曲がありません</string>
     <string name="delete">削除</string>
     <string name="selected_count">%1$d 曲選択中</string>
     <string name="select_all">すべて選択</string>

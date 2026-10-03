@@ -27,6 +27,7 @@ import java.util.List;
 import com.airmusic.player.ui.BukaNotice;
 import com.airmusic.player.ui.BukaDialog;
 import com.airmusic.player.ui.BukaTheme;
+import com.airmusic.player.ui.ColorTheme;
 
 public class LibraryActivity extends BaseActivity {
 
@@ -35,6 +36,9 @@ public class LibraryActivity extends BaseActivity {
     private TextView txtSelectCount;
     private ImageButton btnDelete;
     private ImageButton btnBack;
+    private ImageButton btnSearch;
+    private android.widget.EditText editSearch;
+    private boolean searchMode;
     private com.google.android.material.button.MaterialButton btnSelectAll;
     private com.google.android.material.button.MaterialButton btnGroup;
     private RecyclerView list;
@@ -57,8 +61,26 @@ public class LibraryActivity extends BaseActivity {
         txtSelectCount = findViewById(R.id.txt_select_count);
         btnDelete = findViewById(R.id.btn_delete);
         btnSelectAll = findViewById(R.id.btn_select_all);
+        btnSearch = findViewById(R.id.btn_search);
+        editSearch = findViewById(R.id.edit_search);
         btnGroup = findViewById(R.id.btn_group);
         btnGroup.setOnClickListener(v -> showGroupDialog());
+        btnSearch.setOnClickListener(v -> toggleSearch());
+        editSearch.setBackground(ColorTheme.optionIdle(this));
+        editSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                applySearch(s == null ? "" : s.toString());
+            }
+        });
 
         btnBack = findViewById(R.id.btn_back);
         btnBack.setOnClickListener(v -> {
@@ -172,7 +194,7 @@ public class LibraryActivity extends BaseActivity {
         }
         String open = adapter.getOpenGroupTitle();
         txtTitle.setText(open == null ? getString(R.string.library) : open);
-        txtTitle.setVisibility(adapter.isSelectionMode() ? View.GONE : View.VISIBLE);
+        txtTitle.setVisibility(adapter.isSelectionMode() || searchMode ? View.GONE : View.VISIBLE);
         btnGroup.setText(getString(labelFor(adapter.getGroupBy())));
         animateListIn();
     }
@@ -319,7 +341,9 @@ public class LibraryActivity extends BaseActivity {
         boolean modeChanged = lastSelectionMode == null || lastSelectionMode != selecting;
         if (modeChanged) snapshotScrollAnchor();
         lastSelectionMode = selecting;
-        txtTitle.setVisibility(selecting ? View.GONE : View.VISIBLE);
+        txtTitle.setVisibility(selecting || searchMode ? View.GONE : View.VISIBLE);
+        editSearch.setVisibility(!selecting && searchMode ? View.VISIBLE : View.GONE);
+        btnSearch.setVisibility(selecting ? View.GONE : View.VISIBLE);
         btnGroup.setVisibility(selecting ? View.GONE : View.VISIBLE);
         txtSelectCount.setVisibility(selecting ? View.VISIBLE : View.GONE);
         btnSelectAll.setVisibility(selecting ? View.VISIBLE : View.GONE);
@@ -496,6 +520,11 @@ public class LibraryActivity extends BaseActivity {
             exitSelectionMode();
             return;
         }
+        if (searchMode) {
+            // 先退出搜索，再退出分组 / 页面
+            toggleSearch();
+            return;
+        }
         if (adapter.getOpenGroupKey() != null) {
             adapter.closeGroup();
             applyLayoutMode();
@@ -507,6 +536,37 @@ public class LibraryActivity extends BaseActivity {
     private void exitSelectionMode() {
         adapter.setSelectionMode(false);
         updateSelectionUi();
+    }
+
+    /** 放大镜：展开 / 收起搜索框。 */
+    private void toggleSearch() {
+        searchMode = !searchMode;
+        if (searchMode) {
+            editSearch.setVisibility(View.VISIBLE);
+            editSearch.requestFocus();
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(editSearch, 0);
+        } else {
+            editSearch.setText("");
+            editSearch.setVisibility(View.GONE);
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(editSearch.getWindowToken(), 0);
+            applySearch("");
+        }
+        updateSelectionUi();
+    }
+
+    /** 过滤当前视图（打开专辑 / 歌手时只在该范围内搜）。 */
+    private void applySearch(String text) {
+        adapter.setQuery(text);
+        applyLayoutMode();
+        if (adapter.hasQuery() && adapter.getItemCount() == 0) {
+            BukaNotice.show(this, R.string.search_no_result);
+        }
     }
 
     private void confirmDelete() {

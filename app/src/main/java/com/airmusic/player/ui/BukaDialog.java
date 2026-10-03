@@ -57,6 +57,8 @@ public class BukaDialog extends Dialog {
 
     private final List<TextView> optionViews = new ArrayList<>();
     private boolean dismissing;
+    /** 点卡片外面是否关闭（加载中的对话框不允许）。 */
+    private boolean backdropDismiss = true;
 
     private BukaDialog(Context context) {
         super(context, R.style.BukaDialogTheme);
@@ -85,12 +87,32 @@ public class BukaDialog extends Dialog {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             window.setDimAmount(0.62f);
+            // 对话框窗口铺满整屏、卡片自己在里面居中：以前依赖窗口 gravity=CENTER，
+            // 系统栏 / 窗口内边距一不对称（盒子上就是）上下就不居中。
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+            // 连系统栏一起覆盖，避免窗口本身被「顶到状态栏下面」而整体偏低
+            window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
             WindowManager.LayoutParams params = window.getAttributes();
-            params.gravity = Gravity.CENTER;
+            params.gravity = Gravity.TOP | Gravity.START;
             window.setAttributes(params);
-            window.setLayout(dialogWidth(context), ViewGroup.LayoutParams.WRAP_CONTENT);
         }
         setCanceledOnTouchOutside(true);
+        // 卡片按需要限制宽度（电视上别铺得太宽），并吃掉落在卡片上的点击；
+        // 落在卡片外面的点击（铺满整屏的那层）等同于「点外部关闭」。
+        ViewGroup.LayoutParams cardParams = card.getLayoutParams();
+        cardParams.width = dialogWidth(context);
+        card.setLayoutParams(cardParams);
+        card.setClickable(true);
+        if (card.getParent() instanceof View) {
+            View backdrop = (View) card.getParent();
+            backdrop.setClickable(true);
+            backdrop.setOnClickListener(v -> {
+                if (backdropDismiss) dismiss();
+            });
+        }
 
         // 对话框的窗口主题不是应用主题，标题 / 选项 / 按钮的文字色都得自己跟着
         // 封面主色走（否则选项文字永远是天蓝或纯白的静态色）。
@@ -242,6 +264,7 @@ public class BukaDialog extends Dialog {
         }
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(false);
+        dialog.backdropDismiss = false;
         return dialog;
     }
 
@@ -319,6 +342,9 @@ public class BukaDialog extends Dialog {
     @Override
     public void show() {
         super.show();
+        // 有些设备（例如 1920x1080 的盒子）的对话框窗口会被系统栏撑得比屏幕高，
+        // 卡片按窗口居中就会整体偏低。这里按「卡片实际中心 vs 屏幕中心」直接校正。
+        centerVertically();
         // 选项多时限制列表高度，避免卡片比屏幕还高。
         if (scroll.getVisibility() == View.VISIBLE) {
             scroll.post(() -> {
@@ -339,6 +365,27 @@ public class BukaDialog extends Dialog {
                 .setDuration(200L)
                 .setInterpolator(new DecelerateInterpolator(1.6f))
                 .start();
+    }
+
+    private void centerVertically() {
+        // 窗口位置在弹出过程中还会变一次，所以分几拍校正；每次都用「当前屏上位置」
+        // 重新算偏差，多做几次会收敛到正好居中。
+        for (long delay : new long[]{0L, 60L, 160L, 320L}) {
+            card.postDelayed(this::applyVerticalCentering, delay);
+        }
+    }
+
+    private void applyVerticalCentering() {
+        if (dismissing) return;
+        int height = card.getHeight();
+        if (height <= 0) return;
+        int[] location = new int[2];
+        card.getLocationOnScreen(location);
+        int screenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
+        int delta = screenHeight / 2 - (location[1] + height / 2);
+        if (delta != 0) {
+            card.setTranslationY(card.getTranslationY() + delta);
+        }
     }
 
     @Override
