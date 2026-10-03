@@ -159,7 +159,8 @@ public final class BukaTheme {
         }
         // 曲库搜索框：底色也跟着封面主色走（只写一次的话换歌后不会更新）
         if (view.getId() == R.id.edit_search) {
-            view.setBackground(ColorTheme.optionIdle(view.getContext()));
+            // 用按钮那套胶囊底（有明显的主色淡填充），optionIdle 太深几乎看不出取色
+            view.setBackground(ColorTheme.capsule(view.getContext()));
         }
         // AirPlay 状态框：底色 / 文字同样跟着封面走
         if (view.getId() == R.id.airplay_status && view instanceof android.widget.TextView) {

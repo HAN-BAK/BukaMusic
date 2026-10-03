@@ -66,7 +66,7 @@ public class LibraryActivity extends BaseActivity {
         btnGroup = findViewById(R.id.btn_group);
         btnGroup.setOnClickListener(v -> showGroupDialog());
         btnSearch.setOnClickListener(v -> toggleSearch());
-        editSearch.setBackground(ColorTheme.optionIdle(this));
+        editSearch.setBackground(ColorTheme.capsule(this));
         editSearch.addTextChangedListener(new android.text.TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {
