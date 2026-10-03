@@ -716,6 +716,9 @@ public class AudioOutputQueue implements AudioClock {
 	 */
 	public void flush() {
 		frameQueue.clear();
+		/* 发送端拖动进度 / 暂停会 flush：采集缓冲里还混着跳转前的音频，
+		 * 不清掉的话互相关会匹配到旧位置（歌词进度就卡住不动）。 */
+		com.airmusic.player.lyrics.AirplayPcmTap.clear();
 	}
 
 	@Override
