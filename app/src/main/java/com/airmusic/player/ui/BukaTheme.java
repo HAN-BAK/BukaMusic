@@ -157,6 +157,10 @@ public final class BukaTheme {
             input.setHintTextColor(
                     android.content.res.ColorStateList.valueOf(ColorTheme.textSecondary()));
         }
+        // 曲库搜索框：底色也跟着封面主色走（只写一次的话换歌后不会更新）
+        if (view.getId() == R.id.edit_search) {
+            view.setBackground(ColorTheme.optionIdle(view.getContext()));
+        }
         // 开关：轨道 / 滑块也跟动态主色走（原来写死成固定灰蓝）
         if (view instanceof android.widget.Switch) {
             android.widget.Switch toggle = (android.widget.Switch) view;

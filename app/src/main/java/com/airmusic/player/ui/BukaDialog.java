@@ -95,6 +95,8 @@ public class BukaDialog extends Dialog {
             window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                     WindowManager.LayoutParams.FLAG_FULLSCREEN
                             | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+            // 弹出输入法时把窗口压到键盘上方，卡片跟着重新居中，按钮不会被挡住
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
             WindowManager.LayoutParams params = window.getAttributes();
             params.gravity = Gravity.TOP | Gravity.START;
             window.setAttributes(params);
@@ -368,6 +370,8 @@ public class BukaDialog extends Dialog {
     }
 
     private void centerVertically() {
+        // 键盘弹出 / 收起会改变可见高度，每次布局变化都重新校正一次
+        card.getViewTreeObserver().addOnGlobalLayoutListener(this::applyVerticalCentering);
         // 窗口位置在弹出过程中还会变一次，所以分几拍校正；每次都用「当前屏上位置」
         // 重新算偏差，多做几次会收敛到正好居中。
         for (long delay : new long[]{0L, 60L, 160L, 320L}) {
@@ -381,8 +385,21 @@ public class BukaDialog extends Dialog {
         if (height <= 0) return;
         int[] location = new int[2];
         card.getLocationOnScreen(location);
-        int screenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
-        int delta = screenHeight / 2 - (location[1] + height / 2);
+        // 以「窗口当前可见区域」为准：键盘弹出时这块会变矮，卡片就落在键盘上方居中
+        int visibleTop;
+        int visibleHeight;
+        Window window = getWindow();
+        View decor = window == null ? null : window.getDecorView();
+        if (decor != null && decor.getHeight() > 0) {
+            int[] decorLocation = new int[2];
+            decor.getLocationOnScreen(decorLocation);
+            visibleTop = decorLocation[1];
+            visibleHeight = decor.getHeight();
+        } else {
+            visibleTop = 0;
+            visibleHeight = getContext().getResources().getDisplayMetrics().heightPixels;
+        }
+        int delta = visibleTop + visibleHeight / 2 - (location[1] + height / 2);
         if (delta != 0) {
             card.setTranslationY(card.getTranslationY() + delta);
         }
