@@ -54,6 +54,15 @@ public class LyricsActivity extends BaseActivity {
     private View headerView;
     private boolean headerVisible = true;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    /** AirPlay 下每秒把识别出的播放位置推给歌词视图（识别在后台每 5 秒更新一次）。 */
+    private final Runnable airplayTick = new Runnable() {
+        @Override
+        public void run() {
+            long located = AirplayLyricLocator.positionMs();
+            if (located >= 0) lyricsView.setPlaybackState(located, true);
+            uiHandler.postDelayed(this, 1000L);
+        }
+    };
     private final Runnable hideHeaderRunnable = this::hideHeader;
     private GestureDetector gestureDetector;
 
@@ -201,6 +210,8 @@ public class LyricsActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         uiHandler.removeCallbacks(hideHeaderRunnable);
+        uiHandler.removeCallbacks(airplayTick);
+        AirplayLyricLocator.stop(this);
         if (contentAnimator != null) {
             contentFadeToken++;
             contentAnimator.cancel();
@@ -234,8 +245,11 @@ public class LyricsActivity extends BaseActivity {
             AirplayLyricLocator.start(this, state.title, state.artist, state.durationMs);
             long located = AirplayLyricLocator.positionMs();
             if (located >= 0) playbackPosition = located;
+            uiHandler.removeCallbacks(airplayTick);
+            uiHandler.postDelayed(airplayTick, 1000L);
         } else {
             AirplayLyricLocator.stop(this);
+            uiHandler.removeCallbacks(airplayTick);
         }
         lyricsView.setPlaybackState(playbackPosition, state.playing);
 
