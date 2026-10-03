@@ -17,21 +17,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- AirPlay 定位中提示（拖动 / 换歌后重新定位的那几秒） -->
-        <TextView
-            android:id="@+id/lyrics_locating_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:paddingStart="18dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="10dp"
-            android:text="@string/lyrics_locating"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp"
-            android:visibility="gone" />
-
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">

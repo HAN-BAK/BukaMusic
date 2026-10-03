@@ -50,7 +50,6 @@ public class LyricsActivity extends BaseActivity {
         return false;
     }
     private TextView titleView;
-    private TextView locatingHint;
     private TextView artistView;
     private View headerView;
     private boolean headerVisible = true;
@@ -92,10 +91,6 @@ public class LyricsActivity extends BaseActivity {
                         android.os.SystemClock.elapsedRealtime() - idleClockStart, playing);
             }
             // 还在定位（拖动 / 换歌后那几秒）时给个明确提示，而不是留着上一句不动
-            if (locatingHint != null) {
-                locatingHint.setVisibility(located < 0 && AirplayLyricLocator.ready()
-                        ? android.view.View.VISIBLE : android.view.View.GONE);
-            }
             uiHandler.postDelayed(this, 1000L);
         }
     };
@@ -141,10 +136,6 @@ public class LyricsActivity extends BaseActivity {
         titleView = findViewById(R.id.lyrics_title);
         artistView = findViewById(R.id.lyrics_artist);
         headerView = findViewById(R.id.lyrics_header);
-        locatingHint = findViewById(R.id.lyrics_locating_hint);
-        if (locatingHint != null) {
-            locatingHint.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
-        }
         // 左上角的返回键 / 歌名也算「顶栏」：从舞台的缩放层里摘出来贴屏幕左上角，
         // 否则在大屏上它会跟着舞台一起往里缩，看着不贴边。
         View lyricsBox = findViewById(R.id.lyrics_box);
