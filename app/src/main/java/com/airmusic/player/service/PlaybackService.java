@@ -1046,6 +1046,8 @@ public class PlaybackService extends Service {
         @Override
         public void onSessionStop() {
             com.airmusic.player.lyrics.AirplayPcmTap.clear();
+            com.airmusic.player.lyrics.AirplayLyricLocator.stop(
+                    PlaybackService.this.getApplicationContext());
             main.post(PlaybackService.this::handleAirPlayStop);
         }
 
@@ -1830,6 +1832,12 @@ public class PlaybackService extends Service {
         else if (newSong) state.art = null;
         if (durationMs > 0) state.durationMs = (int) durationMs;
         publish();
+        // 收到曲目元数据就开始准备参考音频并周期校准——不依赖歌词页是否打开，
+        // 这样用户打开歌词页时位置已经算好了（之前只在歌词页里启动，进页面前全是空转）。
+        if (airMetaTitle != null && !airMetaTitle.isEmpty()) {
+            com.airmusic.player.lyrics.AirplayLyricLocator.start(
+                    getApplicationContext(), airMetaTitle, airMetaArtist, airMetaDurationMs);
+        }
         // 发送端没推 artwork（第一首尤其常见）时，用网易云同曲的封面补上
         if (art == null && newSong && airMetaTitle != null && !airMetaTitle.isEmpty()) {
             final String wantTitle = airMetaTitle;
