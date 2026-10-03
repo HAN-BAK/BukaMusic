@@ -299,6 +299,10 @@ public class LyricsActivity extends BaseActivity {
                 airplayPositionKey = key;
             }
             AirplayLyricLocator.start(this, state.title, state.artist, state.durationMs);
+            // 定时器必须在任何提前返回之前排上：否则「刚投送、还没定位到」时打开
+            // 歌词页会提前 return，之后位置找到了也没人刷新页面（且占位画面定格）。
+            uiHandler.removeCallbacks(airplayTick);
+            uiHandler.postDelayed(airplayTick, 1000L);
             long located = AirplayLyricLocator.positionMs();
             if (located >= 0) {
                 airplayPositionMs = located;
