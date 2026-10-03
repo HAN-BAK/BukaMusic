@@ -63,10 +63,15 @@ public class LyricsActivity extends BaseActivity {
         public void run() {
             long located = AirplayLyricLocator.positionMs();
             if (located >= 0) {
-                if (airplayLyricsHidden && !displayedLyrics.isEmpty()) {
-                    // 定位成功：把歌词重新显示出来
-                    airplayLyricsHidden = false;
-                    lyricsView.setLyrics(displayedLyrics);
+                if (airplayLyricsHidden) {
+                    if (!displayedLyrics.isEmpty()) {
+                        // 定位成功：把歌词重新显示出来
+                        airplayLyricsHidden = false;
+                        lyricsView.setLyrics(displayedLyrics);
+                    } else if (lastState != null) {
+                        // 位置未知时压着没加载：现在定位到了，重新触发一次加载
+                        render(lastState);
+                    }
                 }
                 lyricsView.setPlaybackState(located, true);
             } else if (!airplayLyricsHidden && !displayedLyrics.isEmpty()) {
@@ -79,6 +84,8 @@ public class LyricsActivity extends BaseActivity {
     };
     /** AirPlay 下「位置未知时先不显示歌词」的状态。 */
     private boolean airplayLyricsHidden;
+    /** 最近一次播放状态：位置未知时不加载歌词，定位成功后再用它重新触发一次。 */
+    private PlayerUiState lastState;
     private final Runnable hideHeaderRunnable = this::hideHeader;
     private GestureDetector gestureDetector;
 
@@ -237,6 +244,7 @@ public class LyricsActivity extends BaseActivity {
 
     private void render(PlayerUiState state) {
         if (state == null || lyricsView == null) return;
+        lastState = state;
 
         if (titleView != null) {
             titleView.setText(state.title == null ? "" : state.title);
@@ -276,6 +284,10 @@ public class LyricsActivity extends BaseActivity {
                 // 位置还没识别出来：先不显示歌词（等定时器定位成功后再显示）
                 airplayLyricsHidden = true;
                 lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
+                // 关键：此时不要继续走歌词加载流程——加载完成会把歌词从开头放出来
+                // （重进歌词页"从头开始"、在歌词页切歌"新歌不显示歌词"都是它造成的），
+                // 等定位成功后在定时器里重新触发一次 render 即可。
+                return;
             }
             // 关键：不要回落到 state.positionMs（AirPlay 一直是 0），否则每秒都被拉回开头
             playbackPosition = airplayPositionMs;
