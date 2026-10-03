@@ -104,12 +104,20 @@ public final class AirplayLyricLocator {
 
     private static void schedule() {
         MAIN.removeCallbacks(AirplayLyricLocator::calibrate);
+        Log.i(TAG, "schedule: running=" + running + " ref="
+                + (referencePcm == null ? "null" : referencePcm.length));
         if (running) MAIN.postDelayed(AirplayLyricLocator::calibrate, CALIBRATE_INTERVAL_MS);
     }
 
     private static void calibrate() {
         final short[] reference = referencePcm;
-        if (!running || reference == null) return;
+        Log.i(TAG, "calibrate: running=" + running + " ref="
+                + (reference == null ? "null" : reference.length)
+                + " buffered=" + AirplayPcmTap.available());
+        if (!running || reference == null) {
+            MAIN.postDelayed(AirplayLyricLocator::calibrate, CALIBRATE_INTERVAL_MS);
+            return;
+        }
         EXECUTOR.execute(() -> {
             short[] buffer = AirplayPcmTap.snapshot();
             if (buffer.length < MIN_BUFFER_SECONDS * AirplayPcmTap.TARGET_RATE) {
