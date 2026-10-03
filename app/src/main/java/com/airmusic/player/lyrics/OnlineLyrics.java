@@ -121,6 +121,40 @@ public final class OnlineLyrics {
      * Blocking variant, for callers that already run on a background thread
      * (the lyric repository loads lyrics there).
      */
+    /**
+     * 供「AirPlay 参考音频」使用：用和歌词完全相同的候选与打分逻辑选出最匹配的
+     * 网易云歌曲 id（保证歌词和参考音频指向同一首），找不到返回 -1。
+     */
+    public static long bestMatchId(String title, String artist, long durationMs) {
+        if (title == null || title.trim().isEmpty()) return -1L;
+        try {
+            String keyword = title + " " + (artist == null ? "" : artist);
+            String searchUrl = "https://music.163.com/api/search/get/web?type=1&limit=10&s="
+                    + java.net.URLEncoder.encode(keyword, "UTF-8");
+            JSONObject search = new JSONObject(httpGet(searchUrl, true));
+            JSONArray songs = search.optJSONObject("result") == null ? null
+                    : search.getJSONObject("result").optJSONArray("songs");
+            if (songs == null || songs.length() == 0) return -1L;
+            long bestId = -1L;
+            int bestScore = Integer.MIN_VALUE;
+            for (int i = 0; i < songs.length(); i++) {
+                JSONObject song = songs.optJSONObject(i);
+                if (song == null) continue;
+                int score = matchScore(title, artist, song.optString("name", ""),
+                        artistOf(song), durationMs, song.optLong("duration", 0L));
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestId = song.optLong("id", -1L);
+                }
+            }
+            Log.d(TAG, "bestMatchId \"" + title + "\" -> " + bestId + " (score " + bestScore + ")");
+            return bestId;
+        } catch (Throwable t) {
+            Log.d(TAG, "bestMatchId failed: " + t);
+            return -1L;
+        }
+    }
+
     public static Result fetchBlocking(Context context, String title, String artist,
                                        String album, long durationMs) {
         if (title == null || title.trim().isEmpty()) return new Result(Lyrics.EMPTY, null);
