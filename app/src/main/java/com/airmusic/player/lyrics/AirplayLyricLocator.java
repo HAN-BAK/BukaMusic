@@ -31,6 +31,8 @@ public final class AirplayLyricLocator {
     private static volatile String currentKey;
     private static volatile short[] referencePcm;
     private static volatile long positionMs = -1L;
+    /** 上一次成功定位的时刻（elapsedRealtime），用于两次校准之间按时钟推进位置。 */
+    private static volatile long lastMatchAt;
     private static volatile boolean running;
 
     private AirplayLyricLocator() {
@@ -38,7 +40,14 @@ public final class AirplayLyricLocator {
 
     /** 当前识别到的播放位置（毫秒）；-1 = 还没识别出来 / 置信度不足。 */
     public static long positionMs() {
-        return positionMs;
+        long base = positionMs;
+        if (base < 0) return -1L;
+        // 两次校准之间（5 秒）按时钟推进：否则某次校准没通过置信度，歌词就会
+        // 停在最后那一句不动（表现就是「切歌后卡在某句」）。
+        long elapsed = android.os.SystemClock.elapsedRealtime() - lastMatchAt;
+        if (elapsed < 0) elapsed = 0;
+        if (elapsed > 8000L) elapsed = 8000L;   // 长时间没校准就别再猜了
+        return base + elapsed;
     }
 
     public static boolean ready() {
@@ -52,6 +61,7 @@ public final class AirplayLyricLocator {
      */
     public static void invalidatePosition() {
         positionMs = -1L;
+        lastMatchAt = 0L;
     }
 
     /** AirPlay 开始播放 / 换歌时调用：准备参考音频并启动周期校准。 */
@@ -72,6 +82,7 @@ public final class AirplayLyricLocator {
         stop(context);
         currentKey = key;
         positionMs = -1L;
+        lastMatchAt = 0L;
         running = true;
         if (!PREPARING.compareAndSet(false, true)) return;
         final Context appContext = context.getApplicationContext();
@@ -138,7 +149,10 @@ public final class AirplayLyricLocator {
                     return;   // 缓冲还不够，finally 里会排下一次
                 }
                 long found = LyricPositionLocator.locate(reference, buffer);
-                if (found >= 0) positionMs = found;
+                if (found >= 0) {
+                    positionMs = found;
+                    lastMatchAt = android.os.SystemClock.elapsedRealtime();
+                }
             } catch (Throwable t) {
                 // 线程池会吞异常，这里必须打出来，否则校准会静默死掉
                 Log.w(TAG, "calibrate failed: " + t, t);
