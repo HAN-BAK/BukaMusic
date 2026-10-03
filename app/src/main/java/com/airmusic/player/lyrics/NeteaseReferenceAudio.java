@@ -111,6 +111,15 @@ public final class NeteaseReferenceAudio {
     }
 
     private static byte[] download(String url) {
+        // 网易云直链常是 http://，targetSdk 34 默认禁止明文流量；先按 https 试一次
+        if (url != null && url.startsWith("http://")) {
+            byte[] secure = downloadOnce("https://" + url.substring("http://".length()));
+            if (secure != null && secure.length > 0) return secure;
+        }
+        return downloadOnce(url);
+    }
+
+    private static byte[] downloadOnce(String url) {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
