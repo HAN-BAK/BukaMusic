@@ -26,6 +26,9 @@ public final class NeteaseReferenceAudio {
     /** 取真实播放地址的接口（外链经常 403，这里拿直链再下）。 */
     private static final String PLAYER_API =
             "https://music.163.com/api/song/enhance/player/url?ids=[%d]&br=320000&id=%d";
+    /** 歌曲详情接口：拿专辑封面（发送端没推 artwork 时补上）。 */
+    private static final String DETAIL_API =
+            "https://music.163.com/api/song/detail?ids=[%d]";
 
     private NeteaseReferenceAudio() {
     }
@@ -70,6 +73,46 @@ public final class NeteaseReferenceAudio {
     }
 
     /** 下载字节并做基本校验（HTML/文本一律视为失败）。 */
+    /** 取这首歌的封面（发送端没给 artwork 时用）；失败返回 null。 */
+    public static android.graphics.Bitmap fetchCover(String title, String artist, long durationMs) {
+        long id = OnlineLyrics.bestMatchId(title, artist, durationMs);
+        if (id < 0) return null;
+        String pic = albumCoverUrl(id);
+        if (pic == null) return null;
+        byte[] data = download(pic);
+        if (data == null || data.length == 0) return null;
+        return android.graphics.BitmapFactory.decodeByteArray(data, 0, data.length);
+    }
+
+    private static String albumCoverUrl(long id) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(String.format(DETAIL_API, id)).openConnection();
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(8000);
+            applyHeaders(connection);
+            if (connection.getResponseCode() != 200) return null;
+            try (InputStream in = connection.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+                org.json.JSONObject json = new org.json.JSONObject(out.toString("UTF-8"));
+                org.json.JSONArray songs = json.optJSONArray("songs");
+                if (songs == null || songs.length() == 0) return null;
+                org.json.JSONObject song = songs.optJSONObject(0);
+                org.json.JSONObject album = song == null ? null : song.optJSONObject("album");
+                String pic = album == null ? null : album.optString("picUrl", null);
+                return pic == null || pic.isEmpty() ? null : pic;
+            }
+        } catch (Throwable t) {
+            Log.d(TAG, "cover url failed: " + t);
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
     /** 用播放地址接口拿直链；失败返回 null。 */
     private static String resolveUrl(long id) {
         HttpURLConnection connection = null;

@@ -1830,6 +1830,25 @@ public class PlaybackService extends Service {
         else if (newSong) state.art = null;
         if (durationMs > 0) state.durationMs = (int) durationMs;
         publish();
+        // 发送端没推 artwork（第一首尤其常见）时，用网易云同曲的封面补上
+        if (art == null && newSong && airMetaTitle != null && !airMetaTitle.isEmpty()) {
+            final String wantTitle = airMetaTitle;
+            final String wantArtist = airMetaArtist;
+            final long wantDuration = airMetaDurationMs;
+            new Thread(() -> {
+                Bitmap cover = com.airmusic.player.lyrics.NeteaseReferenceAudio.fetchCover(
+                        wantTitle, wantArtist, wantDuration);
+                if (cover == null) return;
+                main.post(() -> {
+                    if (!wantTitle.equals(airMetaTitle)) return;   // 已经换歌了
+                    airMetaArt = cover;
+                    if (state.source == PlayerUiState.Source.AIRPLAY && state.art == null) {
+                        state.art = cover;
+                        publish();
+                    }
+                });
+            }, "airplay-cover").start();
+        }
     }
 
     private void handleAirPlayPause() {
