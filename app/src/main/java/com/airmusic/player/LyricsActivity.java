@@ -53,6 +53,9 @@ public class LyricsActivity extends BaseActivity {
     private TextView artistView;
     private View headerView;
     private boolean headerVisible = true;
+    /** AirPlay 下最后一次识别出的位置（状态回调里的 positionMs 一直是 0，不能用）。 */
+    private long airplayPositionMs;
+    private String airplayPositionKey = "";
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     /** AirPlay 下每秒把识别出的播放位置推给歌词视图（识别在后台每 5 秒更新一次）。 */
     private final Runnable airplayTick = new Runnable() {
@@ -242,9 +245,17 @@ public class LyricsActivity extends BaseActivity {
         // AirPlay 没有进度信息：用参考音频互相关识别出的位置来驱动歌词
         long playbackPosition = state.positionMs;
         if (state.source == PlayerUiState.Source.AIRPLAY) {
+            String key = (state.title == null ? "" : state.title) + "|"
+                    + (state.artist == null ? "" : state.artist);
+            if (!key.equals(airplayPositionKey)) {
+                airplayPositionKey = key;          // 换歌就从头开始等识别
+                airplayPositionMs = 0L;
+            }
             AirplayLyricLocator.start(this, state.title, state.artist, state.durationMs);
             long located = AirplayLyricLocator.positionMs();
-            if (located >= 0) playbackPosition = located;
+            if (located >= 0) airplayPositionMs = located;
+            // 关键：不要回落到 state.positionMs（AirPlay 一直是 0），否则每秒都被拉回开头
+            playbackPosition = airplayPositionMs;
             uiHandler.removeCallbacks(airplayTick);
             uiHandler.postDelayed(airplayTick, 1000L);
         } else {

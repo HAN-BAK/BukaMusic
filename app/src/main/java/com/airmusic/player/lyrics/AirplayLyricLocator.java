@@ -110,7 +110,10 @@ public final class AirplayLyricLocator {
         if (!running || reference == null) return;
         EXECUTOR.execute(() -> {
             short[] buffer = AirplayPcmTap.snapshot();
-            if (buffer.length < MIN_BUFFER_SECONDS * AirplayPcmTap.TARGET_RATE) return;
+            if (buffer.length < MIN_BUFFER_SECONDS * AirplayPcmTap.TARGET_RATE) {
+                MAIN.post(AirplayLyricLocator::schedule);   // 缓冲还不够，过会儿再试
+                return;
+            }
             long found = LyricPositionLocator.locate(reference, buffer);
             if (found >= 0) positionMs = found;
             MAIN.post(AirplayLyricLocator::schedule);
