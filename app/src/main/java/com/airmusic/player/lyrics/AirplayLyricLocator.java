@@ -45,6 +45,15 @@ public final class AirplayLyricLocator {
         return referencePcm != null;
     }
 
+    /**
+     * 位置失效：发送端拖动进度 / 暂停（引擎 flush）时调用。
+     * 参考音频不变，但缓冲里的音频已经跳到别处，旧位置不再可信，
+     * 于是把位置置为「未识别」，歌词页不会再用旧值渲染，等下一次匹配即可。
+     */
+    public static void invalidatePosition() {
+        positionMs = -1L;
+    }
+
     /** AirPlay 开始播放 / 换歌时调用：准备参考音频并启动周期校准。 */
     public static void start(final Context context, final String title, final String artist,
                              final long durationMs) {

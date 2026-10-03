@@ -723,6 +723,7 @@ public class AudioOutputQueue implements AudioClock {
 		if (com.airmusic.player.lyrics.AirplayPcmTap.available()
 				> com.airmusic.player.lyrics.AirplayPcmTap.TARGET_RATE) {
 			com.airmusic.player.lyrics.AirplayPcmTap.clear();
+			com.airmusic.player.lyrics.AirplayLyricLocator.invalidatePosition();
 		}
 	}
 
