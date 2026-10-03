@@ -155,6 +155,9 @@ public final class BukaTheme {
                 input.setBoxBackgroundMode(
                         com.google.android.material.textfield.TextInputLayout
                                 .BOX_BACKGROUND_NONE);
+                // 上面已经有「设备名称」那行小字了，关掉 TIL 自带的浮动提示，
+                // 否则它会画在输入框上和小字重叠
+                input.setHintEnabled(false);
                 nameField.setBackground(ColorTheme.capsule(nameField.getContext()));
                 int padH = dp(activity, 14f);
                 int padV = dp(activity, 10f);
