@@ -55,19 +55,56 @@ public class NetworkUtils {
 			/* Ignore */
 		}
 
-		/* Fallback to the IP address padded to 6 bytes */
+		/* 真实 wlan0 MAC（很多电视盒子能直接读 sysfs） */
 		try {
-			final byte[] hostAddress = Arrays.copyOfRange(InetAddress.getLocalHost().getAddress(), 0, 6);
-			LOG.info("Hardware address is " + toHexString(hostAddress) + " (IP address)");
-			return hostAddress;
+			final byte[] mac = readWlan0Mac();
+			if (mac != null) {
+				LOG.info("Hardware address is " + toHexString(mac) + " (wlan0)");
+				return mac;
+			}
 		}
 		catch (final Throwable e) {
 			/* Ignore */
 		}
 
-		/* Fallback to a constant */
-		LOG.info("Hardware address is 00DEADBEEF00 (last resort)");
-		return new byte[] {(byte)0x00, (byte)0xDE, (byte)0xAD, (byte)0xBE, (byte)0xEF, (byte)0x00};
+		/* 设备指纹：以前这里用 getLocalHost()，在安卓上基本都返回 127.0.0.1
+		 * （7F0000010000），于是每台设备的 AirPlay 服务名完全相同，iOS 会把它们
+		 * 当成同一台设备合并显示。改用「型号 + 固件指纹」的 hash，保证每台设备不同。 */
+		final byte[] deviceId = deviceFingerprintId();
+		LOG.info("Hardware address is " + toHexString(deviceId) + " (device fingerprint)");
+		return deviceId;
+	}
+
+	/** 读 /sys/class/net/wlan0/address，拿不到或无效返回 null。 */
+	private byte[] readWlan0Mac() {
+		try (java.io.BufferedReader reader = new java.io.BufferedReader(
+				new java.io.FileReader("/sys/class/net/wlan0/address"))) {
+			final String line = reader.readLine();
+			if (line == null) return null;
+			final String[] parts = line.trim().split(":");
+			if (parts.length != 6) return null;
+			final byte[] mac = new byte[6];
+			for (int i = 0; i < 6; i++) {
+				mac[i] = (byte) Integer.parseInt(parts[i], 16);
+			}
+			return isBlockedHardwareAddress(mac) ? null : mac;
+		}
+		catch (final Throwable e) {
+			return null;
+		}
+	}
+
+	/** 型号 + 固件指纹派生出的 6 字节设备标识（同一台设备每次运行都相同）。 */
+	private byte[] deviceFingerprintId() {
+		final String source = android.os.Build.MODEL + "|" + android.os.Build.DEVICE + "|"
+				+ android.os.Build.BRAND + "|" + android.os.Build.FINGERPRINT + "|"
+				+ android.os.Build.SERIAL;
+		int hash = source.hashCode();
+		final byte[] id = new byte[6];
+		for (int i = 0; i < 6; i++) {
+			id[i] = (byte) (hash >>> (8 * (i % 4)));
+		}
+		return id;
 	}
 	
 	/**
