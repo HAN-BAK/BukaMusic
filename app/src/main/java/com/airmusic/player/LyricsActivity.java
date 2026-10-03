@@ -286,6 +286,14 @@ public class LyricsActivity extends BaseActivity {
                 airplayPositionKey = key;          // 换歌就从头开始等识别
                 airplayPositionMs = 0L;
                 airplayLyricsHidden = true;
+                // 上一首的歌词必须一起作废：否则「定位成功后再显示」那一步看到
+                // displayedLyrics 非空，会把旧歌词重新显示出来，页面永远不刷新
+                // （表现就是切歌后要退出重进才正确）。
+                displayedLyrics = com.airmusic.player.lyrics.Lyrics.EMPTY;
+                loadedTrack = null;
+                loadedDurationMs = -1;
+                loadGeneration++;
+                lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
             } else if (airplayPositionKey.isEmpty()) {
                 airplayPositionKey = key;
             }
