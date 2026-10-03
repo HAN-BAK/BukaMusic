@@ -164,8 +164,18 @@ public final class AirplayLyricLocator {
                 }
                 long found = LyricPositionLocator.locate(reference, buffer);
                 if (found >= 0) {
-                    positionMs = found;
-                    lastMatchAt = android.os.SystemClock.elapsedRealtime();
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    boolean hasPrevious = positionMs >= 0 && lastMatchAt > 0;
+                    long expected = hasPrevious ? positionMs + (now - lastMatchAt) : found;
+                    // 合理性检查：和「上次位置 + 时钟推进」差太多的，基本是互相关
+                    // 认到了别的段落（重复段/相似前奏），这种宁可不用，避免歌词整体错位。
+                    if (!hasPrevious || Math.abs(found - expected) <= 15000L) {
+                        positionMs = found;
+                        lastMatchAt = now;
+                    } else {
+                        Log.i(TAG, "reject match " + found + "ms (expected ~" + expected + "ms)");
+                        lastMatchAt = now;
+                    }
                 }
             } catch (Throwable t) {
                 // 线程池会吞异常，这里必须打出来，否则校准会静默死掉
