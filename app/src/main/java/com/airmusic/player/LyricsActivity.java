@@ -296,21 +296,22 @@ public class LyricsActivity extends BaseActivity {
             boolean durationBecameKnown = loadedDurationMs <= 0 && state.durationMs > 0;
             if (!durationBecameKnown) return;
         }
-        loadedTrack = track;
+        final Track currentTrack = track;
+        loadedTrack = currentTrack;
         loadedDurationMs = state.durationMs;
         final int generation = ++loadGeneration;
         final long duration = state.durationMs;
         // Fade the previous track's lyrics out right away, so the fade lines up
         // with the track change instead of waiting for the file to be parsed.
         if (!displayedLyrics.isEmpty()) fadeOutForSwap();
-        LyricRepository.loadAsync(this, track, duration, lyrics -> {
+        LyricRepository.loadAsync(this, currentTrack, duration, lyrics -> {
             if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
-            lyricsView.setHints(hintsFor(track));
-            swapLyrics(lyrics, seedFor(track));
+            lyricsView.setHints(hintsFor(currentTrack));
+            swapLyrics(lyrics, seedFor(currentTrack));
         });
         // Analyse the vocal onsets once in the background; the lyric program is
         // rebuilt with real onset times as soon as the result is ready.
-        OnsetAnalyzer.analyzeAsync(this, track, onsets -> {
+        OnsetAnalyzer.analyzeAsync(this, currentTrack, onsets -> {
             if (generation != loadGeneration || isFinishing() || isDestroyed()) return;
             lyricsView.setOnsets(onsets);
         });
