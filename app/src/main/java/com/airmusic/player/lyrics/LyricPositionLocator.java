@@ -22,7 +22,12 @@ public final class LyricPositionLocator {
     private static final int TAIL_SECONDS = 3;
     /** 置信度阈值：峰值至少是次峰的 1.6 倍。 */
     private static final double MIN_CONFIDENCE = 1.6;
-    private static final int COARSE_STEP = 8;
+    /**
+     * 粗搜的降采样倍数：先在 1kHz 上找大概位置，再回全分辨率精修。
+     * 直接在 8kHz 上暴力搜 200 多秒的参考音频是几十亿次乘加，盒子要跑几分钟，
+     * 表现就是「校准永远没有结果」。
+     */
+    private static final int COARSE_DECIMATE = 8;
 
     private LyricPositionLocator() {
     }
@@ -40,34 +45,37 @@ public final class LyricPositionLocator {
         int bufferOffset = buffer.length - tail;
         int lastStart = reference.length - tail;
 
+        // 第一级：8 倍降采样后的粗搜（参考与模板都按同一相位抽取，位置按倍数还原）
+        short[] refCoarse = decimate(reference, COARSE_DECIMATE);
+        short[] bufCoarse = decimate(buffer, COARSE_DECIMATE, bufferOffset);
+        int coarseTail = tail / COARSE_DECIMATE;
+        int coarseLast = refCoarse.length - coarseTail;
         double best = -2;
-        int bestStart = -1;
-        for (int start = 0; start <= lastStart; start += COARSE_STEP) {
-            double score = score(reference, start, buffer, bufferOffset, tail);
+        int bestCoarse = -1;
+        double second = -2;
+        for (int start = 0; start <= coarseLast; start++) {
+            double score = score(refCoarse, start, bufCoarse, 0, coarseTail);
             if (score > best) {
+                second = best;
                 best = score;
-                bestStart = start;
+                bestCoarse = start;
+            } else if (score > second) {
+                second = score;
             }
         }
-        if (bestStart < 0) return -1;
+        if (bestCoarse < 0) return -1;
 
-        // 精搜：粗搜峰值附近 ±COARSE_STEP
-        int from = Math.max(0, bestStart - COARSE_STEP);
-        int to = Math.min(lastStart, bestStart + COARSE_STEP);
+        // 第二级：粗位置附近 ±2 个降采样点，用全分辨率精修
+        int window = 2 * COARSE_DECIMATE;
+        int from = Math.max(0, bestCoarse * COARSE_DECIMATE - window);
+        int to = Math.min(lastStart, bestCoarse * COARSE_DECIMATE + window);
+        int bestStart = from;
         for (int start = from; start <= to; start++) {
             double score = score(reference, start, buffer, bufferOffset, tail);
             if (score > best) {
                 best = score;
                 bestStart = start;
             }
-        }
-
-        // 次峰（排除峰值邻域）用来算置信度
-        double second = -2;
-        for (int start = 0; start <= lastStart; start += COARSE_STEP) {
-            if (Math.abs(start - bestStart) <= 2 * COARSE_STEP) continue;
-            double score = score(reference, start, buffer, bufferOffset, tail);
-            if (score > second) second = score;
         }
         double confidence = second <= 0 ? 99 : best / second;
         long positionMs = (long) ((bestStart + tail) * 1000L / AirplayPcmTap.TARGET_RATE);
@@ -93,5 +101,19 @@ public final class LyricPositionLocator {
         }
         double denom = Math.sqrt(refEnergy * bufEnergy);
         return denom <= 0 ? 0 : dot / denom;
+    }
+
+    /** 按固定步长抽取（起始相位固定），用于粗搜。 */
+    private static short[] decimate(short[] source, int factor) {
+        return decimate(source, factor, 0);
+    }
+
+    private static short[] decimate(short[] source, int factor, int offset) {
+        int count = Math.max(0, (source.length - offset) / factor);
+        short[] out = new short[count];
+        for (int i = 0; i < count; i++) {
+            out[i] = source[offset + i * factor];
+        }
+        return out;
     }
 }
