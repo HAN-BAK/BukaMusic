@@ -119,14 +119,20 @@ public final class AirplayLyricLocator {
             return;
         }
         EXECUTOR.execute(() -> {
-            short[] buffer = AirplayPcmTap.snapshot();
-            if (buffer.length < MIN_BUFFER_SECONDS * AirplayPcmTap.TARGET_RATE) {
-                MAIN.post(AirplayLyricLocator::schedule);   // 缓冲还不够，过会儿再试
-                return;
+            try {
+                short[] buffer = AirplayPcmTap.snapshot();
+                Log.i(TAG, "calibrating: buffer=" + buffer.length);
+                if (buffer.length < MIN_BUFFER_SECONDS * AirplayPcmTap.TARGET_RATE) {
+                    return;   // 缓冲还不够，finally 里会排下一次
+                }
+                long found = LyricPositionLocator.locate(reference, buffer);
+                if (found >= 0) positionMs = found;
+            } catch (Throwable t) {
+                // 线程池会吞异常，这里必须打出来，否则校准会静默死掉
+                Log.w(TAG, "calibrate failed: " + t, t);
+            } finally {
+                MAIN.post(AirplayLyricLocator::schedule);
             }
-            long found = LyricPositionLocator.locate(reference, buffer);
-            if (found >= 0) positionMs = found;
-            MAIN.post(AirplayLyricLocator::schedule);
         });
     }
 }
