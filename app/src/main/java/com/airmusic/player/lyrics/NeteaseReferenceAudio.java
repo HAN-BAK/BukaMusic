@@ -23,6 +23,9 @@ public final class NeteaseReferenceAudio {
     private static final int MAX_BYTES = 30 * 1024 * 1024;
     /** 音频地址（网易云外链）。 */
     private static final String OUTER_URL = "https://music.163.com/song/media/outer/url?id=";
+    /** 取真实播放地址的接口（外链经常 403，这里拿直链再下）。 */
+    private static final String PLAYER_API =
+            "https://music.163.com/api/song/enhance/player/url?ids=[%d]&br=320000&id=%d";
 
     private NeteaseReferenceAudio() {
     }
@@ -50,7 +53,12 @@ public final class NeteaseReferenceAudio {
             Log.d(TAG, "no netease match for \"" + title + "\"");
             return null;
         }
-        byte[] data = download(OUTER_URL + id);
+        String direct = resolveUrl(id);
+        byte[] data = direct == null ? null : download(direct);
+        if (data == null || data.length == 0) {
+            // 退一步试外链
+            data = download(OUTER_URL + id);
+        }
         if (data == null || data.length == 0) {
             Log.d(TAG, "download failed for id " + id);
             return null;
@@ -62,6 +70,46 @@ public final class NeteaseReferenceAudio {
     }
 
     /** 下载字节并做基本校验（HTML/文本一律视为失败）。 */
+    /** 用播放地址接口拿直链；失败返回 null。 */
+    private static String resolveUrl(long id) {
+        HttpURLConnection connection = null;
+        try {
+            String api = String.format(PLAYER_API, id, id);
+            connection = (HttpURLConnection) new URL(api).openConnection();
+            connection.setConnectTimeout(8000);
+            connection.setReadTimeout(8000);
+            applyHeaders(connection);
+            if (connection.getResponseCode() != 200) return null;
+            try (InputStream in = connection.getInputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
+                org.json.JSONObject json = new org.json.JSONObject(out.toString("UTF-8"));
+                org.json.JSONArray data = json.optJSONArray("data");
+                if (data == null || data.length() == 0) return null;
+                String url = data.optJSONObject(0) == null ? null
+                        : data.optJSONObject(0).optString("url", null);
+                Log.d(TAG, "resolved url for id " + id + ": "
+                        + (url == null ? "null" : "ok"));
+                return url == null || url.isEmpty() ? null : url;
+            }
+        } catch (Throwable t) {
+            Log.d(TAG, "resolve url failed: " + t);
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    /** 网易云的接口/外链都要求带 Referer，否则容易 403。 */
+    private static void applyHeaders(HttpURLConnection connection) {
+        connection.setRequestProperty("User-Agent",
+                "Mozilla/5.0 (Linux; Android 13) BukaMusic/3.00");
+        connection.setRequestProperty("Referer", "https://music.163.com/");
+        connection.setRequestProperty("Cookie", "appver=8.7.01; os=android; channel=netease");
+    }
+
     private static byte[] download(String url) {
         HttpURLConnection connection = null;
         try {
@@ -69,8 +117,7 @@ public final class NeteaseReferenceAudio {
             connection.setInstanceFollowRedirects(true);
             connection.setConnectTimeout(8000);
             connection.setReadTimeout(15000);
-            connection.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Linux; Android) BukaMusic");
+            applyHeaders(connection);
             connection.connect();
             if (connection.getResponseCode() != 200) return null;
             String type = connection.getContentType();
