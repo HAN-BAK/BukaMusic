@@ -80,10 +80,15 @@ public class LyricsActivity extends BaseActivity {
                 lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
             }
             if (located < 0) {
-                // 位置未知时也要告诉视图「在播放」：否则它会把画面动效一起停掉，
-                // 「暂未找到歌词」的占位画面就停在某一帧不动了。
+                // 位置未知时：既要告诉视图「在播放」，也要让它的时间轴往前走
+                // （镜头晃动是按播放位置推进的），否则「暂未找到歌词」占位画面会定格。
                 boolean playing = lastState == null || lastState.playing;
-                lyricsView.setPlaybackState(0L, playing);
+                if (idleClockStart == 0L) {
+                    idleClockStart = android.os.SystemClock.elapsedRealtime();
+                }
+                // 从 0 开始持续推进的虚拟时间（不要用系统开机时刻，数值太大会影响舞台计算）
+                lyricsView.setPlaybackState(
+                        android.os.SystemClock.elapsedRealtime() - idleClockStart, playing);
             }
             uiHandler.postDelayed(this, 1000L);
         }
@@ -92,6 +97,8 @@ public class LyricsActivity extends BaseActivity {
     private boolean airplayLyricsHidden;
     /** 最近一次播放状态：位置未知时不加载歌词，定位成功后再用它重新触发一次。 */
     private PlayerUiState lastState;
+    /** 隐藏歌词时用的虚拟时间起点。 */
+    private long idleClockStart;
     private final Runnable hideHeaderRunnable = this::hideHeader;
     private GestureDetector gestureDetector;
 
