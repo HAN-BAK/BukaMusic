@@ -37,6 +37,8 @@ public final class AirplayLyricLocator {
     private static volatile long lastMatchAt;
     /** 当前这首歌的时长（用来给「按时钟推进」兜底封顶）。 */
     private static volatile long durationMs;
+    /** 连续被合理性检查拒绝的次数（连续 2 次就强制重新对齐）。 */
+    private static volatile int rejectedInARow;
     private static volatile boolean running;
 
     private AirplayLyricLocator() {
@@ -172,9 +174,21 @@ public final class AirplayLyricLocator {
                     if (!hasPrevious || Math.abs(found - expected) <= 15000L) {
                         positionMs = found;
                         lastMatchAt = now;
+                        rejectedInARow = 0;
                     } else {
-                        Log.i(TAG, "reject match " + found + "ms (expected ~" + expected + "ms)");
+                        rejectedInARow++;
+                        Log.i(TAG, "reject match " + found + "ms (expected ~" + expected
+                                + "ms, streak " + rejectedInARow + ")");
                         lastMatchAt = now;
+                        // 连续两次被拒：说明是「记录的位置错了」而不是匹配错——发送端
+                        // 拖动进度时不一定发 FLUSH（那就没被作废），这时必须采信匹配
+                        // 结果重新对齐，否则歌词会永远卡在旧位置。
+                        if (rejectedInARow >= 2) {
+                            Log.i(TAG, "resync to " + found + "ms after " + rejectedInARow + " rejects");
+                            positionMs = found;
+                            lastMatchAt = now;
+                            rejectedInARow = 0;
+                        }
                     }
                 }
             } catch (Throwable t) {
