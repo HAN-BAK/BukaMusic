@@ -214,7 +214,6 @@ public class LyricsActivity extends BaseActivity {
     protected void onDestroy() {
         uiHandler.removeCallbacks(hideHeaderRunnable);
         uiHandler.removeCallbacks(airplayTick);
-        AirplayLyricLocator.stop(this);
         if (contentAnimator != null) {
             contentFadeToken++;
             contentAnimator.cancel();

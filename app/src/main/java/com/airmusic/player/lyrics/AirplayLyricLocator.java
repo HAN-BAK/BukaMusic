@@ -106,7 +106,9 @@ public final class AirplayLyricLocator {
         MAIN.removeCallbacks(AirplayLyricLocator::calibrate);
         Log.i(TAG, "schedule: running=" + running + " ref="
                 + (referencePcm == null ? "null" : referencePcm.length));
-        if (running) MAIN.postDelayed(AirplayLyricLocator::calibrate, CALIBRATE_INTERVAL_MS);
+        // 已经停了就别再排，否则会变成空转死循环
+        if (!running) return;
+        MAIN.postDelayed(AirplayLyricLocator::calibrate, CALIBRATE_INTERVAL_MS);
     }
 
     private static void calibrate() {
@@ -115,7 +117,8 @@ public final class AirplayLyricLocator {
                 + (reference == null ? "null" : reference.length)
                 + " buffered=" + AirplayPcmTap.available());
         if (!running || reference == null) {
-            MAIN.postDelayed(AirplayLyricLocator::calibrate, CALIBRATE_INTERVAL_MS);
+            // 停了就彻底停；还没准备好参考音频则过一会儿再看（由 schedule 判断）
+            MAIN.post(AirplayLyricLocator::schedule);
             return;
         }
         EXECUTOR.execute(() -> {
