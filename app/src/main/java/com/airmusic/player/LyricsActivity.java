@@ -247,6 +247,15 @@ public class LyricsActivity extends BaseActivity {
 
         PlaybackService service = PlaybackService.getInstance();
         Track track = service == null ? null : service.getCurrentTrack();
+        if (track == null && state.source == PlayerUiState.Source.AIRPLAY
+                && state.title != null && !state.title.trim().isEmpty()) {
+            // AirPlay 没有本地文件：用发送端给的元数据合成一个曲目，
+            // 这样就能走正常流程按歌名/歌手去在线找歌词（以前这里直接显示空提示）。
+            track = new Track(android.net.Uri.parse("airplay://"
+                    + state.title.trim() + "|" + (state.artist == null ? "" : state.artist.trim())),
+                    state.title.trim(), state.artist, state.album,
+                    state.durationMs > 0 ? state.durationMs : -1L, null, null, null);
+        }
         if (track == null) {
             // A multi-room receiver has no local file: the master pushes the
             // parsed lyrics over the sync connection instead.
