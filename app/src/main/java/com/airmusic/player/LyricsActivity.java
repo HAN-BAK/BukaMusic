@@ -79,6 +79,12 @@ public class LyricsActivity extends BaseActivity {
                 airplayLyricsHidden = true;
                 lyricsView.setLyrics(com.airmusic.player.lyrics.Lyrics.EMPTY);
             }
+            if (located < 0) {
+                // 位置未知时也要告诉视图「在播放」：否则它会把画面动效一起停掉，
+                // 「暂未找到歌词」的占位画面就停在某一帧不动了。
+                boolean playing = lastState == null || lastState.playing;
+                lyricsView.setPlaybackState(0L, playing);
+            }
             uiHandler.postDelayed(this, 1000L);
         }
     };
