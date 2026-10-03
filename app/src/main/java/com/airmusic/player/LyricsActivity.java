@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 
 import com.airmusic.player.library.Track;
 import com.airmusic.player.lyrics.LyricRepository;
+import com.airmusic.player.lyrics.AirplayLyricLocator;
 import com.airmusic.player.lyrics.Lyrics;
 import com.airmusic.player.service.PlaybackService;
 import com.airmusic.player.sonnet.LyricsGlView;
@@ -227,7 +228,16 @@ public class LyricsActivity extends BaseActivity {
             lyricsView.setAccentColor(dominantColor(backdrop));
             lyricsView.setBackgroundArt(backdrop);
         }
-        lyricsView.setPlaybackState(state.positionMs, state.playing);
+        // AirPlay 没有进度信息：用参考音频互相关识别出的位置来驱动歌词
+        long playbackPosition = state.positionMs;
+        if (state.source == PlayerUiState.Source.AIRPLAY) {
+            AirplayLyricLocator.start(this, state.title, state.artist, state.durationMs);
+            long located = AirplayLyricLocator.positionMs();
+            if (located >= 0) playbackPosition = located;
+        } else {
+            AirplayLyricLocator.stop(this);
+        }
+        lyricsView.setPlaybackState(playbackPosition, state.playing);
 
         if (state.playing) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
