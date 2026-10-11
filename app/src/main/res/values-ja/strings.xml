@@ -15,7 +15,7 @@
     <string name="lyrics_locating">歌詞を特定しています…</string>
     <string name="settings_section_screensaver">スクリーンセーバー</string>
     <string name="pref_ss_swipe">上スワイプで起動</string>
-    <string name="pref_ss_blink">コロンの点滅</string>
+    <string name="pref_ss_blink">コロンのフェード</string>
     <string name="pref_ss_24h">24 時間表示</string>
     <string name="pref_ss_font">フォント</string>
     <string name="ss_title">スクリーンセーバー</string>
