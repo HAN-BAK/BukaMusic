@@ -29,8 +29,8 @@ public class BoxAspectFrameLayout extends FrameLayout {
      * 等比放大，看到的比例和盒子上完全一致。比盒子小的屏幕（手机）仍然按原来的
      * 方式重排，避免整体缩小到看不清。
      */
-    private static final float REF_WIDTH_DP = 1920f / 2.1875f;
-    private static final float REF_HEIGHT_DP = 1080f / 2.1875f;
+    public static final float REF_WIDTH_DP = 1920f / 2.1875f;
+    public static final float REF_HEIGHT_DP = 1080f / 2.1875f;
     /**
      * The reference UI stays readable from 4:3 to 21:9; outside that range we
      * still letterbox rather than distorting the composition.
@@ -218,6 +218,9 @@ public class BoxAspectFrameLayout extends FrameLayout {
         int bottomBarHeight = measuredBarHeight(bottomBars);
         int contentLayoutH = contentLayoutHeight(topBarHeight, bottomBarHeight);
         float scale = scaleFor(cw, ch);
+        android.util.Log.i("BoxScale", "cw=" + cw + " ch=" + ch + " baseW=" + baseW
+                + " baseH=" + baseH + " topBar=" + topBarHeight + " bottomBar=" + bottomBarHeight
+                + " contentH=" + contentLayoutH + " scale=" + scale);
         // 栏按「屏幕宽度 / scale」排版再整体放大，放大后正好铺满整屏且不拉伸变形
         int barWidth = Math.max(1, Math.round(cw / scale));
 

@@ -96,8 +96,9 @@ public class LibraryActivity extends BaseActivity {
         });
 
         list = findViewById(R.id.track_list);
-        int widthDp = (int) (getResources().getDisplayMetrics().widthPixels
-                / getResources().getDisplayMetrics().density);
+        // 列数按「盒子的参考宽度」算：布局是按参考尺寸排版再整体缩放的，
+        // 用设备自身宽高比会让不同设备出现不同列数和磁贴大小。
+        int widthDp = Math.round(com.airmusic.player.view.BoxAspectFrameLayout.REF_WIDTH_DP);
         cardSpan = Math.max(2, Math.min(6, widthDp / 200));
         coverLoader = new CoverArtLoader(this);
         adapter.setCoverLoader(coverLoader);

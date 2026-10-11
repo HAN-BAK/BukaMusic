@@ -230,16 +230,65 @@ public class MainActivity extends BaseActivity {
         // Size the album art square and center it in the left panel (same
         // vertical position as the playback controls). The panel wraps around
         // the cover; a safety cap keeps it from crowding out the right panel.
+        // 用全局布局监听而不是 post：post 有时会在布局完成前跑（或根本没跑到），
+        // 这里每次布局都执行，并且把关键数字打进日志，任何设备上一眼能核对。
+        leftPanel.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            float density = getResources().getDisplayMetrics().density;
+            int panelW = leftPanel.getWidth();
+            int panelH = leftPanel.getHeight();
+            int innerW = panelW - leftPanel.getPaddingStart() - leftPanel.getPaddingEnd();
+            int innerH = panelH - leftPanel.getPaddingTop() - leftPanel.getPaddingBottom();
+            int size = Math.min(innerW, innerH);
+            android.util.Log.i("ArtSize", "density=" + density + " panel=" + panelW + "x" + panelH
+                    + " inner=" + innerW + "x" + innerH + " art=" + albumArt.getWidth()
+                    + "x" + albumArt.getHeight() + " -> " + size
+                    + " refPx=" + Math.round(com.airmusic.player.view.BoxAspectFrameLayout.REF_WIDTH_DP * density)
+                    + "x" + Math.round(com.airmusic.player.view.BoxAspectFrameLayout.REF_HEIGHT_DP * density));
+            if (size > 0 && albumArt.getWidth() != size) {
+                ViewGroup.LayoutParams lp = albumArt.getLayoutParams();
+                lp.width = size;
+                lp.height = size;
+                albumArt.setLayoutParams(lp);
+            }
+        });
         albumArt.post(() -> {
-            int dp18 = Math.round(18 * getResources().getDisplayMetrics().density);
-            int size = leftPanel.getHeight() - leftPanel.getPaddingTop() - leftPanel.getPaddingBottom();
-            int max = Math.round(getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density * 0.95f);
-            size = Math.min(size, max);
+            // 布局固定按盒子的参考尺寸排版（877.7 x 493.7dp）再整体缩放，所以封面
+            // 也必须用同一个基准算：以前按「设备自己的 dp 高度」算，手机上（640x360dp）
+            // 会算出很小的封面，再被整体缩放，看起来就是"组件大小位置都不对"。
+            float density = getResources().getDisplayMetrics().density;
+            View bottomBarView = findViewById(R.id.bottom_bar);
+            int barDp = bottomBarView == null ? 62
+                    : Math.round(bottomBarView.getHeight() / density);
+            float refHeightDp = com.airmusic.player.view.BoxAspectFrameLayout.REF_HEIGHT_DP;
+            float refWidthDp = com.airmusic.player.view.BoxAspectFrameLayout.REF_WIDTH_DP;
+            // 高度方向：参考高度 − 底栏 − 边距；宽度方向：参考宽度的 43.5%
+            //（与盒子上左侧面板实际占到的比例一致），取小。这样盒子上算出来仍是
+            // ≈382dp（和改动前一致），其他设备也是同一比例。
+            int sizeDp = (int) Math.min(refHeightDp - barDp - 36,
+                    Math.round(refWidthDp * 0.435f));
+            if (sizeDp > 0) {
+                // 左侧面板宽度必须显式定死：它本身是 wrap_content（由封面撑开），
+                // 而横向 LinearLayout 又会按权重挤压它，形成「封面撑面板、面板又限制
+                // 封面」的循环约束——结果封面被压到可用宽度（小米 6 上就只有 23% 屏宽）。
+                ViewGroup.LayoutParams panelParams = leftPanel.getLayoutParams();
+                panelParams.width = Math.round(sizeDp * density)
+                        + leftPanel.getPaddingStart() + leftPanel.getPaddingEnd();
+                leftPanel.setLayoutParams(panelParams);
+            }
+            int size = Math.max(0, Math.round(sizeDp * density));
+            if (size <= 0) {
+                size = leftPanel.getHeight() - leftPanel.getPaddingTop() - leftPanel.getPaddingBottom();
+            }
             if (size > 0) {
                 ViewGroup.LayoutParams lp = albumArt.getLayoutParams();
                 lp.width = size;
                 lp.height = size;
                 albumArt.setLayoutParams(lp);
+                android.util.Log.i("ArtSize", "density=" + density + " refW=" + refWidthDp
+                        + " refH=" + refHeightDp + " barDp=" + barDp + " sizeDp=" + sizeDp
+                        + " sizePx=" + size
+                        + " panelW=" + leftPanel.getWidth() + " panelH=" + leftPanel.getHeight()
+                        + " artW=" + albumArt.getWidth() + " artH=" + albumArt.getHeight());
             }
             compactForSmallScreens();
         });
