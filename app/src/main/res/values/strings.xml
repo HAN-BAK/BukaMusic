@@ -15,8 +15,6 @@
     <string name="lyrics_locating">正在定位歌词…</string>
     <string name="settings_section_screensaver">屏保</string>
     <string name="pref_ss_swipe">上滑进入屏保</string>
-    <string name="pref_ss_date">显示日期</string>
-    <string name="pref_ss_track">显示歌曲信息</string>
     <string name="pref_ss_blink">冒号闪烁</string>
     <string name="pref_ss_24h">24 小时制</string>
     <string name="pref_ss_font">字体</string>

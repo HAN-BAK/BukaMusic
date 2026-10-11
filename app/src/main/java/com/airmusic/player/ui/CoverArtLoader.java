@@ -55,6 +55,21 @@ public final class CoverArtLoader {
     }
 
     /**
+     * 页面销毁时调用：停掉线程池并清空缓存。
+     *
+     * <p>线程池不关的话，每进一次曲库就留下 3 条常驻线程；缓存不清会让
+     * 已经结束的页面继续攥着最多 32MB 的封面位图（位图占的是 native 内存，
+     * 攒起来就是整机卡死）。
+     */
+    public void close() {
+        try {
+            pool.shutdownNow();
+        } catch (Throwable ignored) {
+        }
+        cache.evictAll();
+    }
+
+    /**
      * Loads the cover of one album / artist. The group's files are tried in
      * order because a single album often has the picture in only some of its
      * files.

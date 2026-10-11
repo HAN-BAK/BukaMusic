@@ -31,15 +31,40 @@ public abstract class BaseActivity extends AppCompatActivity {
     private boolean boxAspectWrapped;
     /** 上一次用户触摸的时间，用于「闲置自动进屏保」。 */
     private long lastTouchAt;
-    private final android.os.Handler idleHandler =
+    /** 闲置进屏保的轮询间隔。 */
+    private static final long IDLE_INTERVAL_MS = 5000L;
+    /** 静态消息队列：页面自己消失后不会再被 Handler 拉住。 */
+    private static final android.os.Handler IDLE_HANDLER =
             new android.os.Handler(android.os.Looper.getMainLooper());
-    private final Runnable idleCheck = new Runnable() {
+    private IdleCheck idleCheck;
+    private com.airmusic.player.util.Prefs idlePrefs;
+
+    /**
+     * 闲置轮询。
+     *
+     * <p>以前这个 Runnable 是页面的内部类，并且 run() 里**无条件**把自己再排进队列，
+     * onDestroy 也没有 removeCallbacks —— 于是每进过一个页面，主线程消息队列就
+     * 永久持有那个已经结束的 Activity：整棵 View 树、封面位图、曲库的封面缓存
+     * 全都放不掉（实测每次进曲库 native 内存 +15MB），而且这些"僵尸页面"每 5 秒
+     * 还继续跑一次检查。反复进出页面后内存越积越多，最后整机卡死。
+     *
+     * <p>现在改成静态类 + WeakReference：页面一旦结束（或被回收）就彻底停止。
+     */
+    private static final class IdleCheck implements Runnable {
+        private final java.lang.ref.WeakReference<BaseActivity> activity;
+
+        IdleCheck(BaseActivity activity) {
+            this.activity = new java.lang.ref.WeakReference<>(activity);
+        }
+
         @Override
         public void run() {
-            checkIdle();
-            idleHandler.postDelayed(this, 5000L);
+            BaseActivity a = activity.get();
+            if (a == null || a.isFinishing() || a.isDestroyed()) return;
+            a.checkIdle();
+            IDLE_HANDLER.postDelayed(this, IDLE_INTERVAL_MS);
         }
-    };
+    }
 
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
@@ -52,10 +77,9 @@ public abstract class BaseActivity extends AppCompatActivity {
      * 屏保页自己 / 正在播放 / 未开启该功能时都不触发。
      */
     private void checkIdle() {
-        if (isFinishing() || isDestroyed()) return;   // 页面结束就不再轮询
-        idleHandler.postDelayed(idleCheck, 5000L);
-        com.airmusic.player.util.Prefs prefs = new com.airmusic.player.util.Prefs(this);
-        long idleMs = prefs.getScreensaverIdleMs();
+        if (isFinishing() || isDestroyed()) return;
+        if (idlePrefs == null) idlePrefs = new com.airmusic.player.util.Prefs(this);
+        long idleMs = idlePrefs.getScreensaverIdleMs();
         if (idleMs <= 0 || this instanceof ScreensaverActivity) return;
         if (!hasWindowFocus()) return;
         com.airmusic.player.util.PlayerUiState state =
@@ -139,8 +163,9 @@ public abstract class BaseActivity extends AppCompatActivity {
         wrapContentToBoxAspect();
         // 闲置进屏保的轮询（每 5 秒一次；未播放音乐且超过设定时间才触发）
         lastTouchAt = android.os.SystemClock.elapsedRealtime();
-        idleHandler.removeCallbacks(idleCheck);
-        idleHandler.postDelayed(idleCheck, 5000L);
+        if (idleCheck == null) idleCheck = new IdleCheck(this);
+        IDLE_HANDLER.removeCallbacks(idleCheck);
+        IDLE_HANDLER.postDelayed(idleCheck, IDLE_INTERVAL_MS);
         // 页面入场动效 + 给页面里的可点击控件挂上按压动效（系统水波纹早已关闭）。
         PageFx.apply(this);
     }
@@ -239,6 +264,11 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (idleCheck != null) {
+            IDLE_HANDLER.removeCallbacks(idleCheck);
+            idleCheck = null;
+        }
+        idlePrefs = null;
         BlurBackground.detach(this);
         super.onDestroy();
     }

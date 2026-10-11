@@ -67,6 +67,14 @@ public final class MusicTransferServer {
         if (value != null && !listeners.contains(value)) listeners.add(value);
     }
 
+    /**
+     * 注销上传监听。页面的监听器必须在 onDestroy 里撤掉：服务器是常驻单例，
+     * 留在列表里会把已经结束的页面永久持有（整个页面 + 位图都放不掉）。
+     */
+    public void removeListener(Listener value) {
+        if (value != null) listeners.remove(value);
+    }
+
     private void notifyUploaded(String fileName, boolean success, String message) {
         for (Listener target : listeners) {
             try {

@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -56,6 +57,7 @@ public class MainActivity extends BaseActivity {
     /** Set by the settings screen to replay the first-run feature tour. */
     public static final String EXTRA_SHOW_TOUR = "com.airmusic.player.SHOW_TOUR";
 
+    private static final String TAG = "MainActivity";
     private static final String ACTION_CAPTURE_START = "com.airmusic.player.CAPTURE_START";
     private static final String ACTION_CAPTURE_STOP = "com.airmusic.player.CAPTURE_STOP";
 
@@ -965,7 +967,10 @@ public class MainActivity extends BaseActivity {
 
 
     private void render(PlayerUiState s) {
+        // 临时诊断：量化每 500ms 状态推送里三件「重活」各自的开销。
+        final long tBlurStart = android.os.SystemClock.uptimeMillis();
         BlurBackground.apply(this, R.drawable.bg_main_gradient);
+        final long tBlurEnd = android.os.SystemClock.uptimeMillis();
 
         // Leaving receiver mode (disconnect / AirPlay takes over) should
         // never leave a transport loading spinner stuck on screen.
@@ -986,7 +991,17 @@ public class MainActivity extends BaseActivity {
         Bitmap art = s.art;
         // 动态配色：从当前封面取主色（降饱和）后给按钮 / 滑块上色。
         ColorTheme.update(art);
+        final long tPaletteEnd = android.os.SystemClock.uptimeMillis();
         BukaTheme.tintButtons(this);
+        final long tTintEnd = android.os.SystemClock.uptimeMillis();
+        long total = tTintEnd - tBlurStart;
+        if (total > 80) {
+            Log.i(TAG, "render cost blur=" + (tBlurEnd - tBlurStart)
+                    + " palette=" + (tPaletteEnd - tBlurEnd)
+                    + " tint=" + (tTintEnd - tPaletteEnd) + " total=" + total
+                    + "ms art=" + (art == null ? "null"
+                            : art.getWidth() + "x" + art.getHeight()));
+        }
         if (s.source == PlayerUiState.Source.AIRPLAY || s.source == PlayerUiState.Source.REMOTE) {
             if (art != null) {
                 albumArt.setImageBitmap(art);

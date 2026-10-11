@@ -262,6 +262,17 @@ public class LibraryActivity extends BaseActivity {
         StateBus.get().removeListener(stateListener);
     }
 
+    @Override
+    protected void onDestroy() {
+        // 封面加载器的线程池与缓存要跟着页面一起关掉（否则每次进曲库都会
+        // 留下常驻线程 + 最多 32MB 封面位图，反复进出后内存积起来就卡死）。
+        if (coverLoader != null) {
+            coverLoader.close();
+            coverLoader = null;
+        }
+        super.onDestroy();
+    }
+
     private final StateBus.Listener stateListener = state -> runOnUiThread(() -> {
         // 停在曲库页时突然进入 AirPlay / 多房间接收：自动回到播放界面
         if (state.source == com.airmusic.player.util.PlayerUiState.Source.AIRPLAY

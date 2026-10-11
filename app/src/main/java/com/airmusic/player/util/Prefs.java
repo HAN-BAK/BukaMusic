@@ -33,8 +33,6 @@ public final class Prefs {
     private static final String KEY_LANGUAGE = "language";
     // ---- 屏保 ----
     private static final String KEY_SCREENSAVER_SWIPE = "screensaver_swipe";
-    private static final String KEY_SCREENSAVER_DATE = "screensaver_date";
-    private static final String KEY_SCREENSAVER_TRACK = "screensaver_track";
     private static final String KEY_SCREENSAVER_BLINK = "screensaver_blink";
     private static final String KEY_SCREENSAVER_24H = "screensaver_24h";
     private static final String KEY_SCREENSAVER_FONT = "screensaver_font";
@@ -167,24 +165,6 @@ public final class Prefs {
 
     public void setScreensaverSwipe(boolean enabled) {
         sp.edit().putBoolean(KEY_SCREENSAVER_SWIPE, enabled).apply();
-    }
-
-    /** 屏保是否显示日期。 */
-    public boolean isScreensaverDate() {
-        return sp.getBoolean(KEY_SCREENSAVER_DATE, true);
-    }
-
-    public void setScreensaverDate(boolean enabled) {
-        sp.edit().putBoolean(KEY_SCREENSAVER_DATE, enabled).apply();
-    }
-
-    /** 屏保是否显示当前歌曲信息。 */
-    public boolean isScreensaverTrack() {
-        return sp.getBoolean(KEY_SCREENSAVER_TRACK, true);
-    }
-
-    public void setScreensaverTrack(boolean enabled) {
-        sp.edit().putBoolean(KEY_SCREENSAVER_TRACK, enabled).apply();
     }
 
     /** 冒号是否闪烁。 */

@@ -458,16 +458,6 @@ public class SettingsActivity extends BaseActivity {
             ssSwipe.setChecked(prefs.isScreensaverSwipe());
             ssSwipe.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverSwipe(checked));
         }
-        com.airmusic.player.ui.BukaSwitch ssDate = findViewById(R.id.switch_ss_date);
-        if (ssDate != null) {
-            ssDate.setChecked(prefs.isScreensaverDate());
-            ssDate.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverDate(checked));
-        }
-        com.airmusic.player.ui.BukaSwitch ssTrack = findViewById(R.id.switch_ss_track);
-        if (ssTrack != null) {
-            ssTrack.setChecked(prefs.isScreensaverTrack());
-            ssTrack.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverTrack(checked));
-        }
         com.airmusic.player.ui.BukaSwitch ssBlink = findViewById(R.id.switch_ss_blink);
         if (ssBlink != null) {
             ssBlink.setChecked(prefs.isScreensaverBlink());
@@ -486,8 +476,8 @@ public class SettingsActivity extends BaseActivity {
         // 第一行与其它选项卡首行对齐：实测「存储与设备」第一颗按钮距栏目底 18px（8dp）。
         int firstRowGap = Math.round(8f * getResources().getDisplayMetrics().density);
         ViewGroup ssGroup = findViewById(R.id.screensaver_content);
-        int[] ssRows = {R.id.switch_ss_swipe, R.id.switch_ss_date, R.id.switch_ss_track,
-                R.id.switch_ss_blink, R.id.switch_ss_24h, R.id.btn_ss_font};
+        int[] ssRows = {R.id.switch_ss_swipe, R.id.switch_ss_blink, R.id.switch_ss_24h,
+                R.id.btn_ss_font};
         boolean firstRow = true;
         for (int rowId : ssRows) {
             View control = findViewById(rowId);

@@ -34,6 +34,8 @@ import com.airmusic.player.ui.BukaTheme;
 public class TransferActivity extends BaseActivity {
 
     private MusicTransferServer server;
+    /** 上传监听器：服务器是常驻单例，页面销毁时必须注销，否则页面被永久持有。 */
+    private MusicTransferServer.Listener uploadListener;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refreshLibrary = () -> {
         // Merge refreshes when several files arrive back-to-back.
@@ -74,14 +76,15 @@ public class TransferActivity extends BaseActivity {
         server = MusicTransferServer.shared(this, readIcon(), new Prefs(this).getLanguage(), null);
         // Subscribed on top of the service's listener, so both the toast and the
         // library refresh happen no matter who started the server first.
-        server.addListener((name, success, message) ->
+        uploadListener = (name, success, message) ->
                 runOnUiThread(() -> {
                     BukaNotice.show(this, message);
                     if (success) {
                         handler.removeCallbacks(refreshLibrary);
                         handler.postDelayed(refreshLibrary, 1000);
                     }
-                }));
+                });
+        server.addListener(uploadListener);
 
         int port = server.start();
         String ip = getLocalIpv4();
@@ -125,6 +128,10 @@ public class TransferActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         // The shared server belongs to the background service; leave it running.
+        if (server != null && uploadListener != null) {
+            server.removeListener(uploadListener);
+            uploadListener = null;
+        }
         server = null;
         handler.removeCallbacks(refreshLibrary);
         super.onDestroy();
