@@ -46,6 +46,8 @@ public final class MusicLibrary {
 
     private volatile List<Track> cachedTracks = new ArrayList<>();
     private volatile boolean scanning;
+    /** 上次扫描结果的磁盘缓存（列表 + 歌曲数），冷启动先读它，避免每次全量重扫。 */
+    private static final String CACHE_FILE = "library_cache.tsv";
 
     private MusicLibrary() {
     }
@@ -57,6 +59,75 @@ public final class MusicLibrary {
 
     public List<Track> getCachedTracks() {
         return cachedTracks;
+    }
+
+    /**
+     * 冷启动时把上次的扫描结果读回内存：界面立刻有曲库，后台再重扫更新。
+     * 没有缓存文件（首次安装）时什么都不做，走原来的扫描流程。
+     */
+    public synchronized void loadFromDisk(Context context) {
+        if (!cachedTracks.isEmpty() || context == null) return;
+        File file = new File(context.getApplicationContext().getFilesDir(), CACHE_FILE);
+        if (!file.exists()) return;
+        List<Track> list = new ArrayList<>();
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(new java.io.FileInputStream(file),
+                        java.nio.charset.StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] f = line.split("\t", -1);
+                if (f.length < 9) continue;
+                try {
+                    list.add(new Track(f[0].isEmpty() ? null : Uri.parse(f[0]),
+                            f[1], f[2], f[3], Integer.parseInt(f[4]), Long.parseLong(f[5]),
+                            f[6], f[7], f[8]));
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable e) {
+            Log.w(TAG, "load cache failed", e);
+            return;
+        }
+        if (!list.isEmpty()) {
+            cachedTracks = list;
+            Log.i(TAG, "loaded " + list.size() + " tracks from disk cache");
+        }
+    }
+
+    /** 扫描成功后落盘，供下次冷启动秒开。 */
+    private void saveToDisk(Context context, List<Track> tracks) {
+        if (context == null || tracks == null) return;
+        File file = new File(context.getApplicationContext().getFilesDir(), CACHE_FILE);
+        try (java.io.BufferedWriter writer = new java.io.BufferedWriter(
+                new java.io.OutputStreamWriter(new java.io.FileOutputStream(file),
+                        java.nio.charset.StandardCharsets.UTF_8))) {
+            for (Track track : tracks) {
+                writer.write(clean(track.uri == null ? "" : track.uri.toString()));
+                writer.write('\t');
+                writer.write(clean(track.title));
+                writer.write('\t');
+                writer.write(clean(track.artist));
+                writer.write('\t');
+                writer.write(clean(track.album));
+                writer.write('\t');
+                writer.write(Integer.toString(track.trackNo));
+                writer.write('\t');
+                writer.write(Long.toString(track.durationMs));
+                writer.write('\t');
+                writer.write(clean(track.folder));
+                writer.write('\t');
+                writer.write(clean(track.filePath));
+                writer.write('\t');
+                writer.write(clean(track.extension));
+                writer.write('\n');
+            }
+        } catch (Throwable e) {
+            Log.w(TAG, "save cache failed", e);
+        }
+    }
+
+    private static String clean(String value) {
+        return value == null ? "" : value.replace('\t', ' ').replace('\n', ' ');
     }
 
     public boolean isScanning() {
@@ -88,6 +159,7 @@ public final class MusicLibrary {
             final String err = error;
             cachedTracks = result;
             scanning = false;
+            saveToDisk(appContext, result);
             mainHandler.post(() -> {
                 if (callback != null) callback.onScanFinished(result, err);
             });

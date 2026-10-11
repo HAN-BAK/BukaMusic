@@ -1151,7 +1151,16 @@ public class PlaybackService extends Service {
         registerUsbReceiver();
         acquireWakeLock();
 
-        MusicLibrary.getInstance().rescan(this, (tracks, error) -> {
+        // 冷启动先用上次的扫描结果（磁盘缓存）填充，界面立刻可用，
+        // 后台再重扫更新——这样打开软件不用等一次全量扫描。
+        MusicLibrary library = MusicLibrary.getInstance();
+        library.loadFromDisk(this);
+        List<Track> cachedTracks = library.getCachedTracks();
+        if (cachedTracks != null && !cachedTracks.isEmpty()) {
+            this.tracks = cachedTracks;
+            publish();
+        }
+        library.rescan(this, (tracks, error) -> {
             this.tracks = tracks;
             if (error != null) {
                 state.statusText = error;
