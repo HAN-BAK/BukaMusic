@@ -139,6 +139,16 @@ public class ScreensaverActivity extends BaseActivity {
 
     private final StateBus.Listener stateListener = state -> runOnUiThread(() -> render(state));
 
+    /**
+     * 屏保整页只有时钟，不跟着 16:9 的盒子走：跟着走的话 4:3 平板上时钟只能占中间
+     * 一条、21:9 带鱼屏左右又各留一条边，白白把时钟挤小。这里和歌词页一样脱离
+     * 缩放盒子，时钟按整块屏幕可用区域适配（见 {@link #fitClockToScreen()}）。
+     */
+    @Override
+    protected boolean keepBoxAspectWrapper() {
+        return false;
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -149,6 +159,10 @@ public class ScreensaverActivity extends BaseActivity {
         colonView = findViewById(R.id.screensaver_time_colon);
         minuteView = findViewById(R.id.screensaver_time_minute);
         root = findViewById(R.id.screensaver_root);
+        // 屏幕尺寸/比例变了（平板、带鱼屏、分辨率切换）就按新的可用区域重新适配
+        root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if ((r - l) != (or - ol) || (b - t) != (ob - ot)) refitClock();
+        });
         driftAmplitude = 6f * getResources().getDisplayMetrics().density;
         driftStart = android.os.SystemClock.elapsedRealtime();
         // 点一下退出屏保（与 ClockDesk 一样：点屏幕回到播放界面）
@@ -180,14 +194,27 @@ public class ScreensaverActivity extends BaseActivity {
         StateBus.get().removeListener(stateListener);
         handler.removeCallbacks(ticker);
         handler.removeCallbacks(colonFade);
+        cancelReflows();
     }
 
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(ticker);
         handler.removeCallbacks(colonFade);
+        cancelReflows();
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         super.onDestroy();
+    }
+
+    /** 退出时把还没跑完的宽度动画收掉（否则会在页面离开后继续改布局）。 */
+    private void cancelReflows() {
+        // cancel() 会回调 onAnimationEnd，而那里会从 reflows 里移除自己，
+        // 所以这里遍历副本，避免一边遍历一边改。
+        for (android.animation.ValueAnimator animator
+                : new java.util.ArrayList<>(reflows)) {
+            animator.cancel();
+        }
+        reflows.clear();
     }
 
     /** 时间 / 日期 / 防烧屏位移。 */
@@ -196,8 +223,85 @@ public class ScreensaverActivity extends BaseActivity {
         boolean h24 = prefs.isScreensaver24h();
         Locale locale = Locale.getDefault();
         // 时 / 分分开写进两个文本框，中间夹一个独立的冒号文本框（只有它做渐隐渐显）。
-        hourView.setText(new SimpleDateFormat(h24 ? "HH" : "h", locale).format(now));
-        minuteView.setText(new SimpleDateFormat("mm", locale).format(now));
+        String hour = new SimpleDateFormat(h24 ? "HH" : "h", locale).format(now);
+        String minute = new SimpleDateFormat("mm", locale).format(now);
+        if (hour.equals(lastHourText) && minute.equals(lastMinuteText)) {
+            // 这一分钟里数字没变：不做任何排版动作
+        } else {
+            // 不同数字的字宽不一样（"50" 比 "51" 宽、"1" 比 "8" 窄），换数字时
+            // 两边的字块会在一帧里横移一大截，很生硬。这里把「时 / 分」两个文本框
+            // 的宽度做成缓出动画：整块跟着连续重排，看起来是慢慢滑过去的。
+            float oldHourWidth = hourView.getWidth();
+            float oldMinuteWidth = minuteView.getWidth();
+            lastHourText = hour;
+            lastMinuteText = minute;
+            hourView.setText(hour);
+            minuteView.setText(minute);
+            if (oldHourWidth > 0 && oldMinuteWidth > 0) {
+                // 关键：换完数字后立刻把宽度钉回旧值。否则紧接着那次排版会先按
+                // 新宽度跳一下，动画再追上去——看起来就是「先闪一下再滑」。
+                float newHourWidth = textWidth(hourView, hour);
+                float newMinuteWidth = textWidth(minuteView, minute);
+                applyWidth(hourView, oldHourWidth);
+                applyWidth(minuteView, oldMinuteWidth);
+                animateWidth(hourView, oldHourWidth, newHourWidth);
+                animateWidth(minuteView, oldMinuteWidth, newMinuteWidth);
+            }
+        }
+        updateDrift();
+    }
+
+    /** 直接给定文本框宽度（wrap_content 时由文字决定，动画期间由这里接管）。 */
+    private void applyWidth(TextView view, float width) {
+        if (view == null) return;
+        android.view.ViewGroup.LayoutParams lp = view.getLayoutParams();
+        lp.width = Math.max(1, Math.round(width));
+        view.setLayoutParams(lp);
+    }
+
+    private String lastHourText;
+    private String lastMinuteText;
+    /** 数字变化时的横移 / 变宽动画时长（缓出，越长越软，太短会显得跳）。 */
+    private static final long REFLOW_MS = 340L;
+    private final java.util.List<android.animation.ValueAnimator> reflows =
+            new java.util.ArrayList<>();
+
+    /**
+     * 把一个文本框的宽度从旧值动画到新值：中间的每一帧都重新排版并重算对齐，
+     * 所以「时 / 冒号 / 分」会连续地滑动过去，而不是一帧跳到位。
+     */
+    private void animateWidth(final TextView view, float fromWidth, final float toWidth) {
+        if (view == null || Math.abs(toWidth - fromWidth) < 0.5f) return;
+        final android.animation.ValueAnimator animator =
+                android.animation.ValueAnimator.ofFloat(fromWidth, toWidth);
+        animator.setDuration(REFLOW_MS);
+        animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+        animator.addUpdateListener(a -> {
+            applyWidth(view, (float) a.getAnimatedValue());
+            alignClockRow();   // 每帧重算冒号对齐与整行居中，全程保持居中
+        });
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                // 结束后交回 wrap_content，避免和字体实际宽度差出零点几像素
+                android.view.ViewGroup.LayoutParams lp = view.getLayoutParams();
+                lp.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+                view.setLayoutParams(lp);
+                reflows.remove(animator);
+                alignClockRow();
+            }
+        });
+        reflows.add(animator);
+        animator.start();
+    }
+
+    /** 一段文字在当前字号下的排版宽度（wrap_content 时文本框就是这么宽）。 */
+    private float textWidth(TextView view, String text) {
+        return view.getPaint().measureText(text);
+    }
+
+    /** 极缓慢的像素级漂移：避免长时间静态显示烧屏（不影响亮度）。 */
+    private void updateDrift() {
         // 极缓慢的像素级漂移：避免长时间静态显示烧屏（不影响亮度）
         if (!ssDragging) {
             // 拖动退出时不要和防烧屏漂移抢 translationY
@@ -224,16 +328,29 @@ public class ScreensaverActivity extends BaseActivity {
 
     /** 全部颜色跟随当前封面（和时间无关，换歌时由状态回调重新上色）。 */
     private void applyColors() {
-        // 时钟颜色用拖动条「竖条右边那一段」的浅色（和未播放段同色）
         int color = ColorTheme.sliderInactive();
+        String fontRes = prefs.getScreensaverFont();
+        if (color == lastClockColor && fontRes.equals(lastClockFont)) return;
+        // 颜色 / 字体没变就直接返回：播放时状态每 500ms 推一次，每次都重排会把
+        // 数字变化时的横移动画打断（动画跑一半被直接设成目标值 = 又变回瞬移）。
+        lastClockColor = color;
+        lastClockFont = fontRes;
         // 时间用设置页选的装饰字体（默认 Akronim）；冒号是同一个字体、同一个字号，
         // 只是单独一个文本框，方便竖直方向微调。
         android.graphics.Typeface typeface = com.airmusic.player.ui.ScreensaverFonts
-                .typeface(this, prefs.getScreensaverFont());
+                .typeface(this, fontRes);
         for (TextView view : clockViews()) {
             view.setTextColor(color);
             if (typeface != null) view.setTypeface(typeface);
         }
+        refitClock();
+    }
+
+    private int lastClockColor;
+    private String lastClockFont = "";
+
+    /** 按当前字体 / 尺寸重新对齐并铺满（取色或屏幕尺寸变化时调用）。 */
+    private void refitClock() {
         alignColon();
         fitClockToScreen();
     }
@@ -285,7 +402,21 @@ public class ScreensaverActivity extends BaseActivity {
             if (textHeight <= 0 || innerHeight <= 0) return;
             float target = innerHeight * 0.70f;
             float scale = Math.min(1.25f, Math.max(1f, target / textHeight));
+            // 竖直拉伸要以「数字墨迹中心」为支点：行盒（ascent~descent）的中心和
+            // 数字墨迹中心并不重合，若以控件中心为支点，拉伸会把这个偏差放大
+            // （实测 1080 高的屏上会偏上 18~24px，屏越高越明显）。
+            android.graphics.Rect ink = new android.graphics.Rect();
+            paint.getTextBounds("0", 0, 1, ink);
+            // TextView.getBaseline() 直接给出基线在本控件内的位置，不用自己推
+            // （hourView.getTop() 已经是相对这一行的坐标，不要再减 clockRow.getTop()）
+            float inkCenterInRow = hourView.getTop() + hourView.getBaseline()
+                    + (ink.top + ink.bottom) / 2f;
+            clockRow.setPivotY(inkCenterInRow);
             clockRow.setScaleY(scale);
+            // 注意：这里**不**再把墨迹中心硬补到屏幕正中。字体里部分数字是旧式
+            // 下伸字形（"0123456789" 的墨迹范围是 -445~+89），数字不同、可见墨迹
+            // 的重心本来就会上下浮动几十像素；按某个固定参照硬对中，换一组数字就
+            // 会看着偏。支点定在墨迹中心只为一件事：竖直拉伸时不放大偏差。
             alignClockRow();
         });
     }
