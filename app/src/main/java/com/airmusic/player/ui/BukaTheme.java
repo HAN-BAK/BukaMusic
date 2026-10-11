@@ -56,6 +56,19 @@ public final class BukaTheme {
         RippleKiller.kill(content);
     }
 
+    /**
+     * 给「页面已经上过色之后」才新建的控件补上动态配色。
+     *
+     * <p>{@link #tintButtons(Activity)} 同一主色只跑一轮，所以设置页里用代码 new
+     * 出来的按钮（例如「闲置后自动进入屏保」）不会参与那一轮，颜色就和别的按钮
+     * 不一致。加控件之后调这个即可。
+     */
+    public static void tintView(Activity activity, View view) {
+        if (activity == null || view == null) return;
+        tintButtons(activity, view);
+        RippleKiller.kill(view);
+    }
+
     private static void tintButtons(Activity activity, View view) {
         if (view == null) return;
         if (view.getId() == R.id.volume_icon && view instanceof android.widget.ImageView) {

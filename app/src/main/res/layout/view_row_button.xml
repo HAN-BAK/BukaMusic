@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  设置页里「一行一个按钮」的通用样式（字体、播放方式、闲置时长…都长这样）。
+  代码里需要动态加一个这样的按钮时，inflate 它就能和 XML 里的那些完全一致。
+-->
+<com.google.android.material.button.MaterialButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />

@@ -14,6 +14,11 @@
     <style name="BukaDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>
+        <!-- 不要标题区！Alert 主题默认带一条 111px 高的标题容器，对话框内容
+             会从它下面开始（实测 content 从 y=111 起），卡片顶部正好被页面顶栏
+             （到 y=130）压住一条。关掉标题后内容铺满整屏，再由代码按顶栏/底栏
+             高度留出内边距。 -->
+        <item name="android:windowNoTitle">true</item>
         <item name="android:windowMinWidthMajor">0%</item>
         <item name="android:windowMinWidthMinor">0%</item>
         <item name="android:backgroundDimAmount">0.62</item>

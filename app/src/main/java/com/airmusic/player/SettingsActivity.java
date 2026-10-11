@@ -530,12 +530,16 @@ public class SettingsActivity extends BaseActivity {
             }
             Log.d(TAG, "tab groups: " + sb);
         });
-        idleButton = new com.google.android.material.button.MaterialButton(this);
+        // 和其它「一行一个按钮」的选项（字体、播放方式…）用同一套样式：
+        // 之前是直接 new 一个 MaterialButton，样式和动态取色都没跟上，颜色不对。
+        idleButton = (com.google.android.material.button.MaterialButton)
+                getLayoutInflater().inflate(R.layout.view_row_button, content, false);
         ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.topMargin = ssRowGapPx > 0 ? ssRowGapPx
                 : Math.round(22f * getResources().getDisplayMetrics().density);
         content.addView(idleButton, params);
+        com.airmusic.player.ui.BukaTheme.tintView(this, idleButton);
         idleButton.setOnClickListener(v -> showIdleDialog());
         updateIdleButton();
     }
