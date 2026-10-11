@@ -255,16 +255,17 @@ public class SettingsActivity extends BaseActivity {
             R.string.settings_section_airplay,
             R.string.settings_section_local,
             R.string.settings_section_ui,
+            R.string.settings_section_screensaver,
             R.string.settings_section_system,
             R.string.settings_section_about,
     };
     private static final int[] TAB_SECTIONS = {
             R.id.section_airplay, R.id.section_local, R.id.section_ui,
-            R.id.section_system, R.id.section_about,
+            R.id.section_screensaver, R.id.section_system, R.id.section_about,
     };
     private static final int[] TAB_CONTENTS = {
             R.id.airplay_content, R.id.local_content, R.id.ui_content,
-            R.id.system_content, R.id.about_content,
+            R.id.screensaver_content, R.id.system_content, R.id.about_content,
     };
 
     private final java.util.List<TextView> tabViews = new java.util.ArrayList<>();
@@ -316,6 +317,47 @@ public class SettingsActivity extends BaseActivity {
         }
         // 插在顶栏下面：滚动内容时标签栏不动。顶栏被摘走之后，标签栏就是第一个子视图。
         page.addView(scroller, extracted != null ? 0 : Math.min(1, page.getChildCount()));
+        // 实测各选项卡内容距标签栏约 41px，而「存储与设备」第一项只有约 10px，
+        // 于是每个选项卡上方都空一块 —— 统一把各组上边距收掉 13dp。
+        int trim = Math.round(13f * getResources().getDisplayMetrics().density);
+        for (int id : TAB_CONTENTS) {
+            View group = findViewById(id);
+            if (group == null) continue;
+            ViewGroup.LayoutParams params = group.getLayoutParams();
+            if (params instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+                margins.topMargin -= trim;
+                group.setLayoutParams(margins);
+            }
+        }
+        // 选项卡支持左右滑动切换（带左右切换动画）：在内容层上识别横向滑动，
+        // 滑动方向决定切到上一个 / 下一个选项卡。
+        final android.view.GestureDetector tabSwipe = new android.view.GestureDetector(this,
+                new android.view.GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onFling(android.view.MotionEvent e1,
+                                           android.view.MotionEvent e2,
+                                           float velocityX, float velocityY) {
+                        if (e1 == null || e2 == null) return false;
+                        float dx = e2.getX() - e1.getX();
+                        if (Math.abs(dx) < 120
+                                || Math.abs(velocityX) < Math.abs(velocityY) * 1.5f) {
+                            return false;
+                        }
+                        int next = currentTab + (dx < 0 ? 1 : -1);
+                        if (next < 0 || next >= TAB_CONTENTS.length) return false;
+                        selectTab(next);
+                        return true;
+                    }
+                });
+        for (int id : TAB_CONTENTS) {
+            View content = findViewById(id);
+            if (content == null) continue;
+            content.setOnTouchListener((v, event) -> {
+                tabSwipe.onTouchEvent(event);
+                return false;   // 不消费：页面内滚动、按钮点击照旧
+            });
+        }
         // 原来的分组标题不再需要
         for (int id : TAB_SECTIONS) {
             View header = findViewById(id);
@@ -327,11 +369,23 @@ public class SettingsActivity extends BaseActivity {
 
     private void selectTab(int index) {
         if (index < 0 || index >= TAB_CONTENTS.length) return;
+        int previous = currentTab;
         currentTab = index;
         for (int i = 0; i < TAB_CONTENTS.length; i++) {
             View content = findViewById(TAB_CONTENTS[i]);
             if (content != null) {
                 content.setVisibility(i == index ? View.VISIBLE : View.GONE);
+                if (i == index && previous != index) {
+                    // 左右切换动画：按切换方向从侧边滑入 + 淡入
+                    float shift = (index > previous ? 1f : -1f)
+                            * 28f * getResources().getDisplayMetrics().density;
+                    content.setAlpha(0f);
+                    content.setTranslationX(shift);
+                    content.animate().alpha(1f).translationX(0f)
+                            .setDuration(180L)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f))
+                            .start();
+                }
             }
         }
         for (int i = 0; i < tabViews.size(); i++) {
@@ -354,6 +408,7 @@ public class SettingsActivity extends BaseActivity {
         // 选项卡也带图标
         int[] tabIcons = {
                 R.drawable.ic_row_wifi, R.drawable.ic_row_autoplay, R.drawable.ic_row_apps,
+                R.drawable.ic_row_blur,      // 屏保（新增选项卡，图标顺序必须跟着走）
                 R.drawable.ic_row_storage, R.drawable.ic_row_info,
         };
         for (int i = 0; i < tabViews.size() && i < tabIcons.length; i++) {
@@ -407,6 +462,120 @@ public class SettingsActivity extends BaseActivity {
                 startActivity(new Intent(this, EqualizerActivity.class));
             });
         }
+
+        // ---- 屏保设置：开关即时保存；字体按钮点开选择对话框 ----
+        com.airmusic.player.ui.BukaSwitch ssSwipe = findViewById(R.id.switch_ss_swipe);
+        if (ssSwipe != null) {
+            ssSwipe.setChecked(prefs.isScreensaverSwipe());
+            ssSwipe.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverSwipe(checked));
+        }
+        com.airmusic.player.ui.BukaSwitch ssDate = findViewById(R.id.switch_ss_date);
+        if (ssDate != null) {
+            ssDate.setChecked(prefs.isScreensaverDate());
+            ssDate.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverDate(checked));
+        }
+        com.airmusic.player.ui.BukaSwitch ssTrack = findViewById(R.id.switch_ss_track);
+        if (ssTrack != null) {
+            ssTrack.setChecked(prefs.isScreensaverTrack());
+            ssTrack.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverTrack(checked));
+        }
+        com.airmusic.player.ui.BukaSwitch ssBlink = findViewById(R.id.switch_ss_blink);
+        if (ssBlink != null) {
+            ssBlink.setChecked(prefs.isScreensaverBlink());
+            ssBlink.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaverBlink(checked));
+        }
+        com.airmusic.player.ui.BukaSwitch ss24 = findViewById(R.id.switch_ss_24h);
+        if (ss24 != null) {
+            ss24.setChecked(prefs.isScreensaver24h());
+            ss24.setOnCheckedChangeListener((b, checked) -> prefs.setScreensaver24h(checked));
+        }
+        View ssFont = findViewById(R.id.btn_ss_font);
+        if (ssFont != null) ssFont.setOnClickListener(v -> showFontDialog());
+        // 屏保这一组行的间距统一加大（用户反馈"各选项间距都很小"）：
+        // 直接给每行的容器补 8dp 上边距，避免依赖布局文件里的缩进。
+        // 行间距对齐其它选项卡：实测「存储与设备」相邻两行留白约 22dp。
+        // 第一行不加额外上边距，否则标题下面会多出一大片空白。
+        int rowGap = Math.round(22f * getResources().getDisplayMetrics().density);
+        int[] ssRows = {R.id.switch_ss_swipe, R.id.switch_ss_date, R.id.switch_ss_track,
+                R.id.switch_ss_blink, R.id.switch_ss_24h, R.id.btn_ss_font};
+        boolean firstRow = true;
+        for (int rowId : ssRows) {
+            View control = findViewById(rowId);
+            if (control == null || !(control.getParent() instanceof View)) continue;
+            View row = (View) control.getParent();
+            ViewGroup.LayoutParams params = row.getLayoutParams();
+            if (params instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+                margins.topMargin = firstRow ? 0 : rowGap;
+                row.setLayoutParams(margins);
+            }
+            firstRow = false;
+        }
+        updateFontButton();
+        setupIdleSetting(findViewById(R.id.screensaver_content));
+    }
+
+    /** 屏保闲置时长：关闭 / 30 秒 / 1~30 分钟（按钮显示当前值，点开选择）。 */
+    private static final long[] IDLE_VALUES = {
+            0L, 30_000L, 60_000L, 120_000L, 300_000L, 600_000L, 1_800_000L};
+    private com.google.android.material.button.MaterialButton idleButton;
+    private ViewGroup ssContent;
+
+    private void setupIdleSetting(ViewGroup content) {
+        if (content == null) return;
+        ssContent = content;
+        idleButton = new com.google.android.material.button.MaterialButton(this);
+        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = Math.round(10f * getResources().getDisplayMetrics().density);
+        content.addView(idleButton, params);
+        idleButton.setOnClickListener(v -> showIdleDialog());
+        updateIdleButton();
+    }
+
+    private void updateIdleButton() {
+        if (idleButton == null) return;
+        long current = prefs.getScreensaverIdleMs();
+        idleButton.setText(getString(R.string.pref_ss_idle) + " · " + idleLabel(current));
+    }
+
+    private String idleLabel(long ms) {
+        if (ms <= 0) return getString(R.string.ss_idle_off);
+        if (ms < 60_000L) return getString(R.string.ss_idle_seconds, Math.round(ms / 1000f));
+        return getString(R.string.ss_idle_minutes, Math.round(ms / 60000f));
+    }
+
+    private void showIdleDialog() {
+        String[] labels = new String[IDLE_VALUES.length];
+        int checked = 0;
+        long current = prefs.getScreensaverIdleMs();
+        for (int i = 0; i < IDLE_VALUES.length; i++) {
+            labels[i] = idleLabel(IDLE_VALUES[i]);
+            if (IDLE_VALUES[i] == current) checked = i;
+        }
+        BukaDialog.singleChoice(this, getString(R.string.pref_ss_idle), labels, checked, which -> {
+            prefs.setScreensaverIdleMs(IDLE_VALUES[which]);
+            updateIdleButton();
+        }).show();
+    }
+
+    /** 「字体」按钮上显示当前字体名。 */
+    private void updateFontButton() {
+        com.google.android.material.button.MaterialButton button = findViewById(R.id.btn_ss_font);
+        if (button == null) return;
+        int index = com.airmusic.player.ui.ScreensaverFonts.indexOf(prefs.getScreensaverFont());
+        button.setText(getString(R.string.pref_ss_font) + " · "
+                + com.airmusic.player.ui.ScreensaverFonts.LABELS[index]);
+    }
+
+    /** 字体选择：列出参考项目 ClockDesk 的全部字体，选中即保存。 */
+    private void showFontDialog() {
+        String[] labels = com.airmusic.player.ui.ScreensaverFonts.LABELS;
+        int checked = com.airmusic.player.ui.ScreensaverFonts.indexOf(prefs.getScreensaverFont());
+        BukaDialog.singleChoice(this, getString(R.string.pref_ss_font), labels, checked, which -> {
+            prefs.setScreensaverFont(com.airmusic.player.ui.ScreensaverFonts.RESOURCES[which]);
+            updateFontButton();
+        }).show();
     }
 
     private void refreshAirPlayStatus() {

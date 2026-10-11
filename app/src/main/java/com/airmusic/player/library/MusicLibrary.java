@@ -141,6 +141,7 @@ public final class MusicLibrary {
 
     public void rescan(Context context, ScanCallback callback) {
         scanning = true;
+        final long scanStart = android.os.SystemClock.elapsedRealtime();
         final Context appContext = context.getApplicationContext();
         executor.execute(() -> {
             List<Track> tracks = new ArrayList<>();
@@ -160,6 +161,8 @@ public final class MusicLibrary {
             cachedTracks = result;
             scanning = false;
             saveToDisk(appContext, result);
+            Log.i(TAG, "scan finished in " + (android.os.SystemClock.elapsedRealtime() - scanStart)
+                    + "ms, " + result.size() + " tracks");
             mainHandler.post(() -> {
                 if (callback != null) callback.onScanFinished(result, err);
             });
@@ -167,6 +170,8 @@ public final class MusicLibrary {
     }
 
     private List<Track> scanInternal(Context context) throws Exception {
+        final long started = android.os.SystemClock.elapsedRealtime();
+        long phaseStart = started;
         Map<String, Track> byUri = new LinkedHashMap<>();
 
         Prefs prefs = new Prefs(context);
@@ -190,6 +195,8 @@ public final class MusicLibrary {
         // otherwise fall back to the system media library (including USB).
         if (!folderScanned) {
             scanMediaStore(context, byUri);
+        Log.i(TAG, "scan phases: fileTree=" + (android.os.SystemClock.elapsedRealtime() - started)
+                + "ms total=" + (android.os.SystemClock.elapsedRealtime() - started) + "ms");
         }
 
         List<Track> tracks = new ArrayList<>(byUri.values());

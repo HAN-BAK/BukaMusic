@@ -29,6 +29,44 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private String createdLang;
     private boolean boxAspectWrapped;
+    /** 上一次用户触摸的时间，用于「闲置自动进屏保」。 */
+    private long lastTouchAt;
+    private final android.os.Handler idleHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable idleCheck = new Runnable() {
+        @Override
+        public void run() {
+            checkIdle();
+            idleHandler.postDelayed(this, 5000L);
+        }
+    };
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        lastTouchAt = android.os.SystemClock.elapsedRealtime();
+        return super.dispatchTouchEvent(ev);
+    }
+
+    /**
+     * 未播放音乐、且在当前页面闲置超过设定时间 → 自动进入屏保。
+     * 屏保页自己 / 正在播放 / 未开启该功能时都不触发。
+     */
+    private void checkIdle() {
+        if (isFinishing() || isDestroyed()) return;   // 页面结束就不再轮询
+        idleHandler.postDelayed(idleCheck, 5000L);
+        com.airmusic.player.util.Prefs prefs = new com.airmusic.player.util.Prefs(this);
+        long idleMs = prefs.getScreensaverIdleMs();
+        if (idleMs <= 0 || this instanceof ScreensaverActivity) return;
+        if (!hasWindowFocus()) return;
+        com.airmusic.player.util.PlayerUiState state =
+                com.airmusic.player.util.StateBus.get().getState();
+        if (state != null && state.playing) return;   // 正在播放音乐时不进屏保
+        long idle = android.os.SystemClock.elapsedRealtime() - lastTouchAt;
+        if (idle < idleMs) return;
+        lastTouchAt = android.os.SystemClock.elapsedRealtime();
+        startActivity(new android.content.Intent(this, ScreensaverActivity.class));
+        overridePendingTransition(R.anim.ss_enter, R.anim.ss_stay);
+    }
     /** 被 BoxAspectFrameLayout 包住的那层页面内容（顶栏 / 底栏已摘走）。 */
     private View boxAspectChild;
 
@@ -99,6 +137,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void onContentChanged() {
         super.onContentChanged();
         wrapContentToBoxAspect();
+        // 闲置进屏保的轮询（每 5 秒一次；未播放音乐且超过设定时间才触发）
+        lastTouchAt = android.os.SystemClock.elapsedRealtime();
+        idleHandler.removeCallbacks(idleCheck);
+        idleHandler.postDelayed(idleCheck, 5000L);
         // 页面入场动效 + 给页面里的可点击控件挂上按压动效（系统水波纹早已关闭）。
         PageFx.apply(this);
     }

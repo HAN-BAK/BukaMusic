@@ -93,10 +93,34 @@ public class MainActivity extends BaseActivity {
                         long elapsed = Math.max(1L,
                                 android.os.SystemClock.elapsedRealtime() - swipeDownAt);
                         float speed = up / elapsed;                 // px/ms
+                        boolean vertical = up > 0 && up > sideways * 1.5f;
+                        if (vertical) {
+                            // 跟手：整页跟着手指上移（最多 40%，超出部分有阻尼感）
+                            View content = findViewById(android.R.id.content);
+                            if (content != null) {
+                                content.setTranslationY(-Math.min(up * 0.4f, up));
+                            }
+                        }
                         if (up > 24 * getResources().getDisplayMetrics().density
-                                && up > sideways * 1.5f && speed > 0.4f) {
+                                && vertical && speed > 0.4f) {
                             sawScreensaverSwipe = true;
+                            // 提交前先复位位移，否则返回播放页时整页会往上偏
+                            View dragContent = findViewById(android.R.id.content);
+                            if (dragContent != null) dragContent.setTranslationY(0f);
                             startActivity(new Intent(this, ScreensaverActivity.class));
+                            overridePendingTransition(R.anim.ss_enter, R.anim.ss_stay);
+                        }
+                    }
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    View content = findViewById(android.R.id.content);
+                    if (content != null && content.getTranslationY() != 0f) {
+                        // 已经提交（进屏保）就立刻复位，否则弹回
+                        if (sawScreensaverSwipe) {
+                            content.setTranslationY(0f);
+                        } else {
+                            content.animate().translationY(0f).setDuration(180L).start();
                         }
                     }
                     break;
@@ -272,16 +296,7 @@ public class MainActivity extends BaseActivity {
                             public boolean onFling(android.view.MotionEvent e1,
                                                    android.view.MotionEvent e2,
                                                    float velocityX, float velocityY) {
-                                if (e1 == null || e2 == null) return false;
-                                float up = e1.getY() - e2.getY();
-                                if (up > 80 && Math.abs(velocityY) > Math.abs(velocityX)
-                                        && Math.abs(velocityY) > 600
-                                        && new Prefs(MainActivity.this).isScreensaverSwipe()) {
-                                    startActivity(new Intent(MainActivity.this,
-                                            ScreensaverActivity.class));
-                                    return true;
-                                }
-                                return false;
+                                return false;   // 由 dispatchTouchEvent 的跟手拖动逻辑处理
                             }
                         });
         android.view.View.OnTouchListener swipeListener = (v, event) -> {

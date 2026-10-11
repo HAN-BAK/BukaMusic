@@ -37,6 +37,8 @@ public final class Prefs {
     private static final String KEY_SCREENSAVER_TRACK = "screensaver_track";
     private static final String KEY_SCREENSAVER_BLINK = "screensaver_blink";
     private static final String KEY_SCREENSAVER_24H = "screensaver_24h";
+    private static final String KEY_SCREENSAVER_FONT = "screensaver_font";
+    private static final String KEY_SCREENSAVER_IDLE = "screensaver_idle_ms";
     private static final String KEY_ONBOARDING_DONE = "onboarding_done";
     private static final String KEY_ONLINE_LYRICS = "online_lyrics";
     private static final String KEY_EQ_GAINS = "eq_gains";
@@ -201,6 +203,27 @@ public final class Prefs {
 
     public void setScreensaver24h(boolean enabled) {
         sp.edit().putBoolean(KEY_SCREENSAVER_24H, enabled).apply();
+    }
+
+    /** 屏保字体资源名（见 ui.ScreensaverFonts，默认 Google Sans Bold）。 */
+    public String getScreensaverFont() {
+        return sp.getString(KEY_SCREENSAVER_FONT,
+                com.airmusic.player.ui.ScreensaverFonts.DEFAULT);
+    }
+
+    public void setScreensaverFont(String resource) {
+        sp.edit().putString(KEY_SCREENSAVER_FONT,
+                resource == null ? com.airmusic.player.ui.ScreensaverFonts.DEFAULT : resource)
+                .apply();
+    }
+
+    /** 未播放音乐时，闲置多久自动进入屏保（毫秒；0 = 关闭）。 */
+    public long getScreensaverIdleMs() {
+        return sp.getLong(KEY_SCREENSAVER_IDLE, 0L);
+    }
+
+    public void setScreensaverIdleMs(long idleMs) {
+        sp.edit().putLong(KEY_SCREENSAVER_IDLE, Math.max(0L, idleMs)).apply();
     }
 
     /** Whether the apps-list button is shown on the main playback screen. */
