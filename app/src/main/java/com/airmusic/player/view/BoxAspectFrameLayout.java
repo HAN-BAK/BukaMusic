@@ -80,7 +80,11 @@ public class BoxAspectFrameLayout extends FrameLayout {
                 ? (ViewGroup) bar.getParent() : null;
         if (parent != null) parent.removeView(bar);
         (top ? topBars : bottomBars).add(bar);
-        addView(bar);
+        // 栏插到最底层（index 0），页面内容层永远画在它上面：顶栏 / 底栏横向铺满、
+        // 贴着屏幕上下沿，只是"例外组件"，不该反过来盖住内容层（设置页的选项卡
+        // 就在内容层里）。两者几何上不重叠，所以调换图层不会影响观感，但能保证
+        // 内容（含选项卡）任何时候都不会被栏遮住。
+        addView(bar, 0);
     }
 
     private boolean isBar(View view) {

@@ -344,7 +344,6 @@ public class BukaDialog extends Dialog {
     @Override
     public void show() {
         super.show();
-        applyPageBarInsets();
         // 有些设备（例如 1920x1080 的盒子）的对话框窗口会被系统栏撑得比屏幕高，
         // 卡片按窗口居中就会整体偏低。这里按「卡片实际中心 vs 屏幕中心」直接校正。
         centerVertically();
@@ -368,61 +367,6 @@ public class BukaDialog extends Dialog {
                 .setDuration(200L)
                 .setInterpolator(new DecelerateInterpolator(1.6f))
                 .start();
-    }
-
-    /**
-     * 让卡片躲开「贴屏幕上下沿」的页面顶栏 / 底栏。
-     *
-     * <p>顶栏和底栏是布局里被摘出来的例外组件（横向铺满、贴着屏幕边缘），而对话框
-     * 是按整屏居中的：实测设置页弹出「闲置后自动进入屏保」对话框时，卡片顶部正好
-     * 被顶栏压住一条。这里按顶栏 / 底栏的实际占位给对话框内容加对应的上下内边距，
-     * 卡片就在两者之间的空白区居中。
-     */
-    private void applyPageBarInsets() {
-        View host = card.getParent() instanceof View ? (View) card.getParent() : null;
-        if (host == null) return;
-        android.app.Activity activity = hostActivity();
-        if (activity == null) return;
-        int pad = Math.round(6f * host.getResources().getDisplayMetrics().density);
-        topBarInset = barEdge(activity, R.id.top_bar, true);
-        bottomBarInset = barEdge(activity, R.id.bottom_bar, false);
-        host.setPadding(pad, pad + topBarInset, pad, pad + bottomBarInset);
-    }
-
-    /** 页面顶栏 / 底栏占掉的高度：卡片要在它们之间的空白区居中。 */
-    private int topBarInset;
-    private int bottomBarInset;
-
-    /**
-     * 拿到宿主 Activity：Dialog(Context, theme) 会把传进来的 Activity 包成
-     * ContextThemeWrapper，直接 instanceof 判断会失败（之前顶栏避让失效就是这个原因），
-     * 这里逐层解包。
-     */
-    private android.app.Activity hostActivity() {
-        android.content.Context context = getContext();
-        while (context instanceof android.content.ContextWrapper) {
-            if (context instanceof android.app.Activity) {
-                return (android.app.Activity) context;
-            }
-            context = ((android.content.ContextWrapper) context).getBaseContext();
-        }
-        return null;
-    }
-
-    /**
-     * 栏在屏幕上占掉的高度：顶栏返回它「下沿」的 y，底栏返回「屏幕高 - 它的上沿」。
-     * 栏是带缩放摆放的，所以高度要乘上 scaleY 才是它在屏幕上的实际厚度。
-     */
-    private static int barEdge(android.app.Activity activity, int id, boolean topBar) {
-        View bar = activity.findViewById(id);
-        if (bar == null || bar.getVisibility() != View.VISIBLE) return 0;
-        int[] location = new int[2];
-        bar.getLocationOnScreen(location);
-        if (topBar) {
-            return location[1] + Math.round(bar.getHeight() * bar.getScaleY());
-        }
-        int screenHeight = activity.getResources().getDisplayMetrics().heightPixels;
-        return Math.max(0, screenHeight - location[1]);
     }
 
     private void centerVertically() {
@@ -455,11 +399,9 @@ public class BukaDialog extends Dialog {
             visibleTop = 0;
             visibleHeight = getContext().getResources().getDisplayMetrics().heightPixels;
         }
-        // 在「顶栏下沿 ~ 底栏上沿」之间的空白区居中：顶栏 / 底栏是贴屏幕边缘的
-        // 例外组件，按整屏居中会让卡片顶部被顶栏压住。
-        int areaTop = visibleTop + topBarInset;
-        int areaBottom = visibleTop + visibleHeight - bottomBarInset;
-        int delta = (areaTop + areaBottom) / 2 - (location[1] + height / 2);
+        // 屏幕正中。窗口内容区铺满整屏（主题里 windowNoTitle），所以这里按窗口
+        // 可见区域居中就是"屏幕正中"，不会被任何东西裁掉。
+        int delta = visibleTop + visibleHeight / 2 - (location[1] + height / 2);
         if (delta != 0) {
             card.setTranslationY(card.getTranslationY() + delta);
         }
