@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -46,6 +47,11 @@ public final class MusicLibrary {
 
     private volatile List<Track> cachedTracks = new ArrayList<>();
     private volatile boolean scanning;
+    /** 批量查询得到的 MediaStore 元数据（路径 → 曲目），避免逐首打开文件读标签。 */
+    private final Map<String, Track> mediaStoreByPath = new HashMap<>();
+    /** 本次扫描里元数据来自 MediaStore 缓存 / 退回逐首读标签的文件数（只有扫描线程用）。 */
+    private int cacheHits;
+    private int cacheMisses;
     /** 上次扫描结果的磁盘缓存（列表 + 歌曲数），冷启动先读它，避免每次全量重扫。 */
     private static final String CACHE_FILE = "library_cache.tsv";
 
@@ -171,6 +177,15 @@ public final class MusicLibrary {
 
     private List<Track> scanInternal(Context context) throws Exception {
         final long started = android.os.SystemClock.elapsedRealtime();
+        // 先把 MediaStore 的元数据一次性查出来（批量、约几十毫秒），
+        // 后面扫描文件夹时直接用，只有 MediaStore 里没有的文件才逐首读标签。
+        final long mediaQueryStart = android.os.SystemClock.elapsedRealtime();
+        collectMediaStoreMetadata(context);
+        cacheHits = 0;
+        cacheMisses = 0;
+        Log.i(TAG, "media metadata query took "
+                + (android.os.SystemClock.elapsedRealtime() - mediaQueryStart) + "ms, "
+                + mediaStoreByPath.size() + " entries");
         long phaseStart = started;
         Map<String, Track> byUri = new LinkedHashMap<>();
 
@@ -195,9 +210,13 @@ public final class MusicLibrary {
         // otherwise fall back to the system media library (including USB).
         if (!folderScanned) {
             scanMediaStore(context, byUri);
-        Log.i(TAG, "scan phases: fileTree=" + (android.os.SystemClock.elapsedRealtime() - started)
-                + "ms total=" + (android.os.SystemClock.elapsedRealtime() - started) + "ms");
         }
+        // 无论是否配置了文件夹都要打点：配置了文件夹时才是最常见的路径
+        final long folderMs = android.os.SystemClock.elapsedRealtime() - started;
+        Log.i(TAG, "scan phases: folderOrNothing=" + folderMs + "ms mediaStore="
+                + (android.os.SystemClock.elapsedRealtime() - started - folderMs) + "ms"
+                + " folderScanned=" + folderScanned
+                + " metaCacheHits=" + cacheHits + " tagReads=" + cacheMisses);
 
         List<Track> tracks = new ArrayList<>(byUri.values());
         Collections.sort(tracks, new Comparator<Track>() {
@@ -234,6 +253,15 @@ public final class MusicLibrary {
         String album = "";
         int trackNo = 0;
         long duration = 0;
+        // 先用一次批量查询拿到的 MediaStore 元数据（快），没有再逐首打开文件读标签。
+        Track known = mediaStoreByPath.get(file.getAbsolutePath().toLowerCase(Locale.US));
+        if (known != null) {
+            cacheHits++;
+            return new Track(Uri.fromFile(file), firstNonEmpty(known.title, title),
+                    known.artist, known.album, known.trackNo, known.durationMs, folder,
+                    file.getAbsolutePath(), AudioExt.extensionOf(name));
+        }
+        cacheMisses++;
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
         try {
             retriever.setDataSource(file.getAbsolutePath());
@@ -349,35 +377,152 @@ public final class MusicLibrary {
     }
 
     private void scanMediaStore(Context context, Map<String, Track> byUri) {
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_AUDIO)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-        } else if (Build.VERSION.SDK_INT >= 23) {
-            if (context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
+        if (!hasAudioReadPermission(context)) return;
+        for (String volume : mediaVolumes(context)) {
+            queryVolume(context, volume, byUri);
         }
+    }
 
+    /** 是否已经拿到读取音频的权限（API 33 起是细分后的 READ_MEDIA_AUDIO）。 */
+    private static boolean hasAudioReadPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            return context.checkSelfPermission(android.Manifest.permission.READ_MEDIA_AUDIO)
+                    == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+        if (Build.VERSION.SDK_INT >= 23) {
+            return context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    /**
+     * 要查询的卷。API 29+ 用 MediaStore 给出的规范卷名（"external" 只是主卷的
+     * 别名，同时用会和 "external_primary" 重复，把每首歌列两遍）。
+     */
+    private static List<String> mediaVolumes(Context context) {
         List<String> volumes = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 29) {
             Set<String> extra = MediaStore.getExternalVolumeNames(context);
             for (String v : extra) {
-                // "external" is only an alias for the primary volume on
-                // API 29+; scanning both "external" and "external_primary"
-                // would list every song twice, so only use canonical names.
                 if (!volumes.contains(v)) volumes.add(v);
             }
         }
-        if (volumes.isEmpty()) {
-            volumes.add("external");
-        }
+        if (volumes.isEmpty()) volumes.add("external");
+        return volumes;
+    }
 
-        for (String volume : volumes) {
-            queryVolume(context, volume, byUri);
+    /**
+     * 一次性批量查询 MediaStore，把「绝对路径 → 曲目」缓存起来。
+     *
+     * 配置了音乐文件夹时，扫描目录里的每首歌都要逐首打开文件读标签，实测 126 首
+     * 要 11 秒（盒子上的 FLAC 尤其慢）。MediaStore 里其实已经有标题/歌手/专辑/
+     * 音轨号/时长，一次查询几十毫秒就能拿全，命中缓存的文件就不用再开文件了；
+     * 只有 MediaStore 没索引到的文件（刚拷进来还没媒体扫描、部分 U 盘卷）才回退到逐首读标签。
+     */
+    private void collectMediaStoreMetadata(Context context) {
+        mediaStoreByPath.clear();
+        if (!hasAudioReadPermission(context)) return;
+        for (String volume : mediaVolumes(context)) {
+            queryVolumeMetadata(context, volume);
         }
+    }
+
+    private void queryVolumeMetadata(Context context, String volume) {
+        Uri collection = MediaStore.Audio.Media.getContentUri(volume);
+        List<String> columns = new ArrayList<>();
+        columns.add(MediaStore.Audio.Media._ID);
+        columns.add(MediaStore.Audio.Media.TITLE);
+        columns.add(MediaStore.Audio.Media.ARTIST);
+        columns.add(MediaStore.Audio.Media.ALBUM);
+        columns.add(MediaStore.Audio.Media.DURATION);
+        columns.add(MediaStore.Audio.Media.TRACK);
+        columns.add(MediaStore.Audio.Media.DATA);
+        columns.add(MediaStore.Audio.Media.DISPLAY_NAME);
+        if (Build.VERSION.SDK_INT >= 29) {
+            // Android 10 起 _DATA 有时取不到，需要靠 RELATIVE_PATH + DISPLAY_NAME 拼回绝对路径。
+            columns.add(MediaStore.Audio.Media.RELATIVE_PATH);
+        }
+        Cursor cursor = null;
+        try {
+            cursor = context.getContentResolver().query(collection,
+                    columns.toArray(new String[0]),
+                    MediaStore.Audio.Media.IS_MUSIC + " != 0", null, null);
+            if (cursor == null) return;
+            int idCol = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+            int titleCol = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
+            int artistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+            int albumCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+            int durCol = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+            int trackCol = cursor.getColumnIndex(MediaStore.Audio.Media.TRACK);
+            int dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+            int nameCol = cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME);
+            int pathCol = cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH);
+            String volumeRoot = volumeRoot(volume);
+
+            while (cursor.moveToNext()) {
+                String data = dataCol >= 0 && !cursor.isNull(dataCol)
+                        ? cursor.getString(dataCol) : null;
+                String displayName = nameCol >= 0 && !cursor.isNull(nameCol)
+                        ? cursor.getString(nameCol) : null;
+                if ((data == null || data.length() == 0) && displayName != null) {
+                    String relative = pathCol >= 0 && !cursor.isNull(pathCol)
+                            ? cursor.getString(pathCol) : null;
+                    if (relative != null && volumeRoot != null) {
+                        data = volumeRoot + "/" + relative + displayName;
+                    }
+                }
+                if (data == null || data.length() == 0) continue;
+
+                String title = sanitize(cursor.getString(titleCol));
+                if (title.length() == 0) title = nameWithoutExt(new File(data).getName());
+                String artist = sanitize(cursor.getString(artistCol));
+                String album = sanitize(albumCol >= 0 ? cursor.getString(albumCol) : null);
+                long duration = durCol >= 0 && !cursor.isNull(durCol) ? cursor.getLong(durCol) : 0L;
+                int trackNo = readMediaStoreTrackNo(
+                        trackCol >= 0 && !cursor.isNull(trackCol) ? cursor.getInt(trackCol) : 0);
+                Uri uri = idCol >= 0
+                        ? ContentUris.withAppendedId(collection, cursor.getLong(idCol)) : null;
+                if (uri == null) continue;
+
+                File file = new File(data);
+                String folder = file.getParentFile() != null
+                        ? file.getParentFile().getName() : null;
+                mediaStoreByPath.put(data.toLowerCase(Locale.US), new Track(
+                        uri, title, artist, album, trackNo, duration, folder, data,
+                        AudioExt.extensionOf(data)));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "queryVolumeMetadata failed for " + volume, e);
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+    }
+
+    /** 卷对应的挂载点，用来把 RELATIVE_PATH 拼成绝对路径。 */
+    private static String volumeRoot(String volume) {
+        if ("external".equals(volume) || MediaStore.VOLUME_EXTERNAL_PRIMARY.equals(volume)) {
+            return android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+        }
+        return "/storage/" + volume;
+    }
+
+    /** MediaStore 用 "<unknown>" 表示没有该字段，等价于空。 */
+    private static String sanitize(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        if (trimmed.length() == 0
+                || trimmed.equalsIgnoreCase(MediaStore.UNKNOWN_STRING)
+                || trimmed.equalsIgnoreCase("<unknown>")) {
+            return "";
+        }
+        return trimmed;
+    }
+
+    /** TRACK 列在多碟专辑里可能是 1003 这种「碟号*1000+音轨号」。 */
+    private static int readMediaStoreTrackNo(int raw) {
+        if (raw <= 0) return 0;
+        return raw > 1000 ? raw % 1000 : raw;
     }
 
     private void queryVolume(Context context, String volume, Map<String, Track> byUri) {
@@ -388,6 +533,7 @@ public final class MusicLibrary {
                 MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.TRACK,
                 MediaStore.Audio.Media.DATA,
         };
         String relativePath = null;
@@ -398,6 +544,7 @@ public final class MusicLibrary {
                     MediaStore.Audio.Media.ARTIST,
                     MediaStore.Audio.Media.ALBUM,
                     MediaStore.Audio.Media.DURATION,
+                    MediaStore.Audio.Media.TRACK,
                     MediaStore.Audio.Media.DATA,
                     MediaStore.Audio.Media.RELATIVE_PATH,
             };
@@ -414,28 +561,31 @@ public final class MusicLibrary {
             int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
             int albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
             int durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+            int trackCol = cursor.getColumnIndex(MediaStore.Audio.Media.TRACK);
             int dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
             int pathCol = cursor.getColumnIndex(MediaStore.Audio.Media.RELATIVE_PATH);
 
             while (cursor.moveToNext()) {
                 long id = cursor.getLong(idCol);
                 Uri uri = ContentUris.withAppendedId(collection, id);
-                String title = cursor.getString(titleCol);
-                String artist = cursor.getString(artistCol);
-                String album = cursor.getString(albumCol);
+                String title = sanitize(cursor.getString(titleCol));
+                String artist = sanitize(cursor.getString(artistCol));
+                String album = sanitize(cursor.getString(albumCol));
                 long duration = cursor.getLong(durCol);
+                int trackNo = readMediaStoreTrackNo(
+                        trackCol >= 0 && !cursor.isNull(trackCol) ? cursor.getInt(trackCol) : 0);
                 String data = dataCol >= 0 ? cursor.getString(dataCol) : null;
                 String folder = pathCol >= 0 ? cursor.getString(pathCol) : null;
                 if (folder == null && data != null) {
                     File f = new File(data);
                     folder = f.getParentFile() != null ? f.getParentFile().getName() : null;
                 }
-                if (title == null || title.trim().length() == 0) {
+                if (title.length() == 0) {
                     if (data != null) title = nameWithoutExt(new File(data).getName());
                     else continue;
                 }
                 Track track = new Track(
-                        uri, title, artist, album, duration,
+                        uri, title, artist, album, trackNo, duration,
                         folder, data, AudioExt.extensionOf(data == null ? title : data));
                 // Deduplicate by the underlying file path when available: the
                 // same physical file can be reported under several URIs.

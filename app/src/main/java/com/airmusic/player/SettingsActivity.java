@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -34,6 +35,7 @@ import com.airmusic.player.ui.BukaTheme;
 
 public class SettingsActivity extends BaseActivity {
 
+    private static final String TAG = "SettingsActivity";
     private Prefs prefs;
     /** 设备名防抖：输入停顿 800ms 后再重启服务，避免每敲一个字母就重启一次。 */
     private final android.os.Handler nameHandler =
@@ -317,19 +319,6 @@ public class SettingsActivity extends BaseActivity {
         }
         // 插在顶栏下面：滚动内容时标签栏不动。顶栏被摘走之后，标签栏就是第一个子视图。
         page.addView(scroller, extracted != null ? 0 : Math.min(1, page.getChildCount()));
-        // 实测各选项卡内容距标签栏约 41px，而「存储与设备」第一项只有约 10px，
-        // 于是每个选项卡上方都空一块 —— 统一把各组上边距收掉 13dp。
-        int trim = Math.round(13f * getResources().getDisplayMetrics().density);
-        for (int id : TAB_CONTENTS) {
-            View group = findViewById(id);
-            if (group == null) continue;
-            ViewGroup.LayoutParams params = group.getLayoutParams();
-            if (params instanceof ViewGroup.MarginLayoutParams) {
-                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
-                margins.topMargin -= trim;
-                group.setLayoutParams(margins);
-            }
-        }
         // 选项卡支持左右滑动切换（带左右切换动画）：在内容层上识别横向滑动，
         // 滑动方向决定切到上一个 / 下一个选项卡。
         final android.view.GestureDetector tabSwipe = new android.view.GestureDetector(this,
@@ -496,17 +485,24 @@ public class SettingsActivity extends BaseActivity {
         // 行间距对齐其它选项卡：实测「存储与设备」相邻两行留白约 22dp。
         // 第一行不加额外上边距，否则标题下面会多出一大片空白。
         int rowGap = Math.round(22f * getResources().getDisplayMetrics().density);
+        ssRowGapPx = rowGap;
+        // 第一行与其它选项卡首行对齐：实测「存储与设备」第一颗按钮距栏目底 18px（8dp）。
+        int firstRowGap = Math.round(8f * getResources().getDisplayMetrics().density);
+        ViewGroup ssGroup = findViewById(R.id.screensaver_content);
         int[] ssRows = {R.id.switch_ss_swipe, R.id.switch_ss_date, R.id.switch_ss_track,
                 R.id.switch_ss_blink, R.id.switch_ss_24h, R.id.btn_ss_font};
         boolean firstRow = true;
         for (int rowId : ssRows) {
             View control = findViewById(rowId);
-            if (control == null || !(control.getParent() instanceof View)) continue;
-            View row = (View) control.getParent();
+            if (control == null) continue;
+            View parent = control.getParent() instanceof View ? (View) control.getParent() : null;
+            // 开关的外层才是「一行」；字体按钮是这一组的直接子视图，它自己就是一行。
+            // 之前这里没区分，把 22dp 加到整个组上，导致第一个开关上方多出一大块空白。
+            View row = parent != null && parent != ssGroup ? parent : control;
             ViewGroup.LayoutParams params = row.getLayoutParams();
             if (params instanceof ViewGroup.MarginLayoutParams) {
                 ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
-                margins.topMargin = firstRow ? 0 : rowGap;
+                margins.topMargin = firstRow ? firstRowGap : rowGap;
                 row.setLayoutParams(margins);
             }
             firstRow = false;
@@ -520,14 +516,38 @@ public class SettingsActivity extends BaseActivity {
             0L, 30_000L, 60_000L, 120_000L, 300_000L, 600_000L, 1_800_000L};
     private com.google.android.material.button.MaterialButton idleButton;
     private ViewGroup ssContent;
+    /** 屏保选项卡行距（与其它选项卡实测一致）。 */
+    private int ssRowGapPx;
 
     private void setupIdleSetting(ViewGroup content) {
         if (content == null) return;
         ssContent = content;
+        // 整组上边距保持 0（与其它选项卡一致），第一行上方不留额外空白。
+        content.post(() -> {
+            StringBuilder sb = new StringBuilder();
+            String[] names = {"airplay", "local", "ui", "screensaver", "system", "about"};
+            for (int i = 0; i < TAB_CONTENTS.length && i < names.length; i++) {
+                ViewGroup group = findViewById(TAB_CONTENTS[i]);
+                if (group == null) continue;
+                int top = -1;
+                if (group.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                    top = ((ViewGroup.MarginLayoutParams) group.getLayoutParams()).topMargin;
+                }
+                sb.append(names[i]).append(" margin=").append(top).append(" first=");
+                if (group.getChildCount() > 0) {
+                    sb.append(group.getChildAt(0).getTop() - group.getTop());
+                } else {
+                    sb.append("-");
+                }
+                sb.append(" ");
+            }
+            Log.d(TAG, "tab groups: " + sb);
+        });
         idleButton = new com.google.android.material.button.MaterialButton(this);
         ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.topMargin = Math.round(10f * getResources().getDisplayMetrics().density);
+        params.topMargin = ssRowGapPx > 0 ? ssRowGapPx
+                : Math.round(22f * getResources().getDisplayMetrics().density);
         content.addView(idleButton, params);
         idleButton.setOnClickListener(v -> showIdleDialog());
         updateIdleButton();
