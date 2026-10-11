@@ -61,6 +61,64 @@ public class MainActivity extends BaseActivity {
 
     private ImageView albumArt;
     private TextView trackTitle;
+    /** 本次手势是否已经判定为上滑进屏保（用来吃掉松手的点击）。 */
+    private boolean swipeOpened;
+    private boolean sawScreensaverSwipe;
+    private float swipeDownX, swipeDownY;
+    private long swipeDownAt;
+
+    /**
+     * 屏保入口：整页「上滑」。统一在这里判定，不再依赖子视图的触摸监听
+     * （封面等可点击子视图会先消费触摸，挂在上面的监听收不到滑动）。
+     *
+     * <p>只在落点不在底栏（进度条 / 音量条 / 底栏按钮）上时才参与，
+     * 判定成功后不消费事件、也不影响原有交互，只是让封面的点击忽略这一次。
+     */
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (screensaverPrefs == null) screensaverPrefs = new Prefs(this);
+        if (screensaverPrefs.isScreensaverSwipe()) {
+            switch (ev.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    sawScreensaverSwipe = false;
+                    swipeDownX = ev.getX();
+                    swipeDownY = ev.getY();
+                    swipeDownAt = android.os.SystemClock.elapsedRealtime();
+                    swipeStartedInBottomBar = inBottomBar(ev.getX(), ev.getY());
+                    break;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    if (!sawScreensaverSwipe && !swipeStartedInBottomBar) {
+                        float up = swipeDownY - ev.getY();
+                        float sideways = Math.abs(ev.getX() - swipeDownX);
+                        long elapsed = Math.max(1L,
+                                android.os.SystemClock.elapsedRealtime() - swipeDownAt);
+                        float speed = up / elapsed;                 // px/ms
+                        if (up > 24 * getResources().getDisplayMetrics().density
+                                && up > sideways * 1.5f && speed > 0.4f) {
+                            sawScreensaverSwipe = true;
+                            startActivity(new Intent(this, ScreensaverActivity.class));
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private boolean swipeStartedInBottomBar;
+    private Prefs screensaverPrefs;
+
+    /** 落点是否在底栏（进度条 / 音量条 / 底栏按钮）范围内。 */
+    private boolean inBottomBar(float x, float y) {
+        View bar = findViewById(R.id.bottom_bar);
+        if (bar == null) return false;
+        int[] location = new int[2];
+        bar.getLocationOnScreen(location);
+        return y >= location[1] - 8
+                && x >= location[0] && x <= location[0] + bar.getWidth();
+    }
     private TextView trackArtist;
     private TextView trackAlbum;
     private TextView sourceBadge;
@@ -205,6 +263,43 @@ public class MainActivity extends BaseActivity {
         BukaIcons.view(findViewById(R.id.btn_apps), R.drawable.ic_anim_nav_apps, false);
         BukaIcons.view(findViewById(R.id.btn_multicast), R.drawable.ic_anim_nav_cast, false);
         View leftPanel = findViewById(R.id.left_panel);
+        // 屏保入口：播放页「上滑」。只挂在封面区和右侧信息区（不碰底栏滑条），
+        // 阈值同时要求位移和速度，避免正常点击 / 拖动进度被误判。
+        final android.view.GestureDetector screensaverSwipe =
+                new android.view.GestureDetector(this,
+                        new android.view.GestureDetector.SimpleOnGestureListener() {
+                            @Override
+                            public boolean onFling(android.view.MotionEvent e1,
+                                                   android.view.MotionEvent e2,
+                                                   float velocityX, float velocityY) {
+                                if (e1 == null || e2 == null) return false;
+                                float up = e1.getY() - e2.getY();
+                                if (up > 80 && Math.abs(velocityY) > Math.abs(velocityX)
+                                        && Math.abs(velocityY) > 600
+                                        && new Prefs(MainActivity.this).isScreensaverSwipe()) {
+                                    startActivity(new Intent(MainActivity.this,
+                                            ScreensaverActivity.class));
+                                    return true;
+                                }
+                                return false;
+                            }
+                        });
+        android.view.View.OnTouchListener swipeListener = (v, event) -> {
+            if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
+                swipeOpened = false;
+            }
+            if (screensaverSwipe.onTouchEvent(event)) {
+                // 判定为「上滑进屏保」：吃掉后续事件，避免松手时又触发封面点击(进歌词页)
+                swipeOpened = true;
+            }
+            return swipeOpened;
+        };
+        leftPanel.setOnTouchListener(swipeListener);
+        // 封面本身是可点击的子视图，会先吃掉触摸：必须挂在封面自己身上，
+        // 否则上滑手势被它消费，永远触发不到（表现就是只进了歌词页）。
+        albumArt.setOnTouchListener(swipeListener);
+        View rightPanelSwipe = findViewById(R.id.right_panel);
+        if (rightPanelSwipe != null) rightPanelSwipe.setOnTouchListener(swipeListener);
 
         setupVolumeSlider();
         // 按住进度条 / 音量条时，整条（轨道+手柄）轻微缩放，和按钮同一套按压反馈
@@ -295,8 +390,10 @@ public class MainActivity extends BaseActivity {
 
         findViewById(R.id.btn_settings).setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
-        albumArt.setOnClickListener(v ->
-                startActivity(new Intent(this, LyricsActivity.class)));
+        albumArt.setOnClickListener(v -> {
+            if (sawScreensaverSwipe) return;   // 刚才是上滑进屏保，别顺手又进歌词页
+            startActivity(new Intent(this, LyricsActivity.class));
+        });
         findViewById(R.id.btn_library).setOnClickListener(v ->
                 startActivity(new Intent(this, LibraryActivity.class)));
         findViewById(R.id.btn_apps).setOnClickListener(v ->

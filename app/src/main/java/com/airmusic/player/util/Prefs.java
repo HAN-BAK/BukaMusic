@@ -31,6 +31,12 @@ public final class Prefs {
     private static final String KEY_SHOW_APPS_BUTTON = "show_apps_button";
     private static final String KEY_BLUR_MODE = "blur_mode";
     private static final String KEY_LANGUAGE = "language";
+    // ---- 屏保 ----
+    private static final String KEY_SCREENSAVER_SWIPE = "screensaver_swipe";
+    private static final String KEY_SCREENSAVER_DATE = "screensaver_date";
+    private static final String KEY_SCREENSAVER_TRACK = "screensaver_track";
+    private static final String KEY_SCREENSAVER_BLINK = "screensaver_blink";
+    private static final String KEY_SCREENSAVER_24H = "screensaver_24h";
     private static final String KEY_ONBOARDING_DONE = "onboarding_done";
     private static final String KEY_ONLINE_LYRICS = "online_lyrics";
     private static final String KEY_EQ_GAINS = "eq_gains";
@@ -149,6 +155,52 @@ public final class Prefs {
     public void setBalance(float balance) {
         float clamped = Math.max(-1f, Math.min(1f, balance));
         sp.edit().putFloat(KEY_BALANCE, clamped).apply();
+    }
+
+    // ------------------------------------------------------------------ 屏保
+    /** 播放页上滑是否进入屏保（默认开）。 */
+    public boolean isScreensaverSwipe() {
+        return sp.getBoolean(KEY_SCREENSAVER_SWIPE, true);
+    }
+
+    public void setScreensaverSwipe(boolean enabled) {
+        sp.edit().putBoolean(KEY_SCREENSAVER_SWIPE, enabled).apply();
+    }
+
+    /** 屏保是否显示日期。 */
+    public boolean isScreensaverDate() {
+        return sp.getBoolean(KEY_SCREENSAVER_DATE, true);
+    }
+
+    public void setScreensaverDate(boolean enabled) {
+        sp.edit().putBoolean(KEY_SCREENSAVER_DATE, enabled).apply();
+    }
+
+    /** 屏保是否显示当前歌曲信息。 */
+    public boolean isScreensaverTrack() {
+        return sp.getBoolean(KEY_SCREENSAVER_TRACK, true);
+    }
+
+    public void setScreensaverTrack(boolean enabled) {
+        sp.edit().putBoolean(KEY_SCREENSAVER_TRACK, enabled).apply();
+    }
+
+    /** 冒号是否闪烁。 */
+    public boolean isScreensaverBlink() {
+        return sp.getBoolean(KEY_SCREENSAVER_BLINK, true);
+    }
+
+    public void setScreensaverBlink(boolean enabled) {
+        sp.edit().putBoolean(KEY_SCREENSAVER_BLINK, enabled).apply();
+    }
+
+    /** 是否 24 小时制（关掉用 12 小时制）。 */
+    public boolean isScreensaver24h() {
+        return sp.getBoolean(KEY_SCREENSAVER_24H, true);
+    }
+
+    public void setScreensaver24h(boolean enabled) {
+        sp.edit().putBoolean(KEY_SCREENSAVER_24H, enabled).apply();
     }
 
     /** Whether the apps-list button is shown on the main playback screen. */
