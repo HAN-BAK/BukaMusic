@@ -159,6 +159,10 @@ public class ScreensaverActivity extends BaseActivity {
         colonView = findViewById(R.id.screensaver_time_colon);
         minuteView = findViewById(R.id.screensaver_time_minute);
         root = findViewById(R.id.screensaver_root);
+        // 数字换位时左右外边距会做补间，控件可能在极短时间内比文字略窄；
+        // 关掉裁剪，避免这一瞬间把字切掉（配合 XML 里的 maxLines=1 也不会折行）。
+        ((android.view.ViewGroup) clockRow).setClipChildren(false);
+        ((android.view.ViewGroup) clockRow).setClipToPadding(false);
         // 屏幕尺寸/比例变了（平板、带鱼屏、分辨率切换）就按新的可用区域重新适配
         root.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             if ((r - l) != (or - ol) || (b - t) != (ob - ot)) refitClock();
@@ -238,25 +242,11 @@ public class ScreensaverActivity extends BaseActivity {
             hourView.setText(hour);
             minuteView.setText(minute);
             if (oldHourWidth > 0 && oldMinuteWidth > 0) {
-                // 关键：换完数字后立刻把宽度钉回旧值。否则紧接着那次排版会先按
-                // 新宽度跳一下，动画再追上去——看起来就是「先闪一下再滑」。
-                float newHourWidth = textWidth(hourView, hour);
-                float newMinuteWidth = textWidth(minuteView, minute);
-                applyWidth(hourView, oldHourWidth);
-                applyWidth(minuteView, oldMinuteWidth);
-                animateWidth(hourView, oldHourWidth, newHourWidth);
-                animateWidth(minuteView, oldMinuteWidth, newMinuteWidth);
+                animateReflow(hourView, oldHourWidth, textWidth(hourView, hour));
+                animateReflow(minuteView, oldMinuteWidth, textWidth(minuteView, minute));
             }
         }
         updateDrift();
-    }
-
-    /** 直接给定文本框宽度（wrap_content 时由文字决定，动画期间由这里接管）。 */
-    private void applyWidth(TextView view, float width) {
-        if (view == null) return;
-        android.view.ViewGroup.LayoutParams lp = view.getLayoutParams();
-        lp.width = Math.max(1, Math.round(width));
-        view.setLayoutParams(lp);
     }
 
     private String lastHourText;
@@ -267,32 +257,53 @@ public class ScreensaverActivity extends BaseActivity {
             new java.util.ArrayList<>();
 
     /**
-     * 把一个文本框的宽度从旧值动画到新值：中间的每一帧都重新排版并重算对齐，
-     * 所以「时 / 冒号 / 分」会连续地滑动过去，而不是一帧跳到位。
+     * 数字换一位导致的宽度变化，用「左右外边距」做补间动画。
+     *
+     * <p>为什么不用动画控件宽度：控件宽度一旦小于文字，TextView 会把最后一个字折到
+     * 第二行（实测就是这样：时间一变，最后一位跳到下一行）。这里让控件始终
+     * wrap_content —— 文字永远放得下、不会被折行 —— 宽度差放到左右外边距里，
+     * 每帧改外边距重新排版，效果和"整块慢慢滑过去"一样，且不会折行、不会被裁。
+     *
+     * @param oldWidth 换数字之前文本框的实际宽度
+     * @param newWidth 新数字的排版宽度
      */
-    private void animateWidth(final TextView view, float fromWidth, final float toWidth) {
-        if (view == null || Math.abs(toWidth - fromWidth) < 0.5f) return;
+    private void animateReflow(final TextView view, float oldWidth, float newWidth) {
+        if (view == null || !(view.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams)) {
+            return;
+        }
+        final android.view.ViewGroup.MarginLayoutParams lp =
+                (android.view.ViewGroup.MarginLayoutParams) view.getLayoutParams();
+        // 先把差值补回左右两侧，布局立刻回到「换数字之前」的样子（不闪）
+        final float startGap = (oldWidth - newWidth) / 2f;
+        applyGap(lp, view, startGap);
+        if (Math.abs(startGap) < 0.5f) return;
         final android.animation.ValueAnimator animator =
-                android.animation.ValueAnimator.ofFloat(fromWidth, toWidth);
+                android.animation.ValueAnimator.ofFloat(startGap, 0f);
         animator.setDuration(REFLOW_MS);
         animator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
         animator.addUpdateListener(a -> {
-            applyWidth(view, (float) a.getAnimatedValue());
+            applyGap(lp, view, (float) a.getAnimatedValue());
             alignClockRow();   // 每帧重算冒号对齐与整行居中，全程保持居中
         });
         animator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                // 结束后交回 wrap_content，避免和字体实际宽度差出零点几像素
-                android.view.ViewGroup.LayoutParams lp = view.getLayoutParams();
-                lp.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
-                view.setLayoutParams(lp);
+                applyGap(lp, view, 0f);
                 reflows.remove(animator);
                 alignClockRow();
             }
         });
         reflows.add(animator);
         animator.start();
+    }
+
+    /** 把宽度差按左右相等的外边距应用到控件上。 */
+    private void applyGap(android.view.ViewGroup.MarginLayoutParams lp, TextView view, float gap) {
+        int px = Math.round(gap);
+        if (lp.getMarginStart() == px && lp.getMarginEnd() == px) return;
+        lp.setMarginStart(px);
+        lp.setMarginEnd(px);
+        view.setLayoutParams(lp);
     }
 
     /** 一段文字在当前字号下的排版宽度（wrap_content 时文本框就是这么宽）。 */

@@ -30,6 +30,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:includeFontPadding="false"
+                android:maxLines="1"
                 android:textColor="@color/text_primary"
                 android:textSize="200sp"
                 android:textStyle="bold" />
@@ -40,6 +41,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:includeFontPadding="false"
+                android:maxLines="1"
                 android:text=":"
                 android:textColor="@color/text_primary"
                 android:textSize="200sp"
@@ -51,6 +53,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:includeFontPadding="false"
+                android:maxLines="1"
                 android:textColor="@color/text_primary"
                 android:textSize="200sp"
                 android:textStyle="bold" />
