@@ -480,10 +480,7 @@ public class SettingsActivity extends BaseActivity {
         }
         View ssFont = findViewById(R.id.btn_ss_font);
         if (ssFont != null) ssFont.setOnClickListener(v -> showFontDialog());
-        // 屏保这一组行的间距统一加大（用户反馈"各选项间距都很小"）：
-        // 直接给每行的容器补 8dp 上边距，避免依赖布局文件里的缩进。
-        // 行间距对齐其它选项卡：实测「存储与设备」相邻两行留白约 22dp。
-        // 第一行不加额外上边距，否则标题下面会多出一大片空白。
+        // 屏保这一组的行距：与其它选项卡实测一致的 22dp（用户反馈过"各选项间距都很小"）。
         int rowGap = Math.round(22f * getResources().getDisplayMetrics().density);
         ssRowGapPx = rowGap;
         // 第一行与其它选项卡首行对齐：实测「存储与设备」第一颗按钮距栏目底 18px（8dp）。
