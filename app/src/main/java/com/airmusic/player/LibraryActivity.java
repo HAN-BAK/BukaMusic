@@ -206,34 +206,68 @@ public class LibraryActivity extends BaseActivity {
      * snapping.
      */
     private void animateListIn() {
-        list.post(() -> {
-            if (isFinishing()) return;
-            float shift = getResources().getDisplayMetrics().density * 26f;
-            android.view.animation.Interpolator ease =
-                    new android.view.animation.DecelerateInterpolator(1.6f);
-            int count = list.getChildCount();
-            for (int i = 0; i < count; i++) {
-                android.view.View child = list.getChildAt(i);
-                if (child == null) continue;
-                // Never stack a new fade on top of an unfinished one, and make
-                // sure the row ends up fully visible even if the animation is
-                // cut short.
-                child.animate().cancel();
-                child.setAlpha(0f);
-                child.setTranslationY(shift);
-                child.animate()
-                        .alpha(1f)
-                        .translationY(0f)
-                        .withEndAction(() -> {
-                            child.setAlpha(1f);
-                            child.setTranslationY(0f);
-                        })
-                        .setStartDelay(Math.min(260L, i * 28L))
-                        .setDuration(280L)
-                        .setInterpolator(ease)
-                        .start();
-            }
-        });
+        // 关键：必须等这一帧的排版完成之后再做淡入。
+        //
+        // 原来用 list.post 直接跑：打开专辑/歌手分组时「notifyDataSetChanged 的排版」
+        // 还没发生，这里拿到的还是即将被回收重用的旧视图；设成 alpha 0 后动画又因为
+        // 视图被重绑而取消，于是新行继承 alpha 0——列表看着是空的（文字不见但可点），
+        // 碰一下屏幕（按压缩放效果复位了 alpha）才显示。手机上跑得快，正好踩中这个
+        // 顺序；盒子上因为排版先完成，所以一直没暴露。
+        // 用 onPreDraw 一次性回调：它在排版之后、绘制之前，此时拿到的一定是新行。
+        list.getViewTreeObserver().addOnPreDrawListener(
+                new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        if (list.getViewTreeObserver().isAlive()) {
+                            list.getViewTreeObserver().removeOnPreDrawListener(this);
+                        }
+                        fadeChildrenIn();
+                        return true;
+                    }
+                });
+    }
+
+    private void fadeChildrenIn() {
+        if (isFinishing()) return;
+        float shift = getResources().getDisplayMetrics().density * 26f;
+        android.view.animation.Interpolator ease =
+                new android.view.animation.DecelerateInterpolator(1.6f);
+        int count = list.getChildCount();
+        for (int i = 0; i < count; i++) {
+            android.view.View child = list.getChildAt(i);
+            if (child == null) continue;
+            // Never stack a new fade on top of an unfinished one, and make
+            // sure the row ends up fully visible even if the animation is
+            // cut short.
+            child.animate().cancel();
+            child.setAlpha(0f);
+            child.setTranslationY(shift);
+            child.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .withEndAction(() -> {
+                        child.setAlpha(1f);
+                        child.setTranslationY(0f);
+                    })
+                    .setStartDelay(Math.min(260L, i * 28L))
+                    .setDuration(280L)
+                    .setInterpolator(ease)
+                    .start();
+        }
+        // 兜底：不管上面动画因为什么没跑完/被取消，都保证行最终可见
+        // （视图被回收重绑、动画被取消等情况都覆盖得到）。
+        list.postDelayed(this::forceRowsVisible, 700L);
+    }
+
+    /** 把任何还停在透明/位移状态的行复位成完全可见。 */
+    private void forceRowsVisible() {
+        if (isFinishing()) return;
+        for (int i = 0; i < list.getChildCount(); i++) {
+            android.view.View child = list.getChildAt(i);
+            if (child == null) continue;
+            if (child.getAlpha() < 1f) child.setAlpha(1f);
+            if (child.getTranslationY() != 0f) child.setTranslationY(0f);
+        }
     }
 
     private static int labelFor(TrackAdapter.GroupBy mode) {
