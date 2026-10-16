@@ -197,6 +197,12 @@ public class LibraryActivity extends BaseActivity {
         txtTitle.setText(open == null ? getString(R.string.library) : open);
         txtTitle.setVisibility(adapter.isSelectionMode() || searchMode ? View.GONE : View.VISIBLE);
         btnGroup.setText(getString(labelFor(adapter.getGroupBy())));
+        // 保险：数据/分组方式变了就主动要一次布局与重绘。
+        // 实测手机上出现过「界面变更丢了重绘」——画面停在上一帧（dumpsys gfxinfo 的帧数
+        // 一直不动），列表明明有新内容也不显示，碰一下屏幕才画出来。这里补一次请求，
+        // 即使之前的 requestLayout 标记在某次后台/被遮挡时丢了也能自愈。
+        list.requestLayout();
+        list.invalidate();
         animateListIn();
     }
 
@@ -284,6 +290,14 @@ public class LibraryActivity extends BaseActivity {
         // 所以每次显示曲库都跟随一次设置。
         applySavedGroup();
         loadTracks();
+        // 回到本页时再要一次重绘：手机上出现过「离开时数据变了、回来画面还是旧的，
+        // 碰一下屏幕才刷新」（dumpsys gfxinfo 显示期间一帧都没画）。主动 invalidate
+        // 一次即可自愈，代价可忽略。
+        list.post(() -> {
+            if (isFinishing()) return;
+            list.requestLayout();
+            list.invalidate();
+        });
         // 曲库页面停留期间换歌（自动下一首、电脑端切歌、多房间接收）也要更新
         // 高亮：以前只有打开 / 回到本页时才刷新。
         StateBus.get().addListener(stateListener);
