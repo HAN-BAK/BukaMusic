@@ -105,6 +105,10 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (newTracks != null) source.addAll(newTracks);
         selected.clear();
         rebuild();
+        // 曲库页"一片空白"要能自查：这次塞进来多少、最终排了多少行。
+        android.util.Log.i("TrackAdapter", "setTracks: source=" + source.size()
+                + " rows=" + rows.size() + " group=" + groupBy
+                + " open=" + openGroup + " query='" + query + "'");
     }
 
     /** Switches between flat / by-album / by-artist presentation. */

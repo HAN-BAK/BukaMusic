@@ -923,18 +923,10 @@ public class MainActivity extends BaseActivity {
         volumePollHandler.removeCallbacks(volumePoll);
     }
 
-    /**
-     * 用户在设置里关掉「允许后台运行」时，离开应用到别的地方（HOME / 切换到别的 App）
-     * 就把后台服务停掉——不再常驻、通知也消失。用 onUserLeaveHint 而不是 onStop：
-     * 熄屏不该算"离开应用"，否则关掉开关后锁屏会把音乐也停掉。
-     */
-    @Override
-    protected void onUserLeaveHint() {
-        super.onUserLeaveHint();
-        if (!new Prefs(this).isBackgroundRun()) {
-            PlaybackService.stop(this);
-        }
-    }
+    // 「允许后台运行」关掉后如何停止后台服务，见 App.backgroundStopCheck：
+    // 判断依据是"最后一个 Activity 也 stop 了"，而不是 onUserLeaveHint（按 HOME
+    // 回桌面时系统带 FLAG_ACTIVITY_NO_USER_ACTION，那个回调不会触发；反而应用内
+    // 换页面会触发，以前就是这样把服务点掉的）。
 
     @Override
     protected void onDestroy() {

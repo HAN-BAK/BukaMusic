@@ -116,13 +116,17 @@ public class PlaybackService extends Service {
         if (context == null) return;
         Intent intent = new Intent(context, PlaybackService.class);
         intent.setAction(ACTION_STOP_SERVICE);
-        // 记下请求时间。系统（MIUI 尤其明显）会把后台应用的 startService 推迟到
-        // 用户回到前台才投递，迟到的停止请求不该在用户眼前生效——见 onStartCommand。
         intent.putExtra(EXTRA_STOP_REQUESTED_AT, android.os.SystemClock.elapsedRealtime());
         try {
-            context.startService(intent);
+            // 用 stopService 而不是 startService+stopSelf：从后台调用 startService
+            // 会被 Android 8+ 的后台限制（MIUI 还会直接 "Reject RestartService"）拒绝
+            // 或推迟到用户回到前台才投递，结果就是"关掉允许后台运行后，回桌面服务照样
+            // 活着"，或者迟到的请求在用户眼前把服务停掉。stopService 不受这个限制，
+            // 服务没在跑时也只是空操作。
+            if (!context.stopService(intent)) {
+                Log.i(TAG, "stop(): service was not running");
+            }
         } catch (Throwable ignored) {
-            // 服务没在跑时系统可能拒绝启动，忽略即可
         }
     }
 

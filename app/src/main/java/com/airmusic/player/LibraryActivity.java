@@ -207,6 +207,36 @@ public class LibraryActivity extends BaseActivity {
         list.requestLayout();
         list.invalidate();
         animateListIn();
+        healEmptyList();
+    }
+
+    /**
+     * 自愈：列表一条都没有、曲库却明明有歌时，再塞一次数据。
+     *
+     * <p>实测出现过"打开曲库一片空白、点歌也没反应"：服务被停掉、或扫描回调正好
+     * 撞上 RecyclerView 布局而没进去，列表就一直是空的。这里兜一层，并且把
+     * 数据量打进日志，方便下次直接从日志看出是哪一步丢了。
+     */
+    private void healEmptyList() {
+        if (adapter.getItemCount() > 0) {
+            return;
+        }
+        PlaybackService service = PlaybackService.getInstance();
+        List<Track> tracks = service != null
+                ? service.getLibraryTracks()
+                : MusicLibrary.getInstance().getCachedTracks();
+        int count = tracks == null ? 0 : tracks.size();
+        Log.w("LibraryActivity", "列表为空：service=" + (service != null)
+                + " tracks=" + count + " group=" + adapter.getGroupBy()
+                + " open=" + adapter.getOpenGroupKey()
+                + " 搜索中=" + adapter.hasQuery());
+        if (adapter.hasQuery()) {
+            return; // 正常的"搜索无结果"，不能拿全部曲目盖掉
+        }
+        if (count > 0) {
+            Log.w("LibraryActivity", "重填一次列表数据：" + count + " 首");
+            adapter.setTracks(tracks);
+        }
     }
 
     /**
@@ -287,14 +317,37 @@ public class LibraryActivity extends BaseActivity {
      * （"Cannot call this method while RecyclerView is computing a layout or scrolling"），
      * 未捕获就是闪退 + "Force finishing activity"，用户在手机上看到的就是"曲库直接卡死"。
      * 扫描结束、按歌手/专辑切换、定位当前歌曲这些时机都可能撞上，统一走这里排队。
+     *
+     * <p>但排队不能无限等：RecyclerView 的 mLayoutOrScrollCounter 一旦因为某次布局里
+     * 抛异常没有归零，isComputingLayout() 会一直是 true，列表就永远填不进去（表现就是
+     * "打开曲库一片空白、点歌也没反应"）。所以最多等 MAX_LIST_IDLE_RETRIES 次，之后
+     * 强行走一次，并记录异常；动作本身也包了 try/catch，宁可少刷一次列表也不要闪退。
      */
+    private static final int MAX_LIST_IDLE_RETRIES = 20;
+    private int listIdleRetries;
+
     private void onListIdle(Runnable action) {
         if (list == null || isFinishing()) return;
         if (list.isComputingLayout()) {
-            list.post(() -> onListIdle(action));
+            if (++listIdleRetries > MAX_LIST_IDLE_RETRIES) {
+                listIdleRetries = 0;
+                Log.w("LibraryActivity", "列表长时间处于布局中，强制执行列表变更");
+                runListChange(action);
+                return;
+            }
+            list.postDelayed(() -> onListIdle(action), 50L);
             return;
         }
-        action.run();
+        listIdleRetries = 0;
+        runListChange(action);
+    }
+
+    private void runListChange(Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            Log.w("LibraryActivity", "列表变更失败，已跳过本次刷新", t);
+        }
     }
 
     private static int labelFor(TrackAdapter.GroupBy mode) {
@@ -310,6 +363,13 @@ public class LibraryActivity extends BaseActivity {
         // 控制台可能在后台改过浏览方式（按专辑 / 按歌手控制播放时会一并下发），
         // 所以每次显示曲库都跟随一次设置。
         applySavedGroup();
+        // 隐藏的搜索框里可能还留着上次恢复出来的过滤词（窗口重建会把 EditText 的内容
+        // 一起恢复，而搜索状态没恢复），列表就会被悄悄过滤成空：看着"没有内容"、点歌
+        // 也没反应。没处于搜索状态就把它清掉。
+        if (!searchMode && adapter.hasQuery()) {
+            Log.w("LibraryActivity", "清掉隐藏的搜索词，避免列表被过滤成空");
+            editSearch.setText("");
+        }
         loadTracks();
         // 回到本页时再要一次重绘：手机上出现过「离开时数据变了、回来画面还是旧的，
         // 碰一下屏幕才刷新」（dumpsys gfxinfo 显示期间一帧都没画）。主动 invalidate
@@ -399,6 +459,8 @@ public class LibraryActivity extends BaseActivity {
         List<Track> tracks = service != null
                 ? service.getLibraryTracks()
                 : MusicLibrary.getInstance().getCachedTracks();
+        Log.i("LibraryActivity", "loadTracks: service=" + (service != null)
+                + " tracks=" + (tracks == null ? -1 : tracks.size()));
         if (tracks != null && !tracks.isEmpty()) {
             onListIdle(() -> {
                 adapter.setTracks(tracks);
