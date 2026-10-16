@@ -107,7 +107,8 @@ public class LibraryActivity extends BaseActivity {
             adapter.openGroup(key);
             applyLayoutMode();
         });
-        list.setLayoutManager(new LinearLayoutManager(this));
+        // 统一用 GridLayoutManager（列表模式 1 列、卡片模式多列），见 applyLayoutMode()。
+        list.setLayoutManager(new GridLayoutManager(this, 1));
         list.setAdapter(adapter);
         // 勾选某一行时（notifyItemChanged）默认的 item 动画会把这一行连同下面
         // 的行做「移动/交叉淡入」处理，看着就是选中后整排往上挤。曲库有自己的
@@ -194,26 +195,34 @@ public class LibraryActivity extends BaseActivity {
             return;
         }
         RecyclerView.LayoutManager manager = list.getLayoutManager();
-        // 换 LayoutManager 前先停掉惯性滑动：RecyclerView 滚动中调用
-        // setLayoutManager() 会直接抛 IllegalStateException 把应用搞崩。
         list.stopScroll();
-        if (adapter.isShowingCards()) {
-            if (!(manager instanceof GridLayoutManager)
-                    || ((GridLayoutManager) manager).getSpanCount() != cardSpan) {
-                list.setLayoutManager(new GridLayoutManager(this, cardSpan));
-            }
-        } else if (manager instanceof GridLayoutManager) {
-            list.setLayoutManager(new LinearLayoutManager(this));
+        // 列表 / 卡片统一用一个 GridLayoutManager：卡片模式多列、列表模式 1 列。
+        //
+        // 以前这里在 LinearLayoutManager 与 GridLayoutManager 之间来回换，而
+        // setLayoutManager() 会先把所有子视图回收掉（mChildHelper.removeAllViewsUnfiltered），
+        // 紧接着那次 requestLayout() 只要被 RecyclerView 自己的"正在布局"判定吞掉，
+        // 列表就再也不会排布：适配器里 1547 条、屏幕上却一片空白——实测手机就卡成了
+        // 这样，而且因为请求传不到根视图，连重建 RecyclerView 都救不回来。
+        // setSpanCount() 只是请求重排，不动子视图，安全得多。
+        int span = adapter.isShowingCards() ? cardSpan : 1;
+        if (!(manager instanceof GridLayoutManager)) {
+            list.setLayoutManager(new GridLayoutManager(this, span));
+        } else if (((GridLayoutManager) manager).getSpanCount() != span) {
+            ((GridLayoutManager) manager).setSpanCount(span);
         }
         String open = adapter.getOpenGroupTitle();
         txtTitle.setText(open == null ? getString(R.string.library) : open);
         txtTitle.setVisibility(adapter.isSelectionMode() || searchMode ? View.GONE : View.VISIBLE);
         btnGroup.setText(getString(labelFor(adapter.getGroupBy())));
-        // 保险：数据/分组方式变了就主动要一次布局与重绘。
-        // 实测手机上出现过「界面变更丢了重绘」——画面停在上一帧（dumpsys gfxinfo 的帧数
-        // 一直不动），列表明明有新内容也不显示，碰一下屏幕才画出来。这里补一次请求，
-        // 即使之前的 requestLayout 标记在某次后台/被遮挡时丢了也能自愈。
-        list.requestLayout();
+        // 数据 / 分组方式变了就主动要一次布局与重绘，而且必须从根视图要：
+        //
+        // View.requestLayout() 里有一句 "父级已经在请求布局就不再往上请求"，所以只要
+        // 视图树中某一级残留了 PFLAG_FORCE_LAYOUT（那次请求正好落在布局过程中被丢掉
+        // 就会这样），它下面所有视图的布局请求都会停在那一级、永远传不到 ViewRootImpl：
+        // 表现就是"数据都在、界面就是不排布/不重绘"，实测手机曲库整页空白、卡片还是
+        // 旧尺寸，都出在这里。从 DecorView 请求一次，直接落到 ViewRootImpl，整棵树
+        // 重新 measure/layout，顺便把残留标记清掉。
+        forceRootLayout();
         list.invalidate();
         animateListIn();
         healEmptyList();
@@ -242,32 +251,60 @@ public class LibraryActivity extends BaseActivity {
             blankRetries = 0;
             return;
         }
-        if (list.getChildCount() > 0) {
+        boolean sized = list.getWidth() > 0 && list.getHeight() > 0;
+        if (sized && list.getChildCount() > 0) {
             blankRetries = 0;
             return;
         }
-        if (!list.isShown() || list.getWidth() <= 0 || list.getHeight() <= 0) return;
+        if (!list.isShown()) return; // 页面不在前面，等回到前面时再说
         blankRetries++;
-        Log.w("LibraryActivity", "列表有 " + adapter.getItemCount() + " 条数据却没有任何子视图，"
-                + "第 " + blankRetries + " 次修复");
+        Log.w("LibraryActivity", "列表" + (sized
+                ? "有 " + adapter.getItemCount() + " 条数据却没有任何子视图"
+                : "根本没被排过版（尺寸 0）") + "，第 " + blankRetries + " 次修复");
         if (blankRetries <= BLANK_RETRY_LIMIT) {
             forceListLayout();
             list.postDelayed(this::ensureListRendered, 400L);
             return;
         }
-        blankRetries = 0;
-        rebuildList();
+        if (blankRetries == BLANK_RETRY_LIMIT + 1) {
+            rebuildList();
+            list.postDelayed(this::ensureListRendered, 500L);
+            return;
+        }
+        // 换过新视图还是不行：直接从根视图要一次完整布局——中间任何一环把
+        // requestLayout 吞掉都会导致子树永远不排版。
+        Log.w("LibraryActivity", "仍然没有排布，直接从根视图强制一次布局");
+        forceRootLayout();
+        if (blankRetries > BLANK_RETRY_LIMIT + 3) {
+            blankRetries = 0; // 别无限重试，交给下一次数据变化 / 回到页面再试
+        } else {
+            list.postDelayed(this::ensureListRendered, 600L);
+        }
     }
 
-    /** RecyclerView 自己的 requestLayout 可能被吞，绕到父容器再请求一次。 */
+    /** RecyclerView 自己的 requestLayout 可能被吞，绕到父容器 + 根视图再请求一次。 */
     private void forceListLayout() {
         try {
             list.forceLayout();
             View parent = (View) list.getParent();
             if (parent != null) parent.requestLayout();
             list.invalidate();
+            forceRootLayout();
         } catch (Throwable t) {
             Log.w("LibraryActivity", "强制列表布局失败", t);
+        }
+    }
+
+    /** 让整个窗口重新走一次 measure/layout（绕开中间任何吞掉 requestLayout 的环节）。 */
+    private void forceRootLayout() {
+        try {
+            View root = getWindow() != null ? getWindow().getDecorView() : list.getRootView();
+            if (root != null) {
+                root.requestLayout();
+                root.invalidate();
+            }
+        } catch (Throwable t) {
+            Log.w("LibraryActivity", "强制根视图布局失败", t);
         }
     }
 
@@ -290,12 +327,14 @@ public class LibraryActivity extends BaseActivity {
                     list.getPaddingRight(), padBottom);
             fresh.setOverScrollMode(overScroll);
             fresh.setItemAnimator(null);
-            fresh.setLayoutManager(new LinearLayoutManager(this));
+            fresh.setLayoutManager(new GridLayoutManager(this,
+                    adapter.isShowingCards() ? cardSpan : 1));
             fresh.setAdapter(adapter);
             parent.removeView(list);
             parent.addView(fresh, Math.max(0, index));
             list = fresh;
             Log.w("LibraryActivity", "已重建曲库列表视图");
+            forceRootLayout();
             PlaybackService service = PlaybackService.getInstance();
             List<Track> tracks = service != null
                     ? service.getLibraryTracks()
@@ -446,6 +485,9 @@ public class LibraryActivity extends BaseActivity {
         } catch (Throwable t) {
             Log.w("LibraryActivity", "列表变更失败，已跳过本次刷新", t);
         }
+        // 数据变了就顺带从根视图要一次布局：中间任何一级残留的布局标记都可能把
+        // 列表自己的 requestLayout 挡住（见 applyLayoutMode 的注释）。
+        forceRootLayout();
         // 每次改完数据都顺手检查一次"有数据但没排布"的卡住状态。
         if (list != null) {
             list.postDelayed(this::ensureListRendered, 300L);
@@ -480,6 +522,7 @@ public class LibraryActivity extends BaseActivity {
             if (isFinishing()) return;
             list.requestLayout();
             list.invalidate();
+            forceRootLayout();
         });
         // 回到本页时也检查一次"有数据但没排布"的卡住状态。
         list.postDelayed(this::ensureListRendered, 600L);
