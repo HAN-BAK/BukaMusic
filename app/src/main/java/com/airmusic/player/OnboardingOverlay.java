@@ -281,9 +281,23 @@ public class OnboardingOverlay extends FrameLayout {
         getLocationOnScreen(myLocation);
         float left = anchorLocation[0] - myLocation[0];
         float top = anchorLocation[1] - myLocation[1];
+        // getLocationOnScreen() 给的是**屏幕坐标**（祖先的缩放已经算进去了），但
+        // getWidth()/getHeight() 是布局尺寸（未缩放）。小米6 这类设备整页会被
+        // BoxAspectFrameLayout 缩放到 0.729，直接混用两者会让高亮框大出约 37%
+        // （定位对、右下角偏出去），所以尺寸也要乘上同一条链上的累计缩放。
+        float scaleX = accumulatedScale(anchor, true);
+        float scaleY = accumulatedScale(anchor, false);
+        float anchorWidth = anchor.getWidth() * scaleX;
+        float anchorHeight = anchor.getHeight() * scaleY;
         hole.set(left - holePadding, top - holePadding,
-                left + anchor.getWidth() + holePadding,
-                top + anchor.getHeight() + holePadding);
+                left + anchorWidth + holePadding,
+                top + anchorHeight + holePadding);
+        if (Math.abs(scaleX - 1f) > 0.001f || Math.abs(scaleY - 1f) > 0.001f) {
+            android.util.Log.i("OnboardingOverlay", "高亮框 hole=" + roundedString(hole)
+                    + " 锚点屏幕位置=" + left + "," + top
+                    + " 屏幕尺寸=" + Math.round(anchorWidth) + "x" + Math.round(anchorHeight)
+                    + " scale=" + scaleX + "/" + scaleY);
+        }
         // 高亮统一用圆角矩形（原来按 22% 比例算，小方块看着就成圆形了）
         float density = getResources().getDisplayMetrics().density;
         float radius = Math.min(14f * density, Math.min(hole.width(), hole.height()) / 2f);
@@ -293,6 +307,23 @@ public class OnboardingOverlay extends FrameLayout {
         scrimPath.setFillType(Path.FillType.EVEN_ODD);
         scrimPath.addRect(0f, 0f, getWidth(), getHeight(), Path.Direction.CW);
         scrimPath.addRoundRect(rounded, radius, radius, Path.Direction.CW);
+    }
+
+    /** 从该视图到 window 的累计缩放（内容整体缩放时就靠它换算屏幕尺寸）。 */
+    private static float accumulatedScale(View view, boolean horizontal) {
+        float scale = 1f;
+        View current = view;
+        while (current != null) {
+            scale *= horizontal ? current.getScaleX() : current.getScaleY();
+            android.view.ViewParent parent = current.getParent();
+            current = parent instanceof View ? (View) parent : null;
+        }
+        return scale;
+    }
+
+    private static String roundedString(RectF rect) {
+        return Math.round(rect.left) + "," + Math.round(rect.top)
+                + "," + Math.round(rect.right) + "," + Math.round(rect.bottom);
     }
 
     private void advance() {
