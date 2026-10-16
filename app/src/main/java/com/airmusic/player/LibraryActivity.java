@@ -222,7 +222,7 @@ public class LibraryActivity extends BaseActivity {
         // 表现就是"数据都在、界面就是不排布/不重绘"，实测手机曲库整页空白、卡片还是
         // 旧尺寸，都出在这里。从 DecorView 请求一次，直接落到 ViewRootImpl，整棵树
         // 重新 measure/layout，顺便把残留标记清掉。
-        forceRootLayout();
+        forceRelayout();
         list.invalidate();
         animateListIn();
         healEmptyList();
@@ -274,7 +274,7 @@ public class LibraryActivity extends BaseActivity {
         // 换过新视图还是不行：直接从根视图要一次完整布局——中间任何一环把
         // requestLayout 吞掉都会导致子树永远不排版。
         Log.w("LibraryActivity", "仍然没有排布，直接从根视图强制一次布局");
-        forceRootLayout();
+        forceRelayout();
         if (blankRetries > BLANK_RETRY_LIMIT + 3) {
             blankRetries = 0; // 别无限重试，交给下一次数据变化 / 回到页面再试
         } else {
@@ -289,22 +289,46 @@ public class LibraryActivity extends BaseActivity {
             View parent = (View) list.getParent();
             if (parent != null) parent.requestLayout();
             list.invalidate();
-            forceRootLayout();
+            forceRelayout();
         } catch (Throwable t) {
             Log.w("LibraryActivity", "强制列表布局失败", t);
         }
     }
 
-    /** 让整个窗口重新走一次 measure/layout（绕开中间任何吞掉 requestLayout 的环节）。 */
-    private void forceRootLayout() {
+    /**
+     * 真正强制列表重新排一次版。
+     *
+     * <p>只在 DecorView（或任何单个视图）上 requestLayout() 是**没用**的：
+     * {@code View.requestLayout()} 只给被调用的那个视图打 PFLAG_FORCE_LAYOUT，再往上逐级
+     * notify；窗口尺寸没变时，ViewRootImpl 遍历里中间那几层不会重新 measure，
+     * 也就没有 PFLAG_LAYOUT_REQUIRED，{@code onLayout} 会被整段跳过——表现就是
+     * "数据变了、画面还是上一种模式的样子，摸一下屏幕（滚动让列表自己重排）才更新"。
+     *
+     * <p>正确做法：从列表本身往上逐级 {@code forceLayout()}（让这条链上每一级都会重新
+     * measure），再从列表的父容器 {@code requestLayout()} 一次，把这次的遍历请求送到
+     * ViewRootImpl。这样整条链都会重新 measure + onLayout，列表才会真正重新排布子视图。
+     */
+    private void forceRelayout() {
+        if (list == null) return;
         try {
-            View root = getWindow() != null ? getWindow().getDecorView() : list.getRootView();
-            if (root != null) {
-                root.requestLayout();
-                root.invalidate();
+            View view = list;
+            while (view != null) {
+                view.forceLayout();
+                android.view.ViewParent parent = view.getParent();
+                view = parent instanceof View ? (View) parent : null;
+            }
+            android.view.ViewParent parent = list.getParent();
+            if (parent instanceof View) {
+                ((View) parent).requestLayout();
+            } else {
+                list.requestLayout();
+            }
+            list.invalidate();
+            if (getWindow() != null && getWindow().getDecorView() != null) {
+                getWindow().getDecorView().invalidate();
             }
         } catch (Throwable t) {
-            Log.w("LibraryActivity", "强制根视图布局失败", t);
+            Log.w("LibraryActivity", "强制列表重排失败", t);
         }
     }
 
@@ -334,7 +358,7 @@ public class LibraryActivity extends BaseActivity {
             parent.addView(fresh, Math.max(0, index));
             list = fresh;
             Log.w("LibraryActivity", "已重建曲库列表视图");
-            forceRootLayout();
+            forceRelayout();
             PlaybackService service = PlaybackService.getInstance();
             List<Track> tracks = service != null
                     ? service.getLibraryTracks()
@@ -487,7 +511,7 @@ public class LibraryActivity extends BaseActivity {
         }
         // 数据变了就顺带从根视图要一次布局：中间任何一级残留的布局标记都可能把
         // 列表自己的 requestLayout 挡住（见 applyLayoutMode 的注释）。
-        forceRootLayout();
+        forceRelayout();
         // 每次改完数据都顺手检查一次"有数据但没排布"的卡住状态。
         if (list != null) {
             list.postDelayed(this::ensureListRendered, 300L);
@@ -522,7 +546,7 @@ public class LibraryActivity extends BaseActivity {
             if (isFinishing()) return;
             list.requestLayout();
             list.invalidate();
-            forceRootLayout();
+            forceRelayout();
         });
         // 回到本页时也检查一次"有数据但没排布"的卡住状态。
         list.postDelayed(this::ensureListRendered, 600L);
@@ -743,7 +767,7 @@ public class LibraryActivity extends BaseActivity {
                 onListIdle(() -> {
                     adapter.notifyDataSetChanged();
                     scrollToCurrentTrack();
-                    forceRootLayout();
+                    forceRelayout();
                 });
             }, 160L);
         }).show();
@@ -764,7 +788,7 @@ public class LibraryActivity extends BaseActivity {
         onListIdle(() -> {
             adapter.notifyDataSetChanged();
             list.requestLayout();
-            forceRootLayout();
+            forceRelayout();
             list.postDelayed(this::ensureListRendered, 400L);
         });
     }
