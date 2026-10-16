@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.graphics.Bitmap;
-import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.os.Build;
@@ -253,6 +252,11 @@ public class MainActivity extends BaseActivity {
         positionText = findViewById(R.id.position_text);
         durationText = findViewById(R.id.duration_text);
         btnPlay = findViewById(R.id.btn_play);
+        // 播放键的图标自己画（见 ui/MorphGlyphDrawable）：播放三角 ↔ 暂停两条的
+        // 变形由 ValueAnimator 直接插值线段端点，没有任何共享的动画几何。
+        playGlyph = new com.airmusic.player.ui.MorphGlyphDrawable(
+                androidx.core.content.ContextCompat.getColor(this, R.color.background));
+        btnPlay.setImageDrawable(playGlyph);
         btnNext = findViewById(R.id.btn_next);
         btnPrev = findViewById(R.id.btn_prev);
         btnMulticast = findViewById(R.id.btn_multicast);
@@ -577,7 +581,7 @@ public class MainActivity extends BaseActivity {
         controlPending = true;
         if (icon == btnPlay) {
             // Keep the circular sky-blue frame visible; hide only the glyph.
-            btnPlay.setImageResource(android.R.color.transparent);
+            btnPlay.setImageDrawable(null);
             playGlyphVisible = false;
         } else {
             icon.setVisibility(View.INVISIBLE);
@@ -605,44 +609,57 @@ public class MainActivity extends BaseActivity {
     }
 
     /**
+     * 播放键的形状变形动画。
+     *
+     * <p>踩过的坑：平台版 {@code AnimatedVectorDrawable} 的动画器是**就地改写**矢量
+     * 路径数据的，而同一份资源的新实例共享常量态（ConstantState），且平台版的
+     * {@code mutate()} 只是打个标记、不做真正的几何复制。结果就是上一次变形结束时的
+     * 目标几何留在资源里，下一次点下去时新实例先按这份残留几何画一帧——
+     * 表现为"先瞬间切到目标形状、再回到起始形状、然后才正常变形"。
+     *
+     * <p>AndroidX 的 {@code AnimatedVectorDrawableCompat} 的 {@code mutate()} 是真正
+     * 复制一份矢量几何的，所以这里用它：每个实例动画前先 mutate()，动画器只改自己
+     * 那一份，资源本身永远保持干净。
+     */
+    private void startMorph(boolean playing) {
+        if (playGlyph == null) return;
+        if (btnPlay.getDrawable() != playGlyph) {
+            btnPlay.setImageDrawable(playGlyph);
+        }
+        btnPlay.setImageAlpha(255);
+        if (glyphAnimator != null) glyphAnimator.cancel();
+        glyphAnimator = android.animation.ValueAnimator.ofFloat(
+                playGlyph.isPauseShape() ? 1f : 0f, playing ? 1f : 0f);
+        glyphAnimator.setDuration(300L);
+        glyphAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
+        glyphAnimator.addUpdateListener(
+                a -> playGlyph.setMorph((float) a.getAnimatedValue()));
+        glyphAnimator.start();
+    }
+
+    /** 自己画的图标（播放三角 ↔ 暂停两条），见 {@link com.airmusic.player.ui.MorphGlyphDrawable}。 */
+    private com.airmusic.player.ui.MorphGlyphDrawable playGlyph;
+    private android.animation.ValueAnimator glyphAnimator;
+
+    /**
      * Shows the play/pause glyph, morphing between the two icon shapes when
      * the transport state changes (morphicons-style animation).
      */
     private void updatePlayIcon(boolean playing, boolean animate) {
         boolean changed = playGlyphPlaying == null || playGlyphPlaying != playing;
-        if (playGlyphPlaying == null) {
-            btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
+        boolean wasShowing = changed && playGlyphPlaying != null;
+        if (!changed && playGlyphVisible) return;   // 状态没变、图标也在：什么都不做
+        if (!animate || !wasShowing) {
+            // 首次显示 / 不需要动画：直接切到目标形状
+            if (playGlyph == null) return;
+            if (btnPlay.getDrawable() != playGlyph) btnPlay.setImageDrawable(playGlyph);
+            btnPlay.setImageAlpha(255);
+            playGlyph.setPlaying(playing);
             playGlyphPlaying = playing;
             playGlyphVisible = true;
             return;
         }
-        if (!changed) {
-            if (!playGlyphVisible) {
-                btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
-                playGlyphVisible = true;
-            }
-            return;
-        }
-        if (!animate) {
-            btnPlay.setImageResource(playing ? R.drawable.vd_pause_morph : R.drawable.vd_play_morph);
-            playGlyphPlaying = playing;
-            playGlyphVisible = true;
-            return;
-        }
-        int morphRes = playing ? R.drawable.avd_play_to_pause : R.drawable.avd_pause_to_play;
-        // 关键：只把 morph 的 drawable 挂上去，**不要再显式 start()**。
-        //
-        // AnimatedVectorDrawable 只有在"可见"时才跑动画，ImageView 挂上新 drawable
-        // 时自己就会 setVisible(...) 把它启动起来；再补一次 start() 等于把刚起步的
-        // 动画重启一遍，而重启那一帧会按里面残留的几何（上一次变形结束时的目标形状）
-        // 画出来——实测就是「点下去先闪成目标形状 → 回到起始形状 → 再正常变形」。
-        // mutate() 再给这份 drawable 一份自己的矢量状态，避免和别的实例共享。
-        btnPlay.setImageResource(morphRes);
-        Drawable attached = btnPlay.getDrawable();
-        if (attached != null) attached.mutate();
-        if (attached instanceof AnimatedVectorDrawable) {
-            attached.setVisible(true, false);   // 触发/继续动画，但不重启
-        }
+        startMorph(playing);
         playGlyphPlaying = playing;
         playGlyphVisible = true;
     }
@@ -901,6 +918,10 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (glyphAnimator != null) {
+            glyphAnimator.cancel();
+            glyphAnimator = null;
+        }
         volumePollHandler.removeCallbacks(volumePoll);
         volumePollHandler.removeCallbacks(controlTimeoutRunnable);
         PlaybackService service = PlaybackService.getInstance();
