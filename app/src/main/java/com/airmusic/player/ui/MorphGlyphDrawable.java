@@ -34,14 +34,36 @@ public class MorphGlyphDrawable extends Drawable {
     private static final float STROKE = 2.6f;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** 固有尺寸（= 原矢量的 24dp 折算成像素）：ImageView 按这个尺寸居中画，和原来一样。 */
+    private final int intrinsicSize;
     /** 0 = 播放三角，1 = 暂停两条。 */
     private float morph;
 
-    public MorphGlyphDrawable(int color) {
+    /**
+     * @param color          描边颜色（原来矢量里用的 @color/background）
+     * @param intrinsicSizePx 固有边长，传 24dp 折算后的像素值即可与旧图标一致
+     */
+    public MorphGlyphDrawable(int color, int intrinsicSizePx) {
         paint.setColor(color);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeJoin(Paint.Join.ROUND);
+        intrinsicSize = intrinsicSizePx;
+    }
+
+    /**
+     * 必须有固有尺寸：ImageView 默认 ScaleType.CENTER 按固有尺寸居中绘制。
+     * 之前没实现这两个方法，ImageButton 就把整个 drawable 铺满内容区，
+     * 图标看起来比原来大了一圈（实测面积约 2 倍）。
+     */
+    @Override
+    public int getIntrinsicWidth() {
+        return intrinsicSize;
+    }
+
+    @Override
+    public int getIntrinsicHeight() {
+        return intrinsicSize;
     }
 
     /** 0 = 播放三角，1 = 暂停两条（中间值就是变形过程）。 */

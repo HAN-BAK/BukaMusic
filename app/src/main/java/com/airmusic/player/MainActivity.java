@@ -255,7 +255,8 @@ public class MainActivity extends BaseActivity {
         // 播放键的图标自己画（见 ui/MorphGlyphDrawable）：播放三角 ↔ 暂停两条的
         // 变形由 ValueAnimator 直接插值线段端点，没有任何共享的动画几何。
         playGlyph = new com.airmusic.player.ui.MorphGlyphDrawable(
-                androidx.core.content.ContextCompat.getColor(this, R.color.background));
+                androidx.core.content.ContextCompat.getColor(this, R.color.background),
+                Math.round(24f * getResources().getDisplayMetrics().density));
         btnPlay.setImageDrawable(playGlyph);
         btnNext = findViewById(R.id.btn_next);
         btnPrev = findViewById(R.id.btn_prev);
