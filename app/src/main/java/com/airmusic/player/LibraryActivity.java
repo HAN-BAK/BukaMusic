@@ -114,6 +114,26 @@ public class LibraryActivity extends BaseActivity {
         // 的行做「移动/交叉淡入」处理，看着就是选中后整排往上挤。曲库有自己的
         // 入场动效，这里直接关掉列表自带的动画。
         list.setItemAnimator(null);
+        // 诊断用：数据变化后，列表是否真的重新排布过子视图。
+        // 每次数据变更只记一条，方便从日志判断是"没重排"还是"没重绘"。
+        list.addOnChildAttachStateChangeListener(
+                new RecyclerView.OnChildAttachStateChangeListener() {
+                    @Override
+                    public void onChildViewAttachedToWindow(android.view.View child) {
+                        if (!logNextChildAttach) return;
+                        logNextChildAttach = false;
+                        Log.i("LibraryActivity", "列表重排完成：首个挂上的子视图="
+                                + child.getClass().getSimpleName()
+                                + " 当前子视图数=" + list.getChildCount()
+                                + " 条目=" + adapter.getItemCount()
+                                + " 分组=" + adapter.getGroupBy()
+                                + " 展开=" + adapter.getOpenGroupKey());
+                    }
+
+                    @Override
+                    public void onChildViewDetachedFromWindow(android.view.View child) {
+                    }
+                });
         // 全应用统一外观：列表本体也做成卡片（与对话框同一套）
         // Remember how the library was presented last time (flat / by album /
         // by artist) and restore it right away.
@@ -311,22 +331,27 @@ public class LibraryActivity extends BaseActivity {
     private void forceRelayout() {
         if (list == null) return;
         try {
+            // 1) 从列表往上逐级打"必须重新 measure"的标记：否则窗口尺寸没变时，
+            //    中间几层会因为 spec 相同直接复用旧测量结果，没有 PFLAG_LAYOUT_REQUIRED，
+            //    onLayout 就被整段跳过（数据变了、画面还是旧的）。
             View view = list;
             while (view != null) {
                 view.forceLayout();
                 android.view.ViewParent parent = view.getParent();
                 view = parent instanceof View ? (View) parent : null;
             }
-            android.view.ViewParent parent = list.getParent();
-            if (parent instanceof View) {
-                ((View) parent).requestLayout();
-            } else {
-                list.requestLayout();
+            // 2) 关键：必须再从**最外层**请求一次布局。
+            //    View.requestLayout() 里有一句 "父级已经在请求布局就不再往上请求"，
+            //    而第 1 步正好给每一级都打了标记——如果从列表或它的父容器请求，这次请求
+            //    会在中途停下、传不到 ViewRootImpl，于是不会调度遍历，标记白打（上一次
+            //    修好一半就是这个原因）。DecorView 的直接父级就是 ViewRootImpl，
+            //    从它请求一定能落到 ViewRootImpl 上。
+            View root = getWindow() != null ? getWindow().getDecorView() : list.getRootView();
+            if (root != null) {
+                root.requestLayout();
+                root.invalidate();
             }
             list.invalidate();
-            if (getWindow() != null && getWindow().getDecorView() != null) {
-                getWindow().getDecorView().invalidate();
-            }
         } catch (Throwable t) {
             Log.w("LibraryActivity", "强制列表重排失败", t);
         }
@@ -486,6 +511,8 @@ public class LibraryActivity extends BaseActivity {
      */
     private static final int MAX_LIST_IDLE_RETRIES = 20;
     private int listIdleRetries;
+    /** 数据刚变更过，等下一次有子视图挂上来时记一条诊断日志。 */
+    private boolean logNextChildAttach;
 
     private void onListIdle(Runnable action) {
         if (list == null || isFinishing()) return;
@@ -509,6 +536,7 @@ public class LibraryActivity extends BaseActivity {
         } catch (Throwable t) {
             Log.w("LibraryActivity", "列表变更失败，已跳过本次刷新", t);
         }
+        logNextChildAttach = true;
         // 数据变了就顺带从根视图要一次布局：中间任何一级残留的布局标记都可能把
         // 列表自己的 requestLayout 挡住（见 applyLayoutMode 的注释）。
         forceRelayout();
