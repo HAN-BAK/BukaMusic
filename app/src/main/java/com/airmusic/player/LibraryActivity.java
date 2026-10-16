@@ -726,8 +726,39 @@ public class LibraryActivity extends BaseActivity {
             new Prefs(this).setLibraryGroup(modes[which].name());
             btnGroup.setText(labels[which]);
             applyLayoutMode();
-            scrollToCurrentTrack();
+            // 对话框还是独立窗口，关掉它的前后会各发生一次窗口焦点/可见性变化：这里
+            // 等它真正消失后再来一遍排版与定位，否则列表会停在旧模式的画面上
+            // （要点一下屏幕才刷新）。
+            list.postDelayed(() -> {
+                if (isFinishing()) return;
+                applyLayoutMode();
+                onListIdle(() -> {
+                    adapter.notifyDataSetChanged();
+                    scrollToCurrentTrack();
+                    forceRootLayout();
+                });
+            }, 160L);
         }).show();
+    }
+
+    /**
+     * 别的窗口（对话框等）让开、本页面重新拿到焦点时，确认列表是最新的。
+     *
+     * <p>实测：切换"曲库分类"后页面仍旧显示上一种模式的画面（文字还会溢出色块），
+     * 摸一下屏幕才刷新——弹出对话框期间发出的排版请求有时不会真的走一遍 measure/layout，
+     * 焦点回来时补一次完整的重新绑定 + 从根视图请求布局即可。
+     */
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!hasFocus || list == null || isFinishing()) return;
+        if (adapter.getItemCount() <= 0) return;
+        onListIdle(() -> {
+            adapter.notifyDataSetChanged();
+            list.requestLayout();
+            forceRootLayout();
+            list.postDelayed(this::ensureListRendered, 400L);
+        });
     }
 
     private void scrollToCurrentTrack() {
