@@ -79,6 +79,10 @@ public class PlaybackService extends Service {
     public static final String ACTION_RESTART_AIRPLAY = "com.airmusic.player.RESTART_AIRPLAY";
     public static final String ACTION_PLAY_TRACK = "com.airmusic.player.PLAY_TRACK";
     public static final String EXTRA_TRACK_URI = "track_uri";
+    /** 停止请求的发起时间，用来识别被系统推迟后才投递的迟到请求。 */
+    private static final String EXTRA_STOP_REQUESTED_AT = "stop_requested_at";
+    /** 超过这个时间才算"迟到"的停止请求（回到前台时才被投递的那种）。 */
+    private static final long STALE_STOP_MS = 3000L;
 
     private static final String CHANNEL_ID = "playback";
     private static final int NOTIFICATION_ID = 1001;
@@ -112,6 +116,9 @@ public class PlaybackService extends Service {
         if (context == null) return;
         Intent intent = new Intent(context, PlaybackService.class);
         intent.setAction(ACTION_STOP_SERVICE);
+        // 记下请求时间。系统（MIUI 尤其明显）会把后台应用的 startService 推迟到
+        // 用户回到前台才投递，迟到的停止请求不该在用户眼前生效——见 onStartCommand。
+        intent.putExtra(EXTRA_STOP_REQUESTED_AT, android.os.SystemClock.elapsedRealtime());
         try {
             context.startService(intent);
         } catch (Throwable ignored) {
@@ -1226,6 +1233,17 @@ public class PlaybackService extends Service {
                 if (uri != null) playTrackByUri(uri);
                 break;
             case ACTION_STOP_SERVICE:
+                // 「允许后台运行」关掉后，用户离开应用发的是这条请求。系统会把后台
+                // 应用的 startService 推迟，等用户回到前台才投递；这种迟到的请求如果
+                // 在用户眼前把服务停掉，播放会断、曲库/设置页看着就像"卡死"了。
+                // 过期且用户已经回到应用时忽略它，下次离开会重新发一次。
+                long requestedAt = intent.getLongExtra(EXTRA_STOP_REQUESTED_AT, 0L);
+                long age = android.os.SystemClock.elapsedRealtime() - requestedAt;
+                if (requestedAt > 0L && age > STALE_STOP_MS && isAppForeground()) {
+                    DiagnosticLog.i(TAG, "ignored stale stop request ("
+                            + age + "ms old, app is in the foreground)");
+                    break;
+                }
                 stopSelf();
                 break;
             default:
@@ -1242,10 +1260,15 @@ public class PlaybackService extends Service {
 
     @Override
     public void onDestroy() {
+        // 这里的每一步都跑在主线程上，必须很快。AirPlay 的关闭（JmDNS 要等自己的
+        // goodbye 包，单次最长 5 秒）已经挪到引擎线程，这里只记录分段耗时：万一以后
+        // 又出现"应用卡住"，日志能直接指出是哪一步慢。
+        final long began = android.os.SystemClock.elapsedRealtime();
         saveLastTrack();
         if (ticker != null) main.removeCallbacks(ticker);
         cancelFade();
         cancelAirFade();
+        final long afterFades = android.os.SystemClock.elapsedRealtime();
         if (multiRoomManager != null) {
             multiRoomManager.stop();
             multiRoomManager = null;
@@ -1255,7 +1278,12 @@ public class PlaybackService extends Service {
             multiRoomAudioPlayer.stop();
             multiRoomAudioPlayer = null;
         }
+        final long afterMultiRoom = android.os.SystemClock.elapsedRealtime();
         if (airPlayController != null) airPlayController.stop();
+        DiagnosticLog.i(TAG, "onDestroy: fades=" + (afterFades - began)
+                + "ms multiRoom=" + (afterMultiRoom - afterFades)
+                + "ms airplay="
+                + (android.os.SystemClock.elapsedRealtime() - afterMultiRoom) + "ms");
         main.removeCallbacks(airPlayStatusPoller);
         if (dacpClient != null) {
             dacpClient.release();
@@ -1271,6 +1299,27 @@ public class PlaybackService extends Service {
         metadataExecutor.shutdown();
         instance = null;
         super.onDestroy();
+        DiagnosticLog.i(TAG, "onDestroy finished in "
+                + (android.os.SystemClock.elapsedRealtime() - began) + "ms");
+    }
+
+    /** True when this app currently has a visible (foreground) process. */
+    private boolean isAppForeground() {
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager)
+                    getSystemService(android.content.Context.ACTIVITY_SERVICE);
+            if (am == null) return false;
+            for (android.app.ActivityManager.RunningAppProcessInfo process
+                    : am.getRunningAppProcesses()) {
+                if (process.processName.equals(getPackageName())) {
+                    return process.importance
+                            <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        // 查不到就按"不在前台"处理，保持原来的行为。
+        return false;
     }
 
     // ------------------------------------------------------------------

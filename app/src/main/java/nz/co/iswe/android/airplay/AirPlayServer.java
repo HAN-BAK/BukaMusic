@@ -17,7 +17,6 @@
 
 package nz.co.iswe.android.airplay;
 
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -90,6 +89,28 @@ public class AirPlayServer implements Runnable {
 	);
 
 	private static AirPlayServer instance;
+
+	/**
+	 * Runs the (slow) JmDNS shutdowns.
+	 *
+	 * <p>{@code JmDNS.close()} waits up to 5 s for the "goodbye" packets it just
+	 * sent ({@code JmDNSImpl.close() -> waitForCanceled(5000)}), so it must never
+	 * run on the caller's thread: the AirPlay receiver is stopped from
+	 * {@code PlaybackService.onDestroy()}, i.e. from the main thread, and doing
+	 * the closes there froze the whole UI for ~4 s every single time the service
+	 * went away (measured: "Slow Looper ... took 4041/4044/4011/4049ms" on a
+	 * Xiaomi Mi 6). Closes are queued here instead so the caller only has to wait
+	 * when it really needs the port back (see {@link #awaitMdnsClosed}).
+	 */
+	private static final ExecutorService MDNS_CLOSER =
+			Executors.newCachedThreadPool(r -> {
+				final Thread thread = new Thread(r, "airplay-mdns-close");
+				thread.setDaemon(true);
+				return thread;
+			});
+	/** Number of responders whose shutdown is still in flight. */
+	private static final java.util.concurrent.atomic.AtomicInteger MDNS_CLOSING =
+			new java.util.concurrent.atomic.AtomicInteger();
 
 	/** Listener for playback session events (start/pause/stop/volume). */
 	private volatile AirPlayListener listener;
@@ -254,7 +275,12 @@ public class AirPlayServer implements Runnable {
 			return;
 		}
 
-		mdnsRegistrationCount = registerMdns();
+		try {
+			mdnsRegistrationCount = registerMdns();
+		} catch (final Throwable t) {
+			LOG.log(Level.WARNING, "mDNS registration failed", t);
+			mdnsRegistrationCount = 0;
+		}
 		started = true;
 	}
 
@@ -283,6 +309,11 @@ public class AirPlayServer implements Runnable {
 	 */
 	private int registerMdns() {
 		closeMdnsInstances();
+		// The closes above are queued on a background thread and take seconds
+		// each. Wait for them before binding :5353 again, otherwise the dying
+		// responder and the fresh one fight over the same multicast port and
+		// senders can miss the brand new service.
+		awaitMdnsClosed(8000L);
 		int registered = 0;
 
 		try {
@@ -331,63 +362,141 @@ public class AirPlayServer implements Runnable {
 		if (!started) {
 			return;
 		}
-
-		if (currentAudioHandler != null) {
-			try {
-				currentAudioHandler.stopSession();
-			} catch (final Throwable t) {
-				LOG.log(Level.WARNING, "Failed to stop active audio session", t);
+		final long began = android.os.SystemClock.elapsedRealtime();
+		try {
+			if (currentAudioHandler != null) {
+				try {
+					currentAudioHandler.stopSession();
+				} catch (final Throwable t) {
+					LOG.log(Level.WARNING, "Failed to stop active audio session", t);
+				}
+				currentAudioHandler = null;
 			}
-			currentAudioHandler = null;
-		}
 
-		ChannelGroupFuture allChannelsClosed = null;
-		if (channelGroup != null) {
-			allChannelsClosed = channelGroup.close();
-		}
-
-		closeMdnsInstances();
-
-		if (allChannelsClosed != null) {
-			allChannelsClosed.awaitUninterruptibly();
-		}
-		if (rtspBootstrap != null) {
-			try {
-				rtspBootstrap.releaseExternalResources();
-			} catch (final Throwable t) {
-				LOG.log(Level.WARNING, "Failed to release RTSP bootstrap resources", t);
+			ChannelGroupFuture allChannelsClosed = null;
+			if (channelGroup != null) {
+				allChannelsClosed = channelGroup.close();
 			}
+
+			closeMdnsInstances();
+
+			if (allChannelsClosed != null) {
+				// Bounded wait: this runs while the app tears the service down,
+				// so it must never be able to hang forever.
+				allChannelsClosed.awaitUninterruptibly(3000L);
+				if (!allChannelsClosed.isDone()) {
+					LOG.warning("RTSP channels still closing after 3000ms");
+				}
+			}
+			if (rtspBootstrap != null) {
+				try {
+					rtspBootstrap.releaseExternalResources();
+				} catch (final Throwable t) {
+					LOG.log(Level.WARNING, "Failed to release RTSP bootstrap resources", t);
+				}
+			}
+			if (executorService != null) {
+				executorService.shutdown();
+			}
+			if (channelExecutionHandler != null) {
+				channelExecutionHandler.releaseExternalResources();
+			}
+		} catch (final Throwable t) {
+			LOG.log(Level.WARNING, "AirPlay shutdown failed", t);
+		} finally {
+			// Always end up in a re-startable state: a half finished shutdown
+			// used to leave "started" true with every socket already closed, so
+			// the receiver advertised itself as running while being unreachable.
+			channelExecutionHandler = null;
+			executorService = null;
+			channelGroup = null;
+			rtspChannel = null;
+			rtspBootstrap = null;
+			mdnsRegistrationCount = 0;
+			started = false;
+			LOG.info("AirPlay server stopped in "
+					+ (android.os.SystemClock.elapsedRealtime() - began) + "ms");
 		}
-		if (executorService != null) {
-			executorService.shutdown();
-		}
-		if (channelExecutionHandler != null) {
-			channelExecutionHandler.releaseExternalResources();
-		}
-		channelExecutionHandler = null;
-		executorService = null;
-		channelGroup = null;
-		rtspChannel = null;
-		rtspBootstrap = null;
-		mdnsRegistrationCount = 0;
-		started = false;
-		LOG.info("AirPlay server stopped");
 	}
 
 	/** Closes all registered mDNS instances so the service can be re-published. */
 	private void closeMdnsInstances() {
+		final List<JmDNS> closing;
 		synchronized (jmDNSInstances) {
-			for (final JmDNS jmDNS : jmDNSInstances) {
-				try {
-					jmDNS.unregisterAllServices();
-					jmDNS.close();
-					LOG.info("Unregistered services on " + jmDNS.getInterface());
-				} catch (final IOException e) {
-					LOG.log(Level.WARNING, "Failed to unregister some services", e);
-				}
-			}
+			closing = new java.util.ArrayList<JmDNS>(jmDNSInstances);
 			jmDNSInstances.clear();
 			auxiliaryRegistered.clear();
+		}
+		if (closing.isEmpty()) {
+			return;
+		}
+		for (final JmDNS jmDNS : closing) {
+			// Describe the responder *before* closing it: after close() its
+			// multicast socket is gone and getInterface() throws an NPE, which
+			// used to escape this loop (only IOException was caught), abort the
+			// rest of the shutdown and leave the RTSP executor bound with
+			// "started" still true -- the receiver then looked alive but could
+			// never be found again until the app was restarted.
+			final String where = describe(jmDNS);
+			try {
+				jmDNS.unregisterAllServices();
+			} catch (final Throwable t) {
+				LOG.log(Level.WARNING, "Failed to unregister some services on " + where, t);
+			}
+			try {
+				MDNS_CLOSING.incrementAndGet();
+				MDNS_CLOSER.execute(() -> {
+					try {
+						jmDNS.close();
+						LOG.info("Unregistered services on " + where);
+					} catch (final Throwable t) {
+						LOG.log(Level.WARNING, "Failed to close mDNS responder on " + where, t);
+					} finally {
+						MDNS_CLOSING.decrementAndGet();
+					}
+				});
+			} catch (final Throwable t) {
+				MDNS_CLOSING.decrementAndGet();
+				LOG.log(Level.WARNING, "Failed to queue mDNS shutdown for " + where, t);
+			}
+		}
+	}
+
+	/** Human readable description of a responder, safe to call at any time. */
+	private static String describe(final JmDNS jmDNS) {
+		try {
+			final InetAddress address = jmDNS.getInetAddress();
+			if (address != null) {
+				return address.toString();
+			}
+		} catch (final Throwable ignored) {
+		}
+		try {
+			return String.valueOf(jmDNS.getName());
+		} catch (final Throwable ignored) {
+		}
+		return "unknown interface";
+	}
+
+	/**
+	 * Blocks until every queued mDNS shutdown has finished (or the timeout
+	 * elapsed). Only ever used right before re-publishing on the same port, and
+	 * never on the main thread -- the closes take seconds.
+	 */
+	private static void awaitMdnsClosed(final long timeoutMs) {
+		if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+			// Never freeze the UI: a rare port conflict is the lesser evil.
+			return;
+		}
+		final long deadline = android.os.SystemClock.elapsedRealtime() + timeoutMs;
+		while (MDNS_CLOSING.get() > 0
+				&& android.os.SystemClock.elapsedRealtime() < deadline) {
+			try {
+				Thread.sleep(50L);
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
 		}
 	}
 

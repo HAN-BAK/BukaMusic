@@ -874,6 +874,13 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         StateBus.get().addListener(stateListener);
+        // 回到前台时服务必须活着：「允许后台运行」关掉后，离开应用会把服务停掉，
+        // 而被系统推迟到这时才投递的停止请求有可能刚把它停掉（onStartCommand 里
+        // 现在会忽略这种过期请求，这里再兜一层）。以前服务没了就只能重启整个应用
+        // ——播放、AirPlay 全是死的，看着就像应用坏了。
+        if (PlaybackService.getInstance() == null) {
+            PlaybackService.start(this);
+        }
         btnApps.setVisibility(new Prefs(this).isShowAppsButton()
                 ? View.VISIBLE : View.GONE);
         syncVolumeSlider();

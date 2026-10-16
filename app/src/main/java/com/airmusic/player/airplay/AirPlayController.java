@@ -68,9 +68,27 @@ public class AirPlayController {
     private final AtomicInteger restartCount = new AtomicInteger(0);
     private final Handler handler = new Handler(Looper.getMainLooper());
     private WifiManager.MulticastLock multicastLock;
-    private Thread engineThread;
     private volatile String deviceName = "";
     private BroadcastReceiver connectivityReceiver;
+
+	/**
+	 * Serialises every AirPlay engine operation.
+	 *
+	 * <p>Starting and stopping the RAOP server is real network work: binding the
+	 * RTSP port, netty's channel teardown and -- by far the slowest part --
+	 * {@code JmDNS.close()}, which waits up to 5 s for the "goodbye" packets it
+	 * just sent. All of it used to run on the caller's thread, and the callers are
+	 * the main thread ({@code PlaybackService.onDestroy()}, the settings screen
+	 * after renaming the device, the periodic health check). That is what froze
+	 * the UI for ~4 s on every service teardown. Everything now runs here, in
+	 * order, off the UI thread.
+	 */
+	private static final java.util.concurrent.ExecutorService ENGINE =
+			java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+				final Thread thread = new Thread(r, "airplay-engine");
+				thread.setDaemon(true);
+				return thread;
+			});
 
     /**
      * Restarts the AirPlay service once the network is available after a
@@ -195,47 +213,87 @@ public class AirPlayController {
 		registerNetworkWatcher();
 		handler.removeCallbacks(healthCheck);
 		handler.postDelayed(healthCheck, HEALTH_CHECK_INITIAL_DELAY_MS);
-		engineThread = new Thread(() -> {
+		ENGINE.execute(() -> {
 			try {
 				server.startService();
 				DiagnosticLog.i(TAG, "AirPlay engine started");
 			} catch (Throwable t) {
 				DiagnosticLog.e(TAG, "Failed to start AirPlay engine: " + t);
 			}
-		}, "airplay-engine");
-		engineThread.start();
+		});
 	}
 
+	/**
+	 * Stops the receiver. Returns immediately: the actual teardown (RTSP channels
+	 * plus the mDNS goodbye packets) is queued on the engine thread. Blocking here
+	 * used to freeze the UI for ~4 s because {@code JmDNS.close()} waits for its
+	 * own goodbye messages.
+	 */
 	public synchronized void stop() {
 		handler.removeCallbacks(healthCheck);
 		handler.removeCallbacks(delayedRestart);
 		unregisterNetworkWatcher();
-		try {
-			AirPlayServer.getIstance().stopService();
-		} catch (Throwable t) {
-            DiagnosticLog.w(TAG, "stop failed: " + t);
-        }
-        if (multicastLock != null && multicastLock.isHeld()) {
-            try {
-                multicastLock.release();
-            } catch (Throwable ignored) {
-            }
-		}
-		multicastLock = null;
-		engineThread = null;
 		started.set(false);
+		releaseMulticastLock();
+		queueStop("stop");
 	}
 
 	public synchronized void restart(String deviceName) {
 		restartCount.incrementAndGet();
-		stop();
+		final String name = deviceName == null ? "" : deviceName;
+		handler.removeCallbacks(healthCheck);
 		handler.removeCallbacks(delayedRestart);
-		// Give the old listener time to fully release port 5000 before rebinding.
-		handler.postDelayed(() -> {
-			if (!started.get()) {
-				start(deviceName);
+		unregisterNetworkWatcher();
+		started.set(false);
+		releaseMulticastLock();
+		DiagnosticLog.i(TAG, "restarting AirPlay engine (device name: " + name + ")");
+		// Stop and start in one ordered task: the old listener must have fully
+		// released port 5000 (and mDNS must have said goodbye) before the new one
+		// binds. Doing this with a 1 s delayed start raced with the ~4 s mDNS
+		// shutdown and produced exactly that "cannot find the device until the app
+		// is restarted" symptom.
+		ENGINE.execute(() -> {
+			queueStopNow();
+			try {
+				Thread.sleep(300L);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
-		}, 1000);
+			if (!started.get()) {
+				start(name);
+			}
+		});
+	}
+
+	private void releaseMulticastLock() {
+		if (multicastLock != null && multicastLock.isHeld()) {
+			try {
+				multicastLock.release();
+			} catch (Throwable ignored) {
+			}
+		}
+		multicastLock = null;
+	}
+
+	/** Queues the receiver shutdown on the engine thread. */
+	private void queueStop(final String reason) {
+		ENGINE.execute(() -> {
+			queueStopNow();
+			DiagnosticLog.i(TAG, "AirPlay engine stopped (" + reason + ")");
+		});
+	}
+
+	/** Runs the receiver shutdown; call from the engine thread only. */
+	private void queueStopNow() {
+		final long began = android.os.SystemClock.elapsedRealtime();
+		try {
+			AirPlayServer.getIstance().stopService();
+		} catch (Throwable t) {
+			DiagnosticLog.w(TAG, "stop failed: " + t);
+		}
+		DiagnosticLog.i(TAG, "AirPlay teardown took "
+				+ (android.os.SystemClock.elapsedRealtime() - began) + "ms on "
+				+ Thread.currentThread().getName());
 	}
 
     public boolean isStarted() {
@@ -336,15 +394,24 @@ public class AirPlayController {
 	 */
 	private void healAirPlayService() {
 		if (!started.get() || isAirPlayRunning()) return;
-		AirPlayServer server = AirPlayServer.getIstance();
-		if (server.isRtspBound() && !server.isMdnsRegistered()) {
-			DiagnosticLog.i(TAG, "RTSP up but mDNS missing, re-publishing mDNS");
-			boolean ok = server.repairMdns();
-			DiagnosticLog.i(TAG, "mDNS repair result: " + ok);
-		} else {
-			DiagnosticLog.w(TAG, "AirPlay service not healthy, restarting");
-			restart(deviceName);
-		}
+		final AirPlayServer server = AirPlayServer.getIstance();
+		// The health check runs on the main thread and repairing means opening
+		// multicast sockets, publishing services and closing the old responders
+		// (seconds). Do it on the engine thread.
+		ENGINE.execute(() -> {
+			try {
+				if (server.isRtspBound() && !server.isMdnsRegistered()) {
+					DiagnosticLog.i(TAG, "RTSP up but mDNS missing, re-publishing mDNS");
+					boolean ok = server.repairMdns();
+					DiagnosticLog.i(TAG, "mDNS repair result: " + ok);
+				} else {
+					DiagnosticLog.w(TAG, "AirPlay service not healthy, restarting");
+					restart(deviceName);
+				}
+			} catch (Throwable t) {
+				DiagnosticLog.w(TAG, "AirPlay health check failed: " + t);
+			}
+		});
 	}
 
 	/**
