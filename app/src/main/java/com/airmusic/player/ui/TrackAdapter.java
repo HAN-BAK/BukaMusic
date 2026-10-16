@@ -520,10 +520,20 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 h.art.setImageResource(R.drawable.ic_airplay);
             }
             h.itemView.setOnClickListener(v -> {
-                if (selectionMode) {
-                    toggleSelection(position);
-                } else if (groupListener != null) {
-                    groupListener.onGroupClick(card.key);
+                // 点击时按"当时的位置"重新取行：视图可能被回收/错位（列表重排过程中
+                // 残留了旧绑定的视图），用绑定时捕获的 card 会点到别的专辑/歌曲上
+                // ——用户看到的就是"点这张专辑却跳到别处/放了别的歌"。
+                int pos = h.getAbsoluteAdapterPosition();
+                if (pos == RecyclerView.NO_POSITION || pos >= rows.size()) return;
+                Object now = rows.get(pos);
+                if (now instanceof GroupCard) {
+                    if (selectionMode) {
+                        toggleSelection(pos);
+                    } else if (groupListener != null) {
+                        groupListener.onGroupClick(((GroupCard) now).key);
+                    }
+                } else if (now instanceof Track && listener != null && !selectionMode) {
+                    listener.onTrackClick((Track) now);
                 }
             });
             // 长按整张卡片 = 选中这个专辑 / 歌手的全部歌曲（多选里也能整组取消）
@@ -611,10 +621,21 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             return false;
         });
         h.itemView.setOnClickListener(v -> {
+            // 同上：按行当前内容分发，避免视图错位时点歌点错 / 点专辑当成点歌。
+            int pos = h.getAbsoluteAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION || pos >= rows.size()) return;
+            Object now = rows.get(pos);
+            if (now instanceof GroupCard) {
+                if (!selectionMode && groupListener != null) {
+                    groupListener.onGroupClick(((GroupCard) now).key);
+                }
+                return;
+            }
+            if (!(now instanceof Track)) return;
             if (selectionMode) {
-                toggleSelection(position);
+                toggleSelection(pos);
             } else if (listener != null) {
-                listener.onTrackClick(track);
+                listener.onTrackClick((Track) now);
             }
         });
     }
