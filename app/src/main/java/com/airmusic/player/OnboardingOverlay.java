@@ -15,14 +15,13 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import com.airmusic.player.util.Prefs;
+import com.airmusic.player.ui.ColorTheme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,19 +86,24 @@ public class OnboardingOverlay extends FrameLayout {
     private final List<Step> steps = new ArrayList<>();
     private final Paint scrimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** 高亮外圈的柔光，让聚光灯看着柔和一点。 */
+    private final Paint haloPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path scrimPath = new Path();
     private final RectF hole = new RectF();
     private final RectF rounded = new RectF();
+    private float holeRadius;
     private final int holePadding;
     private final int cardGap;
     private final int margin;
 
     private View card;
     private TextView titleView;
+    private TextView stepView;
     private TextView bodyView;
-    private LinearLayout dots;
-    private Button nextButton;
-    private Button skipButton;
+    private View trackView;
+    private View progressView;
+    private TextView nextButton;
+    private TextView skipButton;
     private int index;
     private Listener listener;
     private boolean dismissed;
@@ -118,29 +122,49 @@ public class OnboardingOverlay extends FrameLayout {
         cardGap = Math.round(14 * density);
         margin = Math.round(20 * density);
 
-        scrimPaint.setColor(0xD9060F1C);
+        // 遮罩 / 高亮全部跟着封面主色走（和对话框同一套 ColorTheme），
+        // 半透明遮罩能让页面自己的模糊封面透出来，比纯色板好看。
+        scrimPaint.setColor(ColorTheme.withAlpha(
+                ColorTheme.blend(0xFF060F1C, ColorTheme.accent(), 0.12f), 0.72f));
         ringPaint.setStyle(Paint.Style.STROKE);
         ringPaint.setStrokeWidth(Math.round(2 * density));
+        ringPaint.setColor(ColorTheme.accent());
+        haloPaint.setStyle(Paint.Style.STROKE);
+        haloPaint.setStrokeWidth(Math.round(7 * density));
+        haloPaint.setColor(ColorTheme.withAlpha(ColorTheme.accent(), 0.22f));
 
         card = LayoutInflater.from(context).inflate(R.layout.overlay_onboarding, this, false);
         addView(card);
         titleView = card.findViewById(R.id.onboarding_title);
+        stepView = card.findViewById(R.id.onboarding_step);
         bodyView = card.findViewById(R.id.onboarding_body);
-        dots = card.findViewById(R.id.onboarding_dots);
+        trackView = card.findViewById(R.id.onboarding_track);
+        progressView = card.findViewById(R.id.onboarding_progress);
         nextButton = card.findViewById(R.id.onboarding_next);
         skipButton = card.findViewById(R.id.onboarding_skip);
-        // 引导用和对话框 / 按钮同一套动态配色，跟着当前封面主色走
-        card.setBackground(com.airmusic.player.ui.ColorTheme.dialogCard(context));
-        titleView.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
-        bodyView.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
-        ringPaint.setColor(com.airmusic.player.ui.ColorTheme.accent());
-        for (android.widget.Button button : new android.widget.Button[]{nextButton, skipButton}) {
-            button.setBackground(com.airmusic.player.ui.ColorTheme.capsule(context));
-            button.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
-            button.setAllCaps(false);
+        // 卡片 / 文字 / 按钮和 dialog_buka 完全同一套动态配色
+        card.setBackground(ColorTheme.dialogCard(context));
+        titleView.setTextColor(ColorTheme.tooltipText());
+        stepView.setTextColor(ColorTheme.textAccent());
+        bodyView.setTextColor(ColorTheme.textSecondary());
+        trackView.setBackground(pill(ColorTheme.withAlpha(ColorTheme.tooltipText(), 0.16f), density));
+        progressView.setBackground(pill(ColorTheme.accent(), density));
+        for (TextView button : new TextView[]{nextButton, skipButton}) {
+            button.setBackground(ColorTheme.capsule(context));
+            button.setTextColor(ColorTheme.tooltipText());
         }
+        nextButton.setTypeface(nextButton.getTypeface(), android.graphics.Typeface.BOLD);
         nextButton.setOnClickListener(v -> advance());
         skipButton.setOnClickListener(v -> dismiss());
+    }
+
+    /** 3dp 细圆角条：进度条用的，和应用的滑条同一语言。 */
+    private static GradientDrawable pill(int color, float density) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.RECTANGLE);
+        shape.setColor(color);
+        shape.setCornerRadius(2f * density);
+        return shape;
     }
 
     public void setListener(Listener value) {
@@ -205,34 +229,22 @@ public class OnboardingOverlay extends FrameLayout {
         return !steps.isEmpty();
     }
 
-    private void buildDots() {
-        dots.removeAllViews();
-        int size = Math.round(7 * getResources().getDisplayMetrics().density);
-        int gap = Math.round(5 * getResources().getDisplayMetrics().density);
-        for (int i = 0; i < steps.size(); i++) {
-            View dot = new View(getContext());
-            GradientDrawable shape = new GradientDrawable();
-            shape.setShape(GradientDrawable.OVAL);
-            shape.setColor(com.airmusic.player.ui.ColorTheme.withAlpha(
-                    com.airmusic.player.ui.ColorTheme.accent(), 0.28f));
-            dot.setBackground(shape);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
-            params.setMargins(gap, 0, gap, 0);
-            dot.setLayoutParams(params);
-            dots.addView(dot);
-        }
+    /** 标题右侧的「第几步 / 共几步」+ 下面那条细进度条。 */
+    private void updateProgress() {
+        stepView.setText(getResources().getString(R.string.onboarding_step,
+                Math.min(index + 1, Math.max(1, steps.size())), Math.max(1, steps.size())));
+        applyProgressWidth();
     }
 
-    private void updateDots() {
-        for (int i = 0; i < dots.getChildCount(); i++) {
-            View dot = dots.getChildAt(i);
-            if (dot.getBackground() instanceof GradientDrawable) {
-                ((GradientDrawable) dot.getBackground())
-                        .setColor(i == index
-                                ? com.airmusic.player.ui.ColorTheme.accent()
-                                : com.airmusic.player.ui.ColorTheme.withAlpha(
-                                        com.airmusic.player.ui.ColorTheme.accent(), 0.28f));
-            }
+    private void applyProgressWidth() {
+        if (trackView == null || progressView == null) return;
+        int width = trackView.getWidth();
+        if (width <= 0) return;
+        int filled = Math.round(width * (index + 1) / (float) Math.max(1, steps.size()));
+        android.view.ViewGroup.LayoutParams params = progressView.getLayoutParams();
+        if (params.width != filled) {
+            params.width = Math.max(1, filled);
+            progressView.setLayoutParams(params);
         }
     }
 
@@ -243,13 +255,12 @@ public class OnboardingOverlay extends FrameLayout {
         }
         index = Math.max(0, Math.min(steps.size() - 1, step));
         Step current = steps.get(index);
-        if (dots.getChildCount() != steps.size()) buildDots();
         titleView.setText(current.title);
         bodyView.setText(current.body);
         boolean last = index == steps.size() - 1;
         nextButton.setText(last ? R.string.onboarding_start : R.string.onboarding_next);
         skipButton.setVisibility(last ? View.INVISIBLE : View.VISIBLE);
-        updateDots();
+        updateProgress();
         updateHole(current.anchor);
         requestLayout();
         invalidate();
@@ -276,6 +287,7 @@ public class OnboardingOverlay extends FrameLayout {
         // 高亮统一用圆角矩形（原来按 22% 比例算，小方块看着就成圆形了）
         float density = getResources().getDisplayMetrics().density;
         float radius = Math.min(14f * density, Math.min(hole.width(), hole.height()) / 2f);
+        holeRadius = radius;
         rounded.set(hole);
         scrimPath.reset();
         scrimPath.setFillType(Path.FillType.EVEN_ODD);
@@ -315,6 +327,7 @@ public class OnboardingOverlay extends FrameLayout {
             card.layout(Math.round(placement.left), Math.round(placement.top),
                     Math.round(placement.right), Math.round(placement.bottom));
         }
+        applyProgressWidth();
     }
 
     /**
@@ -367,18 +380,20 @@ public class OnboardingOverlay extends FrameLayout {
         if (!steps.isEmpty()) {
             updateHole(steps.get(index).anchor);
         }
+        applyProgressWidth();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (hole.isEmpty()) {
-            canvas.drawColor(0xD9060F1C);
+            canvas.drawColor(scrimPaint.getColor());
             return;
         }
         canvas.drawPath(scrimPath, scrimPaint);
-        canvas.drawRoundRect(rounded, rounded.width() * 0.2f, rounded.height() * 0.2f,
-                ringPaint);
+        // 柔光 + 描边都用和挖孔完全一样的圆角半径，否则边框和缺口看着对不齐。
+        canvas.drawRoundRect(rounded, holeRadius, holeRadius, haloPaint);
+        canvas.drawRoundRect(rounded, holeRadius, holeRadius, ringPaint);
     }
 
     @Override

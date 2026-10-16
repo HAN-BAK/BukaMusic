@@ -1,68 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  功能引导的卡片：刻意和 dialog_buka.xml 用同一套度量（22dp 左右内边距、
+  18sp 粗标题、14sp 正文、右下角两个胶囊按钮），这样引导看起来就是应用自己的
+  对话框。颜色全部在 OnboardingOverlay 里用 ColorTheme 动态设置。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/onboarding_card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_onboarding_card"
     android:orientation="vertical"
     android:paddingStart="22dp"
-    android:paddingTop="18dp"
+    android:paddingTop="20dp"
     android:paddingEnd="22dp"
-    android:paddingBottom="14dp">
+    android:paddingBottom="20dp">
 
-    <TextView
-        android:id="@+id/onboarding_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/onboarding_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/onboarding_step"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 细进度条：和应用的滑条一样是圆角胶囊，已走过的一段用主色 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="12dp">
+
+        <View
+            android:id="@+id/onboarding_track"
+            android:layout_width="match_parent"
+            android:layout_height="3dp" />
+
+        <View
+            android:id="@+id/onboarding_progress"
+            android:layout_width="match_parent"
+            android:layout_height="3dp" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/onboarding_body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:lineSpacingExtra="3dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
-
-    <LinearLayout
-        android:id="@+id/onboarding_dots"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:orientation="horizontal" />
+        android:lineSpacingExtra="3dp"
+        android:textSize="14sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:gravity="center_vertical"
+        android:layout_marginTop="18dp"
+        android:gravity="end"
         android:orientation="horizontal">
 
-        <Button
+        <TextView
             android:id="@+id/onboarding_skip"
-            android:layout_width="0dp"
-            android:layout_height="42dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_onboarding_ghost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="22dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="10dp"
             android:text="@string/onboarding_skip"
-            android:textAllCaps="false"
-            android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
-        <Button
+        <TextView
             android:id="@+id/onboarding_next"
-            android:layout_width="0dp"
-            android:layout_height="42dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_onboarding_primary"
+            android:paddingStart="22dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="10dp"
             android:text="@string/onboarding_next"
-            android:textAllCaps="false"
-            android:textColor="#06304A"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:textSize="14sp" />
     </LinearLayout>
 </LinearLayout>
