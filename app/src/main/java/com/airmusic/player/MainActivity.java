@@ -630,16 +630,18 @@ public class MainActivity extends BaseActivity {
             return;
         }
         int morphRes = playing ? R.drawable.avd_play_to_pause : R.drawable.avd_pause_to_play;
+        // 关键：只把 morph 的 drawable 挂上去，**不要再显式 start()**。
+        //
+        // AnimatedVectorDrawable 只有在"可见"时才跑动画，ImageView 挂上新 drawable
+        // 时自己就会 setVisible(...) 把它启动起来；再补一次 start() 等于把刚起步的
+        // 动画重启一遍，而重启那一帧会按里面残留的几何（上一次变形结束时的目标形状）
+        // 画出来——实测就是「点下去先闪成目标形状 → 回到起始形状 → 再正常变形」。
+        // mutate() 再给这份 drawable 一份自己的矢量状态，避免和别的实例共享。
         btnPlay.setImageResource(morphRes);
-        Drawable d = btnPlay.getDrawable();
-        if (d instanceof AnimatedVectorDrawable) {
-            ((AnimatedVectorDrawable) d).start();
-        } else {
-            // Some ImageButton implementations wrap the drawable; re-apply the
-            // animated vector directly so the morph still runs.
-            AnimatedVectorDrawable avd = (AnimatedVectorDrawable) getResources().getDrawable(morphRes, getTheme());
-            btnPlay.setImageDrawable(avd);
-            avd.start();
+        Drawable attached = btnPlay.getDrawable();
+        if (attached != null) attached.mutate();
+        if (attached instanceof AnimatedVectorDrawable) {
+            attached.setVisible(true, false);   // 触发/继续动画，但不重启
         }
         playGlyphPlaying = playing;
         playGlyphVisible = true;
