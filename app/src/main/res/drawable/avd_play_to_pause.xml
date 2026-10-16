@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  基图必须是「起始形状」（播放三角），不能是目标形状：
+  setImageResource(avd) 之后、动画第一帧生效之前，View 会先按基图画一帧。
+  基图若写成目标形状（暂停），点下去会先闪一下暂停、再跳回三角开始变形。
+  动画结束后停在目标形状是动画器写进几何的结果，和基图无关。
+-->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/vd_pause_morph">
+    android:drawable="@drawable/vd_play_morph">
     <target
         android:name="seg_top"
         android:animation="@animator/morph_play_to_pause_top" />
