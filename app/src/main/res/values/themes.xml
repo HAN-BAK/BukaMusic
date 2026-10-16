@@ -14,8 +14,19 @@
         <item name="colorControlHighlight">@android:color/transparent</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowBackground">@color/background</item>
-        <!-- 页面转场：自己的淡入淡出 + 缩放，不再用系统默认 -->
-        <item name="android:windowAnimationStyle">@style/BukaWindowAnimation</item>
+        <!--
+          不用自定义的「窗口级」转场动画。
+
+          原因：窗口动画由系统（WindowManager/SurfaceFlinger）驱动，实测在某些机型
+          （小米 6 / MIUI）上会卡在入场动画中间不结束 —— WindowManager 里
+          mAnimationIsEntrance=true 一直挂着，窗口被压在淡入到一半的状态：
+          整页发暗、应用不再出帧、uiautomator 取不到根节点，碰一下屏幕触发结束才恢复。
+          这就是「曲库偶尔空白/灰蒙蒙、碰一下才显示」的真正原因（竞态，所以是小概率）。
+
+          页面动效改为完全由应用自己的 PageFx（内容分层淡入 + 上移）承担，
+          窗口层不再有动画，也就不可能卡住。
+        -->
+        <item name="android:windowAnimationStyle">@null</item>
         <!-- 没写 style 的 MaterialButton 也统一成胶囊外观（自带阴影/48dp 高的
              Material 实心按钮样式不再使用） -->
         <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
