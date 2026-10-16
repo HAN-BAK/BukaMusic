@@ -102,6 +102,23 @@ public class PlaybackService extends Service {
         }
     }
 
+    /**
+     * 彻底停下后台服务（通知一起消失）。
+     *
+     * <p>设置里把「允许后台运行」关掉后，退到后台就调这个：不再常驻、不再收 AirPlay、
+     * 也不再有通知。开关打开时（默认）保持原来的前台服务与开机自启行为。
+     */
+    public static void stop(Context context) {
+        if (context == null) return;
+        Intent intent = new Intent(context, PlaybackService.class);
+        intent.setAction(ACTION_STOP_SERVICE);
+        try {
+            context.startService(intent);
+        } catch (Throwable ignored) {
+            // 服务没在跑时系统可能拒绝启动，忽略即可
+        }
+    }
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService metadataExecutor = Executors.newSingleThreadExecutor();
 
@@ -1214,7 +1231,8 @@ public class PlaybackService extends Service {
             default:
                 break;
         }
-        return START_STICKY;
+        // 「允许后台运行」关掉后不要 STICKY：被系统回收也别自己爬起来。
+        return prefs != null && prefs.isBackgroundRun() ? START_STICKY : START_NOT_STICKY;
     }
 
     @Override

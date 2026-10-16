@@ -448,6 +448,37 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <!-- 允许后台运行：关掉后开机不自启、退到后台即停止服务（默认开） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/label_background_run"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/pref_background_run"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+
+                    <com.airmusic.player.ui.BukaSwitch
+                        android:id="@+id/switch_background_run"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/pref_background_run_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
                 <!-- 重新扫描原本孤零零放在最下面，现在归到「存储与设备」里 -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_rescan"

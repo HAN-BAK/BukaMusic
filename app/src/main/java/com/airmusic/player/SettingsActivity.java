@@ -453,6 +453,12 @@ public class SettingsActivity extends BaseActivity {
         }
 
         // ---- 屏保设置：开关即时保存；字体按钮点开选择对话框 ----
+        // 允许后台运行（存储与设备）：默认开；关掉后开机不自启、退到后台停服务。
+        com.airmusic.player.ui.BukaSwitch bgSwitch = findViewById(R.id.switch_background_run);
+        if (bgSwitch != null) {
+            bgSwitch.setChecked(prefs.isBackgroundRun());
+            bgSwitch.setOnCheckedChangeListener((b, checked) -> prefs.setBackgroundRun(checked));
+        }
         com.airmusic.player.ui.BukaSwitch ssSwipe = findViewById(R.id.switch_ss_swipe);
         if (ssSwipe != null) {
             ssSwipe.setChecked(prefs.isScreensaverSwipe());

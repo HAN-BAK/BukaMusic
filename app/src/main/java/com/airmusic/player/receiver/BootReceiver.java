@@ -20,6 +20,11 @@ public class BootReceiver extends BroadcastReceiver {
         String action = intent == null ? "" : intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)
                 || "android.intent.action.QUICKBOOT_POWERON".equals(action)) {
+            // 设置里关掉「允许后台运行」后不再自启（默认开）。
+            if (!new com.airmusic.player.util.Prefs(context).isBackgroundRun()) {
+                Log.i(TAG, "Boot completed, but background run is disabled; skip");
+                return;
+            }
             Log.i(TAG, "Boot completed, starting playback service");
             PlaybackService.start(context);
         }

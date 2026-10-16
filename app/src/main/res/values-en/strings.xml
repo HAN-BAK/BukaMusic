@@ -20,6 +20,8 @@
     <string name="pref_ss_font">Font</string>
     <string name="ss_title">Screensaver</string>
     <string name="pref_ss_idle">Auto-open when idle</string>
+    <string name="pref_background_run">Run in background</string>
+    <string name="pref_background_run_hint">When off, the app no longer starts at boot and stops its service when sent to the background</string>
     <string name="ss_idle_off">Off</string>
     <string name="ss_idle_seconds">%1$d s</string>
     <string name="ss_idle_minutes">%1$d min</string>

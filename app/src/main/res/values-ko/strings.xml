@@ -20,6 +20,8 @@
     <string name="pref_ss_font">글꼴</string>
     <string name="ss_title">화면 보호기</string>
     <string name="pref_ss_idle">유휴 시 자동 열기</string>
+    <string name="pref_background_run">백그라운드에서 실행</string>
+    <string name="pref_background_run_hint">끄면 부팅 시 자동 시작하지 않고, 백그라운드로 가면 재생 서비스가 중지됩니다</string>
     <string name="ss_idle_off">끔</string>
     <string name="ss_idle_seconds">%1$d초</string>
     <string name="ss_idle_minutes">%1$d분</string>

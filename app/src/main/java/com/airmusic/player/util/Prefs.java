@@ -39,6 +39,7 @@ public final class Prefs {
     private static final String KEY_SCREENSAVER_IDLE = "screensaver_idle_ms";
     private static final String KEY_ONBOARDING_DONE = "onboarding_done";
     private static final String KEY_ONLINE_LYRICS = "online_lyrics";
+    private static final String KEY_BACKGROUND_RUN = "background_run";
     private static final String KEY_EQ_GAINS = "eq_gains";
     private static final String KEY_EQ_PRESETS = "eq_presets";
 
@@ -158,6 +159,21 @@ public final class Prefs {
     }
 
     // ------------------------------------------------------------------ 屏保
+
+    /**
+     * 是否允许在后台运行（默认开）。
+     *
+     * <p>关掉后：开机不再自启、退到后台会停止播放服务（通知也消失）、
+     * 被系统回收也不会自己爬起来。
+     */
+    public boolean isBackgroundRun() {
+        return sp.getBoolean(KEY_BACKGROUND_RUN, true);
+    }
+
+    public void setBackgroundRun(boolean enabled) {
+        sp.edit().putBoolean(KEY_BACKGROUND_RUN, enabled).apply();
+    }
+
     /** 播放页上滑是否进入屏保（默认开）。 */
     public boolean isScreensaverSwipe() {
         return sp.getBoolean(KEY_SCREENSAVER_SWIPE, true);
