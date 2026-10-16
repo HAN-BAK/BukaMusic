@@ -721,7 +721,15 @@ public class LibraryActivity extends BaseActivity {
         for (int i = 0; i < modes.length; i++) {
             if (modes[i] == current) checked = i;
         }
+        // 对话框外观保持原样（当前项照旧打勾、照样可以点，只是点了不会做任何事）。
         BukaDialog.singleChoice(this, getString(R.string.group_title), labels, checked, which -> {
+            if (modes[which] == current) {
+                // 已经是这个模式了：再选一次没有任何意义，而且实测这一下会重新应用一次
+                // 分类（重排 + 重绑），盒子上 janky 帧直接涨到 40%，手机上页面还会残留
+                // 上一种模式的视图、显得又卡又异常。直接忽略这次选择（对话框照常关闭）。
+                Log.i("LibraryActivity", "当前已是该分类，忽略重复选择：" + labels[which]);
+                return;
+            }
             adapter.setGroupBy(modes[which]);
             new Prefs(this).setLibraryGroup(modes[which].name());
             btnGroup.setText(labels[which]);
