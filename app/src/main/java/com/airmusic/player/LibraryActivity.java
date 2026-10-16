@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -184,6 +185,14 @@ public class LibraryActivity extends BaseActivity {
 
     /** Album / artist browsing uses a grid of tiles, the flat list stays a list. */
     private void applyLayoutMode() {
+        // 根因侧防护：setLayoutManager() 会先把子视图全部回收再 requestLayout()，
+        // 如果这一刻正好在布局中，那次请求会被 RecyclerView 自己吞掉，列表就再也排不
+        // 出来了（适配器有数据、屏幕上却一片空白）。撞上就等这一轮布局结束再做。
+        if (list != null && list.isComputingLayout()) {
+            Log.w("LibraryActivity", "列表正在布局，延后应用浏览方式");
+            list.postDelayed(this::applyLayoutMode, 60L);
+            return;
+        }
         RecyclerView.LayoutManager manager = list.getLayoutManager();
         // 换 LayoutManager 前先停掉惯性滑动：RecyclerView 滚动中调用
         // setLayoutManager() 会直接抛 IllegalStateException 把应用搞崩。
@@ -208,6 +217,95 @@ public class LibraryActivity extends BaseActivity {
         list.invalidate();
         animateListIn();
         healEmptyList();
+        list.postDelayed(this::ensureListRendered, 400L);
+    }
+
+    /** 列表明明是空的但数据是满的，最多"强制布局"重试几次，再不行就换新视图。 */
+    private static final int BLANK_RETRY_LIMIT = 2;
+    private int blankRetries;
+
+    /**
+     * 兜底：RecyclerView 有数据却一个子视图都不排（屏幕上就是"一片空白、点歌也没反应"）。
+     *
+     * <p>实测手机上会出现这种状态：适配器里 1547 条（日志有记录），但视图层级里
+     * {@code track_list} 一个子视图都没有。RecyclerView 在 {@code setLayoutManager()}
+     * 时会先把所有子视图回收，紧跟的那次 {@code requestLayout()} 一旦被"布局中"的
+     * 判定吞掉，就再也不会自己排布了。这里做两件事：
+     * <ul>
+     * <li>先 {@code forceLayout()}+让父容器请求布局——绕过 RecyclerView 自己的请求拦截；
+     * <li>还不行就把整个 RecyclerView 换成新的实例（内部状态被卡住时唯一可靠的办法）。
+     * </ul>
+     */
+    private void ensureListRendered() {
+        if (list == null || isFinishing()) return;
+        if (adapter.getItemCount() <= 0) {
+            blankRetries = 0;
+            return;
+        }
+        if (list.getChildCount() > 0) {
+            blankRetries = 0;
+            return;
+        }
+        if (!list.isShown() || list.getWidth() <= 0 || list.getHeight() <= 0) return;
+        blankRetries++;
+        Log.w("LibraryActivity", "列表有 " + adapter.getItemCount() + " 条数据却没有任何子视图，"
+                + "第 " + blankRetries + " 次修复");
+        if (blankRetries <= BLANK_RETRY_LIMIT) {
+            forceListLayout();
+            list.postDelayed(this::ensureListRendered, 400L);
+            return;
+        }
+        blankRetries = 0;
+        rebuildList();
+    }
+
+    /** RecyclerView 自己的 requestLayout 可能被吞，绕到父容器再请求一次。 */
+    private void forceListLayout() {
+        try {
+            list.forceLayout();
+            View parent = (View) list.getParent();
+            if (parent != null) parent.requestLayout();
+            list.invalidate();
+        } catch (Throwable t) {
+            Log.w("LibraryActivity", "强制列表布局失败", t);
+        }
+    }
+
+    /** 换一个全新的 RecyclerView（保留位置、内边距、布局参数），彻底摆脱卡住的状态。 */
+    private void rebuildList() {
+        try {
+            ViewGroup parent = (ViewGroup) list.getParent();
+            if (parent == null) return;
+            int index = parent.indexOfChild(list);
+            ViewGroup.LayoutParams lp = list.getLayoutParams();
+            int padBottom = list.getPaddingBottom();
+            // XML 里 clipToPadding="false"：保持和原列表一致。
+            boolean clipToPadding = false;
+            int overScroll = list.getOverScrollMode();
+            RecyclerView fresh = new RecyclerView(this);
+            fresh.setId(R.id.track_list);
+            fresh.setLayoutParams(lp);
+            fresh.setClipToPadding(clipToPadding);
+            fresh.setPadding(list.getPaddingLeft(), list.getPaddingTop(),
+                    list.getPaddingRight(), padBottom);
+            fresh.setOverScrollMode(overScroll);
+            fresh.setItemAnimator(null);
+            fresh.setLayoutManager(new LinearLayoutManager(this));
+            fresh.setAdapter(adapter);
+            parent.removeView(list);
+            parent.addView(fresh, Math.max(0, index));
+            list = fresh;
+            Log.w("LibraryActivity", "已重建曲库列表视图");
+            PlaybackService service = PlaybackService.getInstance();
+            List<Track> tracks = service != null
+                    ? service.getLibraryTracks()
+                    : MusicLibrary.getInstance().getCachedTracks();
+            if (tracks != null && !tracks.isEmpty()) {
+                adapter.setTracks(tracks);
+            }
+        } catch (Throwable t) {
+            Log.w("LibraryActivity", "重建列表视图失败", t);
+        }
     }
 
     /**
@@ -348,6 +446,10 @@ public class LibraryActivity extends BaseActivity {
         } catch (Throwable t) {
             Log.w("LibraryActivity", "列表变更失败，已跳过本次刷新", t);
         }
+        // 每次改完数据都顺手检查一次"有数据但没排布"的卡住状态。
+        if (list != null) {
+            list.postDelayed(this::ensureListRendered, 300L);
+        }
     }
 
     private static int labelFor(TrackAdapter.GroupBy mode) {
@@ -379,6 +481,8 @@ public class LibraryActivity extends BaseActivity {
             list.requestLayout();
             list.invalidate();
         });
+        // 回到本页时也检查一次"有数据但没排布"的卡住状态。
+        list.postDelayed(this::ensureListRendered, 600L);
         // 曲库页面停留期间换歌（自动下一首、电脑端切歌、多房间接收）也要更新
         // 高亮：以前只有打开 / 回到本页时才刷新。
         StateBus.get().addListener(stateListener);
