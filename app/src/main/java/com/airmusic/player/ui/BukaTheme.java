@@ -92,6 +92,26 @@ public final class BukaTheme {
             button.setElevation(0f);
             button.setStateListAnimator(null);
         } else if (view instanceof android.widget.ImageButton) {
+            // 图标自身带静态强调色的（曲库右上角「搜索」）：按「角色」跟随封面主色。
+            // 以前只换了按钮背景，图标还是 colors.xml 里那个固定天蓝，换歌后和旁边
+            // 的分组文字明显不是一个颜色。
+            if (!isNavIcon(view.getId())) {
+                android.widget.ImageView icon = (android.widget.ImageView) view;
+                Object tagged = view.getTag(R.id.palette_role_tag);
+                String role = tagged instanceof String ? (String) tagged : null;
+                if (role == null) {
+                    android.content.res.ColorStateList tint = icon.getImageTintList();
+                    if (tint != null && isAccentColor(activity, tint.getDefaultColor())) {
+                        role = "icon-accent";
+                        view.setTag(R.id.palette_role_tag, role);
+                    }
+                }
+                if ("icon-accent".equals(role)) {
+                    // 和底栏图标同一档：浅色主色（textAccent() 更深一档，是给文字用的）
+                    icon.setImageTintList(android.content.res.ColorStateList.valueOf(
+                            ColorTheme.accent()));
+                }
+            }
             if (view.getId() == R.id.btn_play) {
                 view.setBackground(ColorTheme.solidCircle(activity));
             } else if (Boolean.TRUE.equals(view.getTag(R.id.btn_shape_tag))) {

@@ -465,6 +465,22 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         return new Holder(inflater.inflate(R.layout.item_track, parent, false));
     }
 
+    /**
+     * 视图被挂回列表时强制复位成"完全可见"。
+     *
+     * <p>曲库淡入是把行设成 alpha 0 再动到 1；如果这份视图在动画途中被回收进 scrap，
+     * 它带着 alpha 0 回到屏幕上、又不会再走一次 bind（同一位置的缓存视图），行就成了
+     * "文字看不见但能点"的空白行——碰一下屏幕（按压效果复位 alpha）才显示。
+     * bind 里已经复位过一次，这里再兜一层：任何挂上去的视图都必须是可见的。
+     */
+    @Override
+    public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+        super.onViewAttachedToWindow(holder);
+        View item = holder.itemView;
+        if (item.getAlpha() < 1f) item.setAlpha(1f);
+        if (item.getTranslationY() != 0f) item.setTranslationY(0f);
+    }
+
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         // The list fades its rows in (LibraryActivity.animateListIn sets alpha 0
