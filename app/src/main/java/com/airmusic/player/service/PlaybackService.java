@@ -1306,6 +1306,12 @@ public class PlaybackService extends Service {
     /** True when this app currently has a visible (foreground) process. */
     private boolean isAppForeground() {
         try {
+            if (com.airmusic.player.App.isAppVisible()) {
+                return true;
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
             android.app.ActivityManager am = (android.app.ActivityManager)
                     getSystemService(android.content.Context.ACTIVITY_SERVICE);
             if (am == null) return false;
