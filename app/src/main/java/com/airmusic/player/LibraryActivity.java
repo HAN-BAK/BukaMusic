@@ -185,6 +185,9 @@ public class LibraryActivity extends BaseActivity {
     /** Album / artist browsing uses a grid of tiles, the flat list stays a list. */
     private void applyLayoutMode() {
         RecyclerView.LayoutManager manager = list.getLayoutManager();
+        // 换 LayoutManager 前先停掉惯性滑动：RecyclerView 滚动中调用
+        // setLayoutManager() 会直接抛 IllegalStateException 把应用搞崩。
+        list.stopScroll();
         if (adapter.isShowingCards()) {
             if (!(manager instanceof GridLayoutManager)
                     || ((GridLayoutManager) manager).getSpanCount() != cardSpan) {
@@ -276,6 +279,24 @@ public class LibraryActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 在 RecyclerView 空闲（不在布局/滚动中）时执行列表变更。
+     *
+     * <p>RecyclerView 在计算布局或滚动时禁止改数据：notifyDataSetChanged /
+     * setLayoutManager / scrollToPosition 都会抛 IllegalStateException
+     * （"Cannot call this method while RecyclerView is computing a layout or scrolling"），
+     * 未捕获就是闪退 + "Force finishing activity"，用户在手机上看到的就是"曲库直接卡死"。
+     * 扫描结束、按歌手/专辑切换、定位当前歌曲这些时机都可能撞上，统一走这里排队。
+     */
+    private void onListIdle(Runnable action) {
+        if (list == null || isFinishing()) return;
+        if (list.isComputingLayout()) {
+            list.post(() -> onListIdle(action));
+            return;
+        }
+        action.run();
+    }
+
     private static int labelFor(TrackAdapter.GroupBy mode) {
         if (mode == TrackAdapter.GroupBy.ALBUM) return R.string.group_by_album;
         if (mode == TrackAdapter.GroupBy.ARTIST) return R.string.group_by_artist;
@@ -328,7 +349,8 @@ public class LibraryActivity extends BaseActivity {
             if (!isFinishing()) finish();
             return;
         }
-        refreshCurrentHighlight();
+        // 高亮刷新内部会 notifyItemChanged，同样不能在 RecyclerView 布局/滚动中执行
+        onListIdle(this::refreshCurrentHighlight);
     });
     /** Last highlighted track, so the log stays readable. */
     private String lastHighlight = "";
@@ -378,9 +400,11 @@ public class LibraryActivity extends BaseActivity {
                 ? service.getLibraryTracks()
                 : MusicLibrary.getInstance().getCachedTracks();
         if (tracks != null && !tracks.isEmpty()) {
-            adapter.setTracks(tracks);
-            applyCurrentTrack(tracks);
-            locateCurrentInGroup(tracks);
+            onListIdle(() -> {
+                adapter.setTracks(tracks);
+                applyCurrentTrack(tracks);
+                locateCurrentInGroup(tracks);
+            });
         }
         // Always rescan so newly added files (USB, new downloads) show up;
         // the cached list is shown immediately and replaced when ready.
@@ -389,9 +413,14 @@ public class LibraryActivity extends BaseActivity {
                 service.setTracks(result);
             }
             if (result != null) {
-                adapter.setTracks(result);
-                applyCurrentTrack(result);
-                locateCurrentInGroup(result);
+                // 扫描完成的回调是 post 到主线程的，仍可能正好落在 RecyclerView 的
+                // 布局/滚动中，这时改数据会抛 IllegalStateException 并被系统杀掉
+                // （手机上"曲库直接卡死"就是这么来的），所以统一排到空闲时执行。
+                onListIdle(() -> {
+                    adapter.setTracks(result);
+                    applyCurrentTrack(result);
+                    locateCurrentInGroup(result);
+                });
             }
             if (result != null && result.isEmpty() && error != null) {
                 BukaNotice.show(this, error, BukaNotice.LONG);
