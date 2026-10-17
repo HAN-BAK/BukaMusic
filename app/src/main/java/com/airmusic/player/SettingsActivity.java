@@ -778,6 +778,7 @@ public class SettingsActivity extends BaseActivity {
             label.setText(path.label());
             label.setTextSize(14f);
             label.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);
             label.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0,
                     android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             row.addView(label);
@@ -799,6 +800,8 @@ public class SettingsActivity extends BaseActivity {
             localPathsList.addView(row);
         }
         int netCount = prefs.getNetSources().size();
+        netPathsSummary.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
+        pathDisplay.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
         netPathsSummary.setText(netCount == 0
                 ? getString(R.string.net_paths_none)
                 : getString(R.string.net_paths_count, netCount));

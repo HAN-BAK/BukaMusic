@@ -226,7 +226,7 @@
     <string name="net_paths_none">No network music path yet</string>
     <string name="net_paths_count">%1$d network path(s) added</string>
     <string name="net_path_edit">Edit network path</string>
-    <string name="net_path_delete">Delete</string>
+    <string name="net_path_delete">Remove</string>
     <string name="net_path_delete_confirm">Delete "%1$s"?</string>
     <string name="net_path_deleted">Deleted "%1$s"</string>
     <string name="net_path_type">Type</string>

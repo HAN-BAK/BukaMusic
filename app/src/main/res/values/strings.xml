@@ -228,7 +228,7 @@
     <string name="net_paths_none">尚未添加网络音乐路径</string>
     <string name="net_paths_count">已添加 %1$d 条网络路径</string>
     <string name="net_path_edit">编辑网络路径</string>
-    <string name="net_path_delete">删除</string>
+    <string name="net_path_delete">移除</string>
     <string name="net_path_delete_confirm">确定删除「%1$s」吗？</string>
     <string name="net_path_deleted">已删除「%1$s」</string>
     <string name="net_path_type">类型</string>

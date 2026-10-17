@@ -39,10 +39,15 @@ public class NetworkPathsActivity extends BaseActivity {
         prefs = new Prefs(this);
         list = findViewById(R.id.net_paths_list);
         hint = findViewById(R.id.net_paths_hint);
+        hint.setTextColor(ColorTheme.textSecondary());
         ImageButton back = findViewById(R.id.btn_back);
         back.setImageResource(R.drawable.ic_prev);
         back.setOnClickListener(v -> finish());
         findViewById(R.id.btn_add_net_path).setOnClickListener(v -> chooseType());
+        TextView topTitle = findViewById(R.id.txt_title);
+        topTitle.setTextColor(ColorTheme.tooltipText());
+        TextView addButton = findViewById(R.id.btn_add_net_path);
+        addButton.setTextColor(ColorTheme.textAccent());
         BukaTheme.tintView(this, findViewById(android.R.id.content));
     }
 
@@ -110,8 +115,10 @@ public class NetworkPathsActivity extends BaseActivity {
         delete.setText(R.string.net_path_delete);
         delete.setTextSize(13f);
         delete.setTextColor(ColorTheme.textAccent());
-        delete.setPadding(padding, padding / 2, padding / 2, padding / 2);
+        delete.setPadding(padding, padding / 2, padding, padding / 2);
         delete.setBackground(ColorTheme.capsule(this));
+        // 和左边两行文字居中对齐（不贴底）
+        delete.setGravity(android.view.Gravity.CENTER);
         delete.setOnClickListener(v -> confirmDelete(source));
         card.addView(delete);
 

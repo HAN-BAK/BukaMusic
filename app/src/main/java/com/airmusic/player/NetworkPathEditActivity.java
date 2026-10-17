@@ -62,7 +62,32 @@ public class NetworkPathEditActivity extends BaseActivity {
         for (EditText input : new EditText[]{nameInput, hostInput, portInput, folderInput,
                 userInput, passwordInput, domainInput}) {
             input.setBackground(com.airmusic.player.ui.ColorTheme.optionIdle(this));
+            input.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+            input.setHintTextColor(com.airmusic.player.ui.ColorTheme.withAlpha(
+                    com.airmusic.player.ui.ColorTheme.textSecondary(), 0.85f));
         }
+        // 顶部 / 底部按钮统一动态色；「类型」按钮去掉 MaterialButton 自带的 inset，
+        // 并补上和输入框一样的左边距，字体才能和下面几行对齐。
+        ((TextView) findViewById(R.id.txt_title)).setTextColor(
+                com.airmusic.player.ui.ColorTheme.tooltipText());
+        for (int id : new int[]{R.id.btn_net_type, R.id.btn_net_test, R.id.btn_net_save,
+                R.id.btn_delete_net_path}) {
+            View button = findViewById(id);
+            if (button instanceof TextView) {
+                ((TextView) button).setTextColor(
+                        com.airmusic.player.ui.ColorTheme.textAccent());
+            }
+            if (button instanceof com.google.android.material.button.MaterialButton) {
+                com.google.android.material.button.MaterialButton material =
+                        (com.google.android.material.button.MaterialButton) button;
+                material.setInsetTop(0);
+                material.setInsetBottom(0);
+            }
+        }
+        typeButton.setPadding(Math.round(14f * getResources().getDisplayMetrics().density),
+                typeButton.getPaddingTop(),
+                typeButton.getPaddingRight(), typeButton.getPaddingBottom());
+        status.setTextColor(com.airmusic.player.ui.ColorTheme.textSecondary());
 
         String id = getIntent().getStringExtra(EXTRA_ID);
         if (id != null) editing = prefs.getNetSource(id);
