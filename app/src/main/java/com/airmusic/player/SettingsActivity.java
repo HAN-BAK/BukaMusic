@@ -46,6 +46,8 @@ public class SettingsActivity extends BaseActivity {
     };
     private TextInputEditText inputName;
     private TextView pathDisplay;
+    private android.widget.LinearLayout localPathsList;
+    private TextView netPathsSummary;
     private com.google.android.material.button.MaterialButton btnPlayMode;
     private com.airmusic.player.ui.BukaSwitch switchAutoPlay;
     private com.airmusic.player.ui.BukaSwitch switchOnlineLyrics;
@@ -65,11 +67,13 @@ public class SettingsActivity extends BaseActivity {
                         String display = result.getData().getStringExtra(
                                 FolderPickerActivity.EXTRA_RESULT_DISPLAY);
                         if (display == null) display = path;
-                        // Auto-save the folder and rescan immediately.
-                        prefs.setMusicFolderPath(path, display);
-                        pathDisplay.setText(formatFolderDisplay(display, path));
+                        // 加进本地路径列表（可以多条），然后立刻重扫
+                        prefs.addLocalPath(new com.airmusic.player.library.MusicPath(
+                                path, null, display));
+                        renderLocalPaths();
                         PlaybackService svc = PlaybackService.getInstance();
                         if (svc != null) svc.rescanLibrary();
+                        BukaNotice.show(this, getString(R.string.pref_path_added, display));
                     }
                 }
             });
@@ -103,16 +107,11 @@ public class SettingsActivity extends BaseActivity {
         txtStorageInfo = findViewById(R.id.txt_storage_info);
         btnTransfer = findViewById(R.id.btn_transfer);
         btnEqualizer = findViewById(R.id.btn_equalizer);
+        localPathsList = findViewById(R.id.local_paths_list);
+        netPathsSummary = findViewById(R.id.net_paths_summary);
 
         inputName.setText(prefs.getAirPlayName());
-        String folderPath = prefs.getMusicFolderPath();
-        String folderUri = prefs.getMusicFolderUri();
-        String folderDisplay = prefs.getMusicFolderDisplay();
-        if (folderPath != null) {
-            pathDisplay.setText(formatFolderDisplay(folderDisplay, folderPath));
-        } else if (folderUri != null) {
-            pathDisplay.setText(formatFolderDisplay(folderDisplay, folderUri));
-        }
+        renderLocalPaths();
 
         setupPlayModeButton();
         switchAutoPlay.setChecked(prefs.isAutoPlayOnStart());
@@ -179,13 +178,8 @@ public class SettingsActivity extends BaseActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_choose_folder).setOnClickListener(v ->
                 folderPicker.launch(new Intent(this, FolderPickerActivity.class)));
-        findViewById(R.id.btn_clear_path).setOnClickListener(v -> {
-            prefs.clearMusicFolder();
-            pathDisplay.setText(R.string.pref_music_path_hint);
-            PlaybackService service = PlaybackService.getInstance();
-            if (service != null) service.rescanLibrary();
-            BukaNotice.show(this, R.string.path_cleared);
-        });
+        findViewById(R.id.btn_net_paths).setOnClickListener(v ->
+                startActivity(new Intent(this, NetworkPathsActivity.class)));
 
         findViewById(R.id.btn_rescan).setOnClickListener(v -> {
             PlaybackService service = PlaybackService.getInstance();
@@ -410,7 +404,7 @@ public class SettingsActivity extends BaseActivity {
                 R.drawable.ic_row_transfer);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_choose_folder),
                 R.drawable.ic_row_folder);
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_clear_path),
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_net_paths),
                 R.drawable.ic_row_rescan);
         // 播放方式 / 语言 / 背景模糊：图标放在左边的标签上，右侧的取值按钮不带图标
         com.airmusic.player.ui.BukaIcons.attach(findViewById(R.id.label_play_mode),
@@ -750,6 +744,63 @@ public class SettingsActivity extends BaseActivity {
             return path;
         }
         return display + "\n" + path;
+    }
+
+    /**
+     * 渲染本地音乐路径列表（每条自带删除按钮）和网络路径数量摘要。
+     *
+     * <p>音乐传输的上传目录仍然取"第一条本机路径"（Prefs.getMusicFolderPath()），
+     * 网络路径只用于扫描与播放，不会被当成上传目标。
+     */
+    private void renderLocalPaths() {
+        if (localPathsList == null) return;
+        localPathsList.removeAllViews();
+        final java.util.List<com.airmusic.player.library.MusicPath> paths = prefs.getLocalPaths();
+        pathDisplay.setVisibility(paths.isEmpty() ? android.view.View.VISIBLE
+                : android.view.View.GONE);
+        float density = getResources().getDisplayMetrics().density;
+        for (final com.airmusic.player.library.MusicPath path : paths) {
+            android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackground(com.airmusic.player.ui.ColorTheme.optionIdle(this));
+            int pad = Math.round(12f * density);
+            row.setPadding(pad, pad, Math.round(8f * density), pad);
+            android.widget.LinearLayout.LayoutParams params =
+                    new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.bottomMargin = Math.round(6f * density);
+            row.setLayoutParams(params);
+
+            TextView label = new TextView(this);
+            label.setText(path.label());
+            label.setTextSize(14f);
+            label.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+            label.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(label);
+
+            TextView remove = new TextView(this);
+            remove.setText(R.string.pref_path_remove);
+            remove.setTextSize(13f);
+            remove.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
+            remove.setPadding(pad, pad / 2, pad, pad / 2);
+            remove.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+            remove.setOnClickListener(v -> {
+                prefs.removeLocalPath(path.id());
+                renderLocalPaths();
+                PlaybackService service = PlaybackService.getInstance();
+                if (service != null) service.rescanLibrary();
+                BukaNotice.show(this, getString(R.string.pref_path_removed, path.label()));
+            });
+            row.addView(remove);
+            localPathsList.addView(row);
+        }
+        int netCount = prefs.getNetSources().size();
+        netPathsSummary.setText(netCount == 0
+                ? getString(R.string.net_paths_none)
+                : getString(R.string.net_paths_count, netCount));
     }
 
 }

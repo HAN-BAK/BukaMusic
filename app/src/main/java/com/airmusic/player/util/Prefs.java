@@ -8,6 +8,9 @@ import android.provider.Settings;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.airmusic.player.library.MusicPath;
+import com.airmusic.player.library.NetSource;
+
 /**
  * Central place for app settings.
  */
@@ -24,6 +27,10 @@ public final class Prefs {
     private static final String KEY_MUSIC_FOLDER_URI = "music_folder_uri";
     private static final String KEY_MUSIC_FOLDER_PATH = "music_folder_path";
     private static final String KEY_MUSIC_FOLDER_DISPLAY = "music_folder_display";
+    /** 本地音乐路径列表（JSON 数组），首个与上面三个旧键保持同步。 */
+    private static final String KEY_LOCAL_PATHS = "local_music_paths";
+    /** 网络音乐路径列表（JSON 数组）。 */
+    private static final String KEY_NET_SOURCES = "net_music_sources";
     private static final String KEY_PLAY_MODE = "play_mode";
     private static final String KEY_AUTO_PLAY = "auto_play_on_start";
     private static final String KEY_BALANCE = "balance";
@@ -97,28 +104,177 @@ public final class Prefs {
         return sp.getString(KEY_MUSIC_FOLDER_DISPLAY, null);
     }
 
+    // ------------------------------------------------------------------
+    // 本地音乐路径（可多条）
+    // ------------------------------------------------------------------
+
+    /**
+     * 本地音乐路径列表。
+     *
+     * <p>第一条会同步到上面三个旧键：音乐传输的上传目录、存储空间检查、桌面控制台的
+     * "musicFolder" 等都还按旧逻辑走第一条路径，这样加多路径不会影响那些功能。
+     * 旧版本只存了一条路径，这里会自动迁移成列表里的第一条。
+     */
+    public java.util.List<MusicPath> getLocalPaths() {
+        java.util.List<MusicPath> out = new java.util.ArrayList<>();
+        String raw = sp.getString(KEY_LOCAL_PATHS, null);
+        if (raw != null && !raw.isEmpty()) {
+            try {
+                org.json.JSONArray array = new org.json.JSONArray(raw);
+                for (int i = 0; i < array.length(); i++) {
+                    MusicPath path = MusicPath.fromJson(array.optJSONObject(i));
+                    if (path != null) out.add(path);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        if (out.isEmpty()) {
+            String legacyPath = sp.getString(KEY_MUSIC_FOLDER_PATH, null);
+            String legacyUri = sp.getString(KEY_MUSIC_FOLDER_URI, null);
+            String legacyDisplay = sp.getString(KEY_MUSIC_FOLDER_DISPLAY, null);
+            if (legacyPath != null && !legacyPath.isEmpty()) {
+                out.add(new MusicPath(legacyPath, null, legacyDisplay));
+            } else if (legacyUri != null && !legacyUri.isEmpty()) {
+                out.add(new MusicPath(null, legacyUri, legacyDisplay));
+            }
+            if (!out.isEmpty()) saveLocalPaths(out);
+        }
+        return out;
+    }
+
+    public void addLocalPath(MusicPath path) {
+        if (path == null) return;
+        java.util.List<MusicPath> list = getLocalPaths();
+        for (MusicPath existing : list) {
+            if (existing.id().equals(path.id())) return;
+        }
+        list.add(path);
+        saveLocalPaths(list);
+    }
+
+    public void removeLocalPath(String id) {
+        if (id == null) return;
+        java.util.List<MusicPath> list = getLocalPaths();
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).id().equals(id)) list.remove(i);
+        }
+        saveLocalPaths(list);
+    }
+
+    private void saveLocalPaths(java.util.List<MusicPath> paths) {
+        org.json.JSONArray array = new org.json.JSONArray();
+        for (MusicPath path : paths) {
+            try {
+                array.put(path.toJson());
+            } catch (Throwable ignored) {
+            }
+        }
+        android.content.SharedPreferences.Editor editor =
+                sp.edit().putString(KEY_LOCAL_PATHS, array.toString());
+        if (paths.isEmpty()) {
+            editor.remove(KEY_MUSIC_FOLDER_PATH)
+                    .remove(KEY_MUSIC_FOLDER_URI)
+                    .remove(KEY_MUSIC_FOLDER_DISPLAY);
+        } else {
+            MusicPath first = paths.get(0);
+            if (first.path != null && !first.path.isEmpty()) {
+                editor.putString(KEY_MUSIC_FOLDER_PATH, first.path)
+                        .remove(KEY_MUSIC_FOLDER_URI);
+            } else {
+                editor.remove(KEY_MUSIC_FOLDER_PATH)
+                        .putString(KEY_MUSIC_FOLDER_URI, first.uri);
+            }
+            editor.putString(KEY_MUSIC_FOLDER_DISPLAY, first.label());
+        }
+        editor.apply();
+    }
+
+    // ------------------------------------------------------------------
+    // 网络音乐路径（WebDAV / SMB / FTP，可多条）
+    // ------------------------------------------------------------------
+
+    public java.util.List<NetSource> getNetSources() {
+        java.util.List<NetSource> out = new java.util.ArrayList<>();
+        String raw = sp.getString(KEY_NET_SOURCES, null);
+        if (raw == null || raw.isEmpty()) return out;
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                NetSource source = NetSource.fromJson(array.optJSONObject(i));
+                if (source != null) out.add(source);
+            }
+        } catch (Throwable ignored) {
+        }
+        return out;
+    }
+
+    public NetSource getNetSource(String id) {
+        if (id == null) return null;
+        for (NetSource source : getNetSources()) {
+            if (id.equals(source.id)) return source;
+        }
+        return null;
+    }
+
+    public void addNetSource(NetSource source) {
+        if (source == null) return;
+        java.util.List<NetSource> list = getNetSources();
+        list.add(source);
+        saveNetSources(list);
+    }
+
+    /** 按 id 覆盖已有条目（id 不存在时追加）。 */
+    public void updateNetSource(NetSource source) {
+        if (source == null) return;
+        java.util.List<NetSource> list = getNetSources();
+        boolean replaced = false;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).id.equals(source.id)) {
+                list.set(i, source);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) list.add(source);
+        saveNetSources(list);
+    }
+
+    public void removeNetSource(String id) {
+        if (id == null) return;
+        java.util.List<NetSource> list = getNetSources();
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).id.equals(id)) list.remove(i);
+        }
+        saveNetSources(list);
+    }
+
+    private void saveNetSources(java.util.List<NetSource> sources) {
+        org.json.JSONArray array = new org.json.JSONArray();
+        for (NetSource source : sources) {
+            try {
+                array.put(source.toJson());
+            } catch (Throwable ignored) {
+            }
+        }
+        sp.edit().putString(KEY_NET_SOURCES, array.toString()).apply();
+    }
+
     public void setMusicFolder(String uri, String display) {
-        sp.edit()
-            .putString(KEY_MUSIC_FOLDER_URI, uri)
-            .remove(KEY_MUSIC_FOLDER_PATH)
-            .putString(KEY_MUSIC_FOLDER_DISPLAY, display)
-            .apply();
+        java.util.List<MusicPath> list = getLocalPaths();
+        MusicPath path = new MusicPath(null, uri, display);
+        if (list.isEmpty()) list.add(path); else list.set(0, path);
+        saveLocalPaths(list);
     }
 
     public void setMusicFolderPath(String path, String display) {
-        sp.edit()
-            .putString(KEY_MUSIC_FOLDER_PATH, path)
-            .remove(KEY_MUSIC_FOLDER_URI)
-            .putString(KEY_MUSIC_FOLDER_DISPLAY, display)
-            .apply();
+        java.util.List<MusicPath> list = getLocalPaths();
+        MusicPath entry = new MusicPath(path, null, display);
+        if (list.isEmpty()) list.add(entry); else list.set(0, entry);
+        saveLocalPaths(list);
     }
 
     public void clearMusicFolder() {
-        sp.edit()
-            .remove(KEY_MUSIC_FOLDER_URI)
-            .remove(KEY_MUSIC_FOLDER_PATH)
-            .remove(KEY_MUSIC_FOLDER_DISPLAY)
-            .apply();
+        saveLocalPaths(new java.util.ArrayList<MusicPath>());
     }
 
     public String getPlayMode() {

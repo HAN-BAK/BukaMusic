@@ -219,4 +219,39 @@
     <string name="ob_settings_title">Settings</string>
     <string name="ob_settings_body">AirPlay name, equalizer, channel balance, background blur, language and browser uploads.</string>
     <string name="album_art">Album art</string>
+    <!-- Network music paths (WebDAV / SMB / FTP) -->
+    <string name="net_paths_title">Network music paths</string>
+    <string name="net_paths_add">Add network path</string>
+    <string name="net_paths_hint">WebDAV, SMB (Windows share / NAS) and FTP are supported; you can add several. Music is only scanned and played — nothing on the server is modified.</string>
+    <string name="net_paths_none">No network music path yet</string>
+    <string name="net_paths_count">%1$d network path(s) added</string>
+    <string name="net_path_edit">Edit network path</string>
+    <string name="net_path_delete">Delete</string>
+    <string name="net_path_delete_confirm">Delete "%1$s"?</string>
+    <string name="net_path_deleted">Deleted "%1$s"</string>
+    <string name="net_path_type">Type</string>
+    <string name="net_type_webdav">WebDAV</string>
+    <string name="net_type_smb">SMB (Windows share / NAS)</string>
+    <string name="net_type_ftp">FTP</string>
+    <string name="net_path_name">Name (shown in the list)</string>
+    <string name="net_path_host">Server address (IP or host name)</string>
+    <string name="net_path_host_smb">Server address (IP or host name)</string>
+    <string name="net_path_port">Port (leave empty for default)</string>
+    <string name="net_path_port_hint">Port (empty = %1$d)</string>
+    <string name="net_path_folder">Starting folder (optional)</string>
+    <string name="net_path_folder_smb">Share/folder, e.g. Music/Lossless</string>
+    <string name="net_path_user">User name (optional)</string>
+    <string name="net_path_password">Password (optional)</string>
+    <string name="net_path_domain">Domain / workgroup (SMB, optional)</string>
+    <string name="net_path_test">Test connection</string>
+    <string name="net_path_save">Save</string>
+    <string name="net_path_saved">Saved "%1$s"</string>
+    <string name="net_path_need_host">Please enter the server address first</string>
+    <string name="net_path_bad_port">Port must be a number between 1 and 65535</string>
+    <string name="net_path_testing">Testing connection…</string>
+    <string name="net_path_test_ok">Connected — the folder can be listed</string>
+    <string name="net_path_test_failed">Connection failed: %1$s</string>
+    <string name="pref_path_added">Added path "%1$s"</string>
+    <string name="pref_path_remove">Remove</string>
+    <string name="pref_path_removed">Removed "%1$s"</string>
 </resources>

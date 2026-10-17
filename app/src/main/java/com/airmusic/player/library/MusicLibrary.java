@@ -5,6 +5,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+
+import com.airmusic.player.net.NetClient;
+import com.airmusic.player.net.RemoteFile;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -191,20 +194,20 @@ public final class MusicLibrary {
 
         Prefs prefs = new Prefs(context);
         boolean folderScanned = false;
-        String folderPath = prefs.getMusicFolderPath();
-        if (folderPath != null) {
-            File dir = new File(folderPath);
-            if (dir.isDirectory() && dir.canRead()) {
-                scanFileTree(context, dir, byUri, 0);
-                folderScanned = true;
+        // 本地音乐路径：可以配多条，全部扫进来（本机路径或 SAF 目录树）
+        for (MusicPath path : prefs.getLocalPaths()) {
+            if (path.path != null && !path.path.isEmpty()) {
+                File dir = new File(path.path);
+                if (dir.isDirectory() && dir.canRead()) {
+                    scanFileTree(context, dir, byUri, 0);
+                    folderScanned = true;
+                }
+            } else if (path.uri != null && !path.uri.isEmpty()) {
+                if (scanSafTree(context, Uri.parse(path.uri), byUri, 0)) folderScanned = true;
             }
         }
-        if (!folderScanned) {
-            String folderUri = prefs.getMusicFolderUri();
-            if (folderUri != null) {
-                folderScanned = scanSafTree(context, Uri.parse(folderUri), byUri, 0);
-            }
-        }
+        // 网络音乐路径（WebDAV / SMB / FTP）：单个源连不上只记日志，不影响其它来源
+        int netTracks = scanNetSources(prefs, byUri);
 
         // When a folder is configured, the library is that folder only;
         // otherwise fall back to the system media library (including USB).
@@ -216,6 +219,7 @@ public final class MusicLibrary {
         Log.i(TAG, "scan phases: folderOrNothing=" + folderMs + "ms mediaStore="
                 + (android.os.SystemClock.elapsedRealtime() - started - folderMs) + "ms"
                 + " folderScanned=" + folderScanned
+                + " netTracks=" + netTracks
                 + " metaCacheHits=" + cacheHits + " tagReads=" + cacheMisses);
 
         List<Track> tracks = new ArrayList<>(byUri.values());
@@ -243,6 +247,76 @@ public final class MusicLibrary {
                 byUri.put(track.uri.toString(), track);
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // 网络音乐路径（WebDAV / SMB / FTP）
+    // ------------------------------------------------------------------
+
+    /** 扫所有网络音乐路径，返回加入的曲目数；单个源出错不影响其它源。 */
+    private int scanNetSources(Prefs prefs, Map<String, Track> byUri) {
+        int added = 0;
+        for (NetSource source : prefs.getNetSources()) {
+            final long start = android.os.SystemClock.elapsedRealtime();
+            try {
+                int count = scanNetDir(source, "", byUri, 0, source.displayName(), new int[]{0});
+                added += count;
+                Log.i(TAG, "网络路径 " + source.typeLabel() + " " + source.host
+                        + " 扫到 " + count + " 首，用时 "
+                        + (android.os.SystemClock.elapsedRealtime() - start) + "ms");
+            } catch (Throwable t) {
+                Log.w(TAG, "网络路径扫描失败（" + source.label() + "）：" + t);
+            }
+        }
+        return added;
+    }
+
+    /**
+     * 递归列一层网络目录。
+     *
+     * <p>深度、总条目数都有上限，避免某个大目录或慢服务器把整次扫描拖住；
+     * 网络曲目只按扩展名判断，标签（标题/歌手/专辑）按"歌手/专辑/文件"这种常见
+     * 目录结构猜一下，拿不到就留空——播放界面会用在线元数据补齐。
+     */
+    private int scanNetDir(NetSource source, String relativePath, Map<String, Track> byUri,
+                           int depth, String rootName, int[] budget) {
+        if (depth > 6 || budget[0] > 5000) return 0;
+        List<RemoteFile> entries;
+        try {
+            entries = NetClient.list(source, relativePath);
+        } catch (Throwable t) {
+            Log.w(TAG, "列目录失败 " + relativePath + " -> " + t);
+            return 0;
+        }
+        int added = 0;
+        for (RemoteFile entry : entries) {
+            if (budget[0] > 5000) break;
+            String childPath = relativePath.isEmpty() ? entry.name
+                    : relativePath + "/" + entry.name;
+            budget[0]++;
+            if (entry.directory) {
+                added += scanNetDir(source, childPath, byUri, depth + 1, rootName, budget);
+            } else if (AudioExt.isAudio(entry.name)) {
+                String uri = source.trackUri(childPath).toString();
+                if (byUri.containsKey(uri)) continue;
+                byUri.put(uri, buildNetTrack(source, childPath, entry.name, rootName));
+                added++;
+            }
+        }
+        return added;
+    }
+
+    /** 网络曲目：标题取文件名，歌手/专辑按目录结构猜（有就填，没有就留未知）。 */
+    private Track buildNetTrack(NetSource source, String relativePath, String fileName,
+                                String rootName) {
+        String[] parts = relativePath.split("/");
+        String album = parts.length >= 2 ? parts[parts.length - 2] : "";
+        String artist = parts.length >= 3 ? parts[parts.length - 3] : "";
+        String display = source.typeLabel() + " · " + source.displayName() + "/" + relativePath;
+        return new Track(source.trackUri(relativePath), nameWithoutExt(fileName),
+                artist.isEmpty() ? Track.UNKNOWN_ARTIST : artist,
+                album.isEmpty() ? Track.UNKNOWN_ALBUM : album,
+                0, 0L, rootName, display, AudioExt.extensionOf(fileName));
     }
 
     /** Reads file tags (title/artist/album/duration) when scanning folders or USB. */

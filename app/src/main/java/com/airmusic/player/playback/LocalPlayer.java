@@ -9,9 +9,13 @@ import android.util.Log;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.common.audio.AudioProcessor;
+import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 
 import com.airmusic.player.library.Track;
+import com.airmusic.player.net.NetDataSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -107,7 +111,13 @@ public class LocalPlayer {
             AudioProcessor[] all = new AudioProcessor[preProcessors.length + 1];
             System.arraycopy(preProcessors, 0, all, 0, preProcessors.length);
             all[preProcessors.length] = balanceProcessor;
-            player = new ExoPlayer.Builder(context, new BalanceRenderersFactory(context, all)).build();
+            // 数据源外面包一层：buka-net:// 走网络音乐路径（WebDAV / SMB / FTP），
+            // 其它 scheme（file / content / http …）交给默认数据源。
+            DataSource.Factory base = new DefaultDataSource.Factory(context);
+            player = new ExoPlayer.Builder(context, new BalanceRenderersFactory(context, all))
+                    .setMediaSourceFactory(new DefaultMediaSourceFactory(
+                            NetDataSource.wrap(context, base)))
+                    .build();
             player.setVolume(masterGain);
             player.addListener(new Player.Listener() {
                 @Override
