@@ -426,6 +426,9 @@ public class ScreensaverActivity extends BaseActivity {
                     + (ink.top + ink.bottom) / 2f;
             clockRow.setPivotY(inkCenterInRow);
             clockRow.setScaleY(scale);
+            // 字号刚刚被改成"铺满屏幕"的大小，竖直微调量必须按新字号重算：
+            // 之前只在 200sp 时算过一次，字号放大后仍用那个像素值，冒号就会偏下。
+            alignColon();
             // 注意：这里**不**再把墨迹中心硬补到屏幕正中。字体里部分数字是旧式
             // 下伸字形（"0123456789" 的墨迹范围是 -445~+89），数字不同、可见墨迹
             // 的重心本来就会上下浮动几十像素；按某个固定参照硬对中，换一组数字就
