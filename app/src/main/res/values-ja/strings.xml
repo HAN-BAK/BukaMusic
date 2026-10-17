@@ -128,7 +128,7 @@
     <string name="equalizer_export_failed">エクスポートに失敗しました</string>
     <string name="equalizer_exported">プリセットを書き出しました</string>
     <string name="equalizer_import_failed">インポートに失敗しました</string>
-    <string name="pref_music_path">ローカル音楽パス</string>
+    <string name="pref_music_path">音楽パス</string>
     <string name="pref_music_path_hint">未設定の場合はシステムのメディアライブラリ（USBデバイス含む）を使用</string>
     <string name="pref_choose_folder">フォルダを選択</string>
     <string name="folder_picker_title">音楽フォルダを選択</string>

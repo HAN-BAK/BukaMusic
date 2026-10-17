@@ -128,7 +128,7 @@
     <string name="equalizer_export_failed">导出失败</string>
     <string name="equalizer_exported">已导出预设</string>
     <string name="equalizer_import_failed">导入失败</string>
-    <string name="pref_music_path">本地音乐路径</string>
+    <string name="pref_music_path">音乐路径</string>
     <string name="pref_music_path_hint">未选择时使用系统媒体库（含 USB 设备）</string>
     <string name="pref_choose_folder">选择文件夹</string>
     <string name="folder_picker_title">选择音乐文件夹</string>

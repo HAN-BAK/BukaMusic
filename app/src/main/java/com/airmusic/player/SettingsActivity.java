@@ -403,8 +403,9 @@ public class SettingsActivity extends BaseActivity {
                 R.drawable.ic_row_wifi);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_transfer),
                 R.drawable.ic_row_transfer);
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_choose_folder),
-                R.drawable.ic_row_folder);
+        // 文件夹图标挪到「音乐路径」标题左边（不再塞在「选择文件夹」按钮里）
+        com.airmusic.player.ui.BukaIcons.attach(findViewById(R.id.label_music_path),
+                R.drawable.ic_row_folder, -0.5f);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_net_paths),
                 R.drawable.ic_row_rescan);
         // 播放方式 / 语言 / 背景模糊：图标放在左边的标签上，右侧的取值按钮不带图标
