@@ -33,6 +33,7 @@ public final class Prefs {
     private static final String KEY_NET_SOURCES = "net_music_sources";
     /** 上次扫描网络音乐路径的时间（elapsedRealtime），用于缓存判断。 */
     private static final String KEY_NET_SCAN_AT = "net_music_scan_at";
+    private static final String KEY_LAST_UPDATE_CHECK = "last_update_check";
     private static final String KEY_PLAY_MODE = "play_mode";
     private static final String KEY_AUTO_PLAY = "auto_play_on_start";
     private static final String KEY_BALANCE = "balance";
@@ -294,6 +295,15 @@ public final class Prefs {
 
     public void setNetScanAt(long at) {
         sp.edit().putLong(KEY_NET_SCAN_AT, at).apply();
+    }
+
+    /** 上次检查更新的时刻（System.currentTimeMillis）。 */
+    public long getLastUpdateCheck() {
+        return sp.getLong(KEY_LAST_UPDATE_CHECK, 0L);
+    }
+
+    public void setLastUpdateCheck(long at) {
+        sp.edit().putLong(KEY_LAST_UPDATE_CHECK, at).apply();
     }
 
     public void setMusicFolder(String uri, String display) {

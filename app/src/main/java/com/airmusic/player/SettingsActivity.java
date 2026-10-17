@@ -215,6 +215,8 @@ public class SettingsActivity extends BaseActivity {
                     .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                     .putExtra(MainActivity.EXTRA_SHOW_TOUR, true));
         });
+        findViewById(R.id.btn_check_update).setOnClickListener(v ->
+                com.airmusic.player.update.UpdateUi.checkManually(this));
         refreshStorageInfo();
     }
 
@@ -415,6 +417,8 @@ public class SettingsActivity extends BaseActivity {
                 R.drawable.ic_row_info);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_show_tour),
                 R.drawable.ic_row_device);
+        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_check_update),
+                R.drawable.ic_row_rescan);
         // 开关 / 滑条 / 信息行：图标必须贴到「那一行自己的标签」上。
         // 之前用 rowLabel 找父容器里第一个 TextView，开关那几行的父容器是整个分组，
         // 结果图标全贴到了同一行（音乐目录路径）上——这就是设置页图标看着没对齐的原因。

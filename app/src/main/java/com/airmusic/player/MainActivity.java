@@ -498,6 +498,8 @@ public class MainActivity extends BaseActivity {
             service.addControlAckListener(controlAckListener);
         }
         requestPermissionsIfNeeded();
+        // 启动时静默检查更新（24 小时内只查一次，没有新版本不打扰）
+        com.airmusic.player.update.UpdateUi.checkAutomatically(this);
     }
 
     /** Compacts the right panel on very short screens (e.g. 4:3 mini boxes)

@@ -242,6 +242,11 @@ public class BukaDialog extends Dialog {
         void onConfirm(boolean[] checked);
     }
 
+    /** 更新加载中对话框的文字（下载进度）。 */
+    public void setLoadingText(CharSequence text) {
+        if (loadingText != null) loadingText.setText(text);
+    }
+
     /** 载入中：无按钮、不可点外部关闭。 */
     public static BukaDialog loading(Context context, CharSequence text) {
         BukaDialog dialog = new BukaDialog(context);

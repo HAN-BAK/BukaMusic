@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="logs" path="logs/" />
+    <!-- 自动更新下载的安装包 -->
+    <files-path name="updates" path="update/" />
 </paths>

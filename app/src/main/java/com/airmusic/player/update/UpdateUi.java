@@ -1,0 +1,118 @@
+package com.airmusic.player.update;
+
+import android.app.Activity;
+
+import com.airmusic.player.R;
+import com.airmusic.player.ui.BukaDialog;
+import com.airmusic.player.ui.BukaNotice;
+import com.airmusic.player.util.Prefs;
+
+import java.io.File;
+
+/** 更新检查 / 下载 / 安装的界面流程。 */
+public final class UpdateUi {
+
+    private static final long AUTO_INTERVAL_MS = 24L * 60 * 60 * 1000;
+    /** 同一次运行里同一个版本只弹一次，免得每次回播放页都弹。 */
+    private static int lastPromptedVersion;
+
+    private UpdateUi() {
+    }
+
+    /** 启动时静默检查：24 小时内查过就跳过，发现新版本才弹窗。 */
+    public static void checkAutomatically(Activity activity) {
+        Prefs prefs = new Prefs(activity);
+        long last = prefs.getLastUpdateCheck();
+        if (System.currentTimeMillis() - last < AUTO_INTERVAL_MS) return;
+        prefs.setLastUpdateCheck(System.currentTimeMillis());
+        check(activity, false);
+    }
+
+    /** 设置里手动点「检查更新」：无论结果都给提示。 */
+    public static void checkManually(Activity activity) {
+        new Prefs(activity).setLastUpdateCheck(System.currentTimeMillis());
+        check(activity, true);
+    }
+
+    private static void check(final Activity activity, final boolean manual) {
+        UpdateChecker.check((info, error) -> {
+            if (activity.isFinishing() || activity.isDestroyed()) return;
+            if (info == null) {
+                if (manual) BukaNotice.show(activity, R.string.update_check_failed);
+                return;
+            }
+            int current = UpdateChecker.currentVersionCode(activity);
+            if (info.versionCode <= current) {
+                if (manual) {
+                    BukaNotice.show(activity,
+                            activity.getString(R.string.update_latest,
+                                    UpdateChecker.currentVersionName(activity)));
+                }
+                return;
+            }
+            if (info.versionCode == lastPromptedVersion) return;
+            lastPromptedVersion = info.versionCode;
+            showAvailable(activity, info);
+        });
+    }
+
+    private static void showAvailable(final Activity activity, final UpdateChecker.Info info) {
+        String title = activity.getString(R.string.update_available_title, info.versionName);
+        String message = info.notes == null || info.notes.isEmpty()
+                ? activity.getString(R.string.update_available_hint) : info.notes;
+        BukaDialog.confirm(activity, title, message,
+                activity.getString(R.string.update_now),
+                () -> download(activity, info)).show();
+    }
+
+    private static void download(final Activity activity, final UpdateChecker.Info info) {
+        final BukaDialog dialog = BukaDialog.loading(activity,
+                activity.getString(R.string.update_downloading, 0));
+        dialog.show();
+        final android.content.Context app = activity.getApplicationContext();
+        new Thread(() -> {
+            try {
+                File apk = UpdateChecker.download(app, info, percent -> {
+                    activity.runOnUiThread(() -> {
+                        if (!activity.isFinishing()) {
+                            dialog.setLoadingText(
+                                    activity.getString(R.string.update_downloading, percent));
+                        }
+                    });
+                    return true;
+                });
+                activity.runOnUiThread(() -> {
+                    dialog.dismiss();
+                    if (activity.isFinishing()) return;
+                    int result = UpdateChecker.install(activity, apk);
+                    if (result == UpdateChecker.INSTALL_NEED_PERMISSION) {
+                        showPermissionDialog(activity);
+                    } else if (result == UpdateChecker.INSTALL_NO_INSTALLER) {
+                        BukaNotice.show(activity, R.string.update_no_installer);
+                    }
+                });
+            } catch (Throwable t) {
+                android.util.Log.w("UpdateUi", "download failed", t);
+                activity.runOnUiThread(() -> {
+                    dialog.dismiss();
+                    if (!activity.isFinishing()) {
+                        BukaNotice.show(activity, R.string.update_download_failed);
+                    }
+                });
+            }
+        }, "update-download").start();
+    }
+
+    /** 没有"安装未知应用"权限：说明原因并给一个去设置的按钮。 */
+    private static void showPermissionDialog(final Activity activity) {
+        BukaDialog.confirm(activity,
+                activity.getString(R.string.update_permission_title),
+                activity.getString(R.string.update_permission_message),
+                activity.getString(R.string.update_permission_open),
+                () -> {
+                    if (!UpdateChecker.openUnknownSourcesSettings(activity)) {
+                        BukaNotice.show(activity, R.string.update_permission_manual);
+                    }
+                }).show();
+    }
+}
