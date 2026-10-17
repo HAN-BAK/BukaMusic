@@ -149,8 +149,16 @@ public final class FtpClient {
             // 先试 MLSD（机器可读），失败再退回 LIST
             int code = session.command("MLSD " + (path.isEmpty() ? "." : path));
             boolean mlsd = code < 400;
-            String text = readAll(data);
-            session.readReply(); // 226
+            String text;
+            if (mlsd) {
+                text = readAll(data);
+                session.readReply(); // 226
+            } else {
+                // 服务器不认识 MLSD（vsftpd 常见）：这时数据连接上没有数据，
+                // 直接读会一直等到超时。先关掉它，再用 LIST 重新开一条。
+                closeQuietly(data);
+                text = null;
+            }
             if (!mlsd) {
                 data = session.passive();
                 code = session.command("LIST " + (path.isEmpty() ? "." : path));
@@ -166,6 +174,14 @@ public final class FtpClient {
             return out;
         } finally {
             session.close();
+        }
+    }
+
+    private static void closeQuietly(Socket socket) {
+        if (socket == null) return;
+        try {
+            socket.close();
+        } catch (Throwable ignored) {
         }
     }
 

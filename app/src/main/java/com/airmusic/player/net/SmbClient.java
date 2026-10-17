@@ -22,10 +22,19 @@ import jcifs.smb.SmbRandomAccessFile;
  */
 public final class SmbClient {
 
+    /** 每个网络路径复用同一个 SMB 会话：递归扫描时每次 list 都新建会话会把 NAS 的
+     * 会话/句柄耗尽（表现为 0xC000009A，STATUS_INSUFFICIENT_RESOURCES）。 */
+    private static final java.util.Map<String, CIFSContext> CONTEXTS =
+            new java.util.HashMap<>();
+
     private SmbClient() {
     }
 
-    private static CIFSContext context(NetSource source) {
+    private static synchronized CIFSContext context(NetSource source) {
+        String cacheKey = source.id + "|" + source.host + "|" + source.effectivePort()
+                + "|" + source.user + "|" + source.password + "|" + source.domain;
+        CIFSContext cached = CONTEXTS.get(cacheKey);
+        if (cached != null) return cached;
         Properties props = new Properties();
         props.setProperty("jcifs.smb.client.minVersion", "SMB1");
         props.setProperty("jcifs.smb.client.maxVersion", "SMB311");
@@ -39,11 +48,13 @@ public final class SmbClient {
         } catch (Throwable t) {
             throw new IllegalStateException("SMB 初始化失败：" + t);
         }
-        if (!source.hasCredentials()) return base.withAnonymousCredentials();
-        return base.withCredentials(
+        CIFSContext ctx = !source.hasCredentials() ? base.withAnonymousCredentials()
+                : base.withCredentials(
                 new NtlmPasswordAuthenticator(
                         source.domain == null || source.domain.isEmpty() ? null : source.domain,
                         source.user, source.password));
+        CONTEXTS.put(cacheKey, ctx);
+        return ctx;
     }
 
     private static String urlOf(NetSource source, String relativePath) {

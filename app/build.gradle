@@ -60,14 +60,12 @@ dependencies {
       // AirPlay 1 (RAOP) engine
     implementation 'org.jmdns:jmdns:3.5.7'
     implementation 'io.netty:netty:3.10.6.Final'
-    implementation 'org.bouncycastle:bcprov-jdk15on:1.65'
+    // 1.76（jdk18on）：jcifs-ng 的 SMB 登录需要新版 ASN.1 实现；1.65 会在
+    // NegTokenInit.parse 抛 ClassCastException。全应用统一用这个版本即可。
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.76'
 
     // 网络音乐路径：SMB/CIFS 客户端（WebDAV 用 HttpURLConnection，FTP 自己实现，都不需要依赖）
-    // 它自带的 bcprov-jdk18on 与应用已有的 bcprov-jdk15on 包名重叠（Duplicate class），排除掉；
-    // SMB2 走不到那部分加密，应用自带的 1.65 已足够。
-    implementation('eu.agno3.jcifs:jcifs-ng:2.1.10') {
-        exclude group: 'org.bouncycastle'
-    }
+    implementation 'eu.agno3.jcifs:jcifs-ng:2.1.10'
 
     // 动态图标（Lottie）：载入 / 等待这类动画用它，图标本身的路径动画仍用
     // 原生 AnimatedVectorDrawable（矢量、无额外资源、TV 盒子上更省）。
