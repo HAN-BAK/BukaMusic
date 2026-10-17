@@ -38,8 +38,8 @@ public final class UpdateChecker {
     private static final String HOST = "s3.bitiful.net";
     private static final String BUCKET = "bukamusic";
     private static final String REGION = "cn-east-1";
-    private static final String ACCESS_KEY = "Y0kOrrw8wOAo2OfyWbSrbKlp";
-    private static final String SECRET_KEY = "88oHn5aqdHcwkE0w0nmrK1Wipj8DxA5";
+    private static final String ACCESS_KEY = "fXjRFy17EQZTzGdSV1trjrjZ";
+    private static final String SECRET_KEY = "2Z7hEapt9IdcZlgLTe2th1SZJpr09Sy";
     private static final String KEY_LATEST = "Android/latest.json";
     private static final long URL_TTL_SECONDS = 3600L;
 
