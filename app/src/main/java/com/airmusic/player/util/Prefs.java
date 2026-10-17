@@ -277,6 +277,11 @@ public final class Prefs {
         saveNetSources(list);
     }
 
+    /** 整表替换网络音乐路径（桌面控制台批量保存时用）。 */
+    public void setNetSources(java.util.List<NetSource> sources) {
+        saveNetSources(sources == null ? new java.util.ArrayList<>() : sources);
+    }
+
     private void saveNetSources(java.util.List<NetSource> sources) {
         org.json.JSONArray array = new org.json.JSONArray();
         for (NetSource source : sources) {

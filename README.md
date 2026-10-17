@@ -30,7 +30,11 @@
 ## 下载
 
 最新正式版见 [Releases](https://github.com/HAN-BAK/BukaMusic/releases)：
-`BukaMusic-v3.2.0-release.apk`（Android 6.0 及以上，直接覆盖安装即可）。
+`BukaMusic-v3.2.2-release.apk`（Android 6.0 及以上，直接覆盖安装即可）。
+
+应用内也可以更新：启动时自动检查（每天一次），或在 设置 → 关于 → **检查更新**
+手动检查，发现新版本后直接下载并拉起系统安装器。安装包存放在缤纷云存储
+`Android` 目录，版本信息由同目录的 `latest.json` 提供。
 
 ## 功能
 

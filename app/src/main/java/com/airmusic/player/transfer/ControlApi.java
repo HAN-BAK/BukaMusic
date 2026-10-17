@@ -105,6 +105,13 @@ public final class ControlApi {
                         sendJson(out, 200, settingsJson(context));
                     }
                     return true;
+                case "net_sources":
+                    if ("POST".equals(method)) {
+                        sendJson(out, 200, applyNetSources(context, body));
+                    } else {
+                        sendJson(out, 200, netSourcesJson(context));
+                    }
+                    return true;
                 case "control":
                     sendJson(out, 200, control(body));
                     return true;
@@ -782,6 +789,64 @@ public final class ControlApi {
             result.put("action", action);
         } catch (Throwable t) {
             try {
+                result.put("error", String.valueOf(t.getMessage()));
+            } catch (Throwable ignored) {
+            }
+        }
+        return result;
+    }
+
+    // ------------------------------------------------------------------
+    // 网络音乐路径（WebDAV / SMB / FTP）—— 桌面控制台的设置页用
+    // ------------------------------------------------------------------
+
+    public static JSONObject netSourcesJson(Context context) {
+        JSONObject result = new JSONObject();
+        JSONArray array = new JSONArray();
+        try {
+            for (com.airmusic.player.library.NetSource source
+                    : new Prefs(context).getNetSources()) {
+                try {
+                    array.put(source.toJson());
+                } catch (Throwable ignored) {
+                }
+            }
+            result.put("sources", array);
+        } catch (Throwable t) {
+            try {
+                result.put("error", String.valueOf(t.getMessage()));
+            } catch (Throwable ignored) {
+            }
+        }
+        return result;
+    }
+
+    /** 整表保存网络路径；保存后强制重扫网络曲库。 */
+    private static JSONObject applyNetSources(Context context, byte[] body) {
+        JSONObject result = new JSONObject();
+        try {
+            JSONObject request = body == null || body.length == 0
+                    ? new JSONObject() : new JSONObject(new String(body, StandardCharsets.UTF_8));
+            JSONArray array = request.optJSONArray("sources");
+            java.util.List<com.airmusic.player.library.NetSource> list =
+                    new java.util.ArrayList<>();
+            if (array != null) {
+                for (int i = 0; i < array.length(); i++) {
+                    com.airmusic.player.library.NetSource source =
+                            com.airmusic.player.library.NetSource.fromJson(
+                                    array.optJSONObject(i));
+                    if (source != null) list.add(source);
+                }
+            }
+            new Prefs(context).setNetSources(list);
+            MusicLibrary.requestNetworkRefresh();
+            PlaybackService service = PlaybackService.getInstance();
+            if (service != null) runOnMain(service::rescanLibrary);
+            result.put("ok", true);
+            result.put("count", list.size());
+        } catch (Throwable t) {
+            try {
+                result.put("ok", false);
                 result.put("error", String.valueOf(t.getMessage()));
             } catch (Throwable ignored) {
             }
