@@ -876,6 +876,8 @@ public class MainActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         StateBus.get().addListener(stateListener);
+        // 从「安装未知应用」设置页授权回来时，自动继续下载更新
+        com.airmusic.player.update.UpdateUi.onActivityResume(this);
         // 回到前台时服务必须活着：「允许后台运行」关掉后，离开应用会把服务停掉，
         // 而被系统推迟到这时才投递的停止请求有可能刚把它停掉（onStartCommand 里
         // 现在会忽略这种过期请求，这里再兜一层）。以前服务没了就只能重启整个应用

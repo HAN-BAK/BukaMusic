@@ -215,8 +215,7 @@ public final class UpdateChecker {
      *         {@link #INSTALL_NO_INSTALLER}
      */
     public static int install(Context context, File apk) {
-        boolean allowed = Build.VERSION.SDK_INT < 26
-                || context.getPackageManager().canRequestPackageInstalls();
+        boolean allowed = canInstall(context);
         if (!allowed) {
             // 有的电视盒子没有"安装未知应用"这一页，先试着直接拉起安装器；
             // 被系统拦下时再看下面的提示。
@@ -234,6 +233,12 @@ public final class UpdateChecker {
             android.util.Log.w("UpdateChecker", "install intent failed", t);
             return allowed ? INSTALL_NO_INSTALLER : INSTALL_NEED_PERMISSION;
         }
+    }
+
+    /** 系统是否已经允许本应用安装 APK（Android 8+ 是「安装未知应用」开关）。 */
+    public static boolean canInstall(Context context) {
+        return Build.VERSION.SDK_INT < 26
+                || context.getPackageManager().canRequestPackageInstalls();
     }
 
     /** 打开"安装未知应用 / 未知来源"设置页，尽量适配不同 ROM。 */

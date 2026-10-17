@@ -15,6 +15,8 @@ public final class UpdateUi {
     private static final long AUTO_INTERVAL_MS = 24L * 60 * 60 * 1000;
     /** 同一次运行里同一个版本只弹一次，免得每次回播放页都弹。 */
     private static int lastPromptedVersion;
+    /** 去系统设置授权「安装未知应用」后，回来自动继续下载的版本。 */
+    private static UpdateChecker.Info pendingAfterPermission;
 
     private UpdateUi() {
     }
@@ -73,6 +75,12 @@ public final class UpdateUi {
     }
 
     private static void download(final Activity activity, final UpdateChecker.Info info) {
+        // Android 8+ 没有运行时的"安装应用"弹窗，只能由用户去系统设置里打开开关；
+        // 所以在下载前就检查，避免先下 30MB 再失败。
+        if (!UpdateChecker.canInstall(activity)) {
+            showPermissionDialog(activity, info);
+            return;
+        }
         final BukaDialog dialog = BukaDialog.loading(activity,
                 activity.getString(R.string.update_downloading, 0));
         dialog.show();
@@ -95,7 +103,7 @@ public final class UpdateUi {
                     new Prefs(activity).setPendingUpdateCleanup(true);
                     int result = UpdateChecker.install(activity, apk);
                     if (result == UpdateChecker.INSTALL_NEED_PERMISSION) {
-                        showPermissionDialog(activity);
+                        showPermissionDialog(activity, info);
                     } else if (result == UpdateChecker.INSTALL_NO_INSTALLER) {
                         BukaNotice.show(activity, R.string.update_no_installer);
                     }
@@ -113,15 +121,30 @@ public final class UpdateUi {
     }
 
     /** 没有"安装未知应用"权限：说明原因并给一个去设置的按钮。 */
-    private static void showPermissionDialog(final Activity activity) {
+    private static void showPermissionDialog(final Activity activity,
+                                             final UpdateChecker.Info info) {
         BukaDialog.confirm(activity,
                 activity.getString(R.string.update_permission_title),
                 activity.getString(R.string.update_permission_message),
                 activity.getString(R.string.update_permission_open),
                 () -> {
+                    pendingAfterPermission = info;
                     if (!UpdateChecker.openUnknownSourcesSettings(activity)) {
+                        pendingAfterPermission = null;
                         BukaNotice.show(activity, R.string.update_permission_manual);
                     }
                 }).show();
+    }
+
+    /**
+     * 每个页面 onResume 时调用：从「安装未知应用」设置页回来、并且已经授权时，
+     * 自动接着下载刚发现的版本。
+     */
+    public static void onActivityResume(Activity activity) {
+        if (pendingAfterPermission == null) return;
+        if (!UpdateChecker.canInstall(activity)) return;
+        UpdateChecker.Info info = pendingAfterPermission;
+        pendingAfterPermission = null;
+        download(activity, info);
     }
 }

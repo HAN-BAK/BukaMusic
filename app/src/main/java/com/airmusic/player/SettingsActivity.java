@@ -229,6 +229,8 @@ public class SettingsActivity extends BaseActivity {
         // output, so it can stay enabled while multi-room is active.
         btnEqualizer.setEnabled(true);
         btnEqualizer.setAlpha(1f);
+        // 从「安装未知应用」设置页授权回来时，自动继续下载更新
+        com.airmusic.player.update.UpdateUi.onActivityResume(this);
     }
 
     private void refreshStorageInfo() {
