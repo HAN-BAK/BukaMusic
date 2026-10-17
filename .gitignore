@@ -47,3 +47,10 @@ nul
 /codex_shot*.png
 /ui.xml
 /ui2.xml
+
+# 本地密钥与临时接口响应
+Key.txt
+/r1.json
+/r2.json
+/rel_*.json
+
