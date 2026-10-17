@@ -163,6 +163,32 @@ public final class Prefs {
         saveLocalPaths(list);
     }
 
+    /**
+     * 把某条本地路径设为「上传目录」：挪到列表第一条，旧键（音乐传输上传目录、
+     * 存储空间检查、桌面控制台 musicFolder）都会跟着指向它。
+     */
+    public void setUploadPath(String id) {
+        if (id == null) return;
+        java.util.List<MusicPath> list = getLocalPaths();
+        int index = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).id().equals(id)) {
+                index = i;
+                break;
+            }
+        }
+        if (index <= 0) return;
+        MusicPath chosen = list.remove(index);
+        list.add(0, chosen);
+        saveLocalPaths(list);
+    }
+
+    /** 当前上传目录（= 本地列表第一条）的 id。 */
+    public String getUploadPathId() {
+        java.util.List<MusicPath> list = getLocalPaths();
+        return list.isEmpty() ? null : list.get(0).id();
+    }
+
     private void saveLocalPaths(java.util.List<MusicPath> paths) {
         org.json.JSONArray array = new org.json.JSONArray();
         for (MusicPath path : paths) {

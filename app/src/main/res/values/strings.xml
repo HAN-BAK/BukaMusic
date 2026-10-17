@@ -254,6 +254,9 @@
     <string name="net_path_test_ok">连接成功，可以读取目录</string>
     <string name="net_path_test_failed">连接失败：%1$s</string>
     <string name="pref_path_added">已添加路径「%1$s」</string>
+    <string name="pref_path_set_upload">设为上传目录</string>
+    <string name="pref_path_upload_current">已设为上传目录</string>
+    <string name="pref_path_upload_done">已设置为上传目录</string>
     <string name="pref_path_remove">移除</string>
     <string name="pref_path_removed">已移除「%1$s」</string>
 </resources>

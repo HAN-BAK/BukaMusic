@@ -252,6 +252,9 @@
     <string name="net_path_test_ok">연결됨 — 폴더를 읽을 수 있습니다</string>
     <string name="net_path_test_failed">연결 실패: %1$s</string>
     <string name="pref_path_added">경로「%1$s」을(를) 추가했습니다</string>
+    <string name="pref_path_set_upload">업로드 폴더로 설정</string>
+    <string name="pref_path_upload_current">업로드 폴더</string>
+    <string name="pref_path_upload_done">업로드 폴더로 설정했습니다</string>
     <string name="pref_path_remove">제거</string>
     <string name="pref_path_removed">「%1$s」을(를) 제거했습니다</string>
 </resources>

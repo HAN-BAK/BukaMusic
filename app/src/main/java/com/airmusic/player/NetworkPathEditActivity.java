@@ -61,7 +61,7 @@ public class NetworkPathEditActivity extends BaseActivity {
 
         for (EditText input : new EditText[]{nameInput, hostInput, portInput, folderInput,
                 userInput, passwordInput, domainInput}) {
-            input.setBackground(com.airmusic.player.ui.ColorTheme.optionIdle(this));
+            input.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
             input.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
             input.setHintTextColor(com.airmusic.player.ui.ColorTheme.withAlpha(
                     com.airmusic.player.ui.ColorTheme.textSecondary(), 0.85f));

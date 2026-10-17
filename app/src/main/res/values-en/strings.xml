@@ -252,6 +252,9 @@
     <string name="net_path_test_ok">Connected — the folder can be listed</string>
     <string name="net_path_test_failed">Connection failed: %1$s</string>
     <string name="pref_path_added">Added path "%1$s"</string>
+    <string name="pref_path_set_upload">Set as upload folder</string>
+    <string name="pref_path_upload_current">Upload folder</string>
+    <string name="pref_path_upload_done">Set as the upload folder</string>
     <string name="pref_path_remove">Remove</string>
     <string name="pref_path_removed">Removed "%1$s"</string>
 </resources>

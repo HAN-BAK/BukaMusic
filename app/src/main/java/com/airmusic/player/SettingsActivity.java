@@ -757,16 +757,18 @@ public class SettingsActivity extends BaseActivity {
         if (localPathsList == null) return;
         localPathsList.removeAllViews();
         final java.util.List<com.airmusic.player.library.MusicPath> paths = prefs.getLocalPaths();
+        final String uploadId = prefs.getUploadPathId();
         pathDisplay.setVisibility(paths.isEmpty() ? android.view.View.VISIBLE
                 : android.view.View.GONE);
         float density = getResources().getDisplayMetrics().density;
         for (final com.airmusic.player.library.MusicPath path : paths) {
+            // 一行一条路径：上面是路径文字，下面是按钮行——按钮单独占一层，
+            // 不会和路径文字重叠（路径很长时文字用中间省略号）。
             android.widget.LinearLayout row = new android.widget.LinearLayout(this);
-            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            row.setBackground(com.airmusic.player.ui.ColorTheme.optionIdle(this));
+            row.setOrientation(android.widget.LinearLayout.VERTICAL);
+            row.setBackground(com.airmusic.player.ui.ColorTheme.softBlock(this));
             int pad = Math.round(12f * density);
-            row.setPadding(pad, pad, Math.round(8f * density), pad);
+            row.setPadding(pad, pad, pad, Math.round(8f * density));
             android.widget.LinearLayout.LayoutParams params =
                     new android.widget.LinearLayout.LayoutParams(
                             android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -778,10 +780,41 @@ public class SettingsActivity extends BaseActivity {
             label.setText(path.label());
             label.setTextSize(14f);
             label.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
-        label.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            label.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            label.setMaxLines(2);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+            label.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
             row.addView(label);
+
+            android.widget.LinearLayout buttons = new android.widget.LinearLayout(this);
+            buttons.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            buttons.setGravity(android.view.Gravity.END);
+            android.widget.LinearLayout.LayoutParams buttonsParams =
+                    new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            buttonsParams.topMargin = Math.round(6f * density);
+            buttons.setLayoutParams(buttonsParams);
+
+            boolean isUpload = path.id().equals(uploadId);
+            TextView upload = new TextView(this);
+            upload.setText(isUpload ? R.string.pref_path_upload_current
+                    : R.string.pref_path_set_upload);
+            upload.setTextSize(13f);
+            upload.setPadding(pad, pad / 2, pad, pad / 2);
+            upload.setTextColor(isUpload
+                    ? com.airmusic.player.ui.ColorTheme.tooltipText()
+                    : com.airmusic.player.ui.ColorTheme.textAccent());
+            upload.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+            if (!isUpload) {
+                upload.setOnClickListener(v -> {
+                    prefs.setUploadPath(path.id());
+                    renderLocalPaths();
+                    BukaNotice.show(this, R.string.pref_path_upload_done);
+                });
+            }
+            buttons.addView(upload);
 
             TextView remove = new TextView(this);
             remove.setText(R.string.pref_path_remove);
@@ -789,6 +822,12 @@ public class SettingsActivity extends BaseActivity {
             remove.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
             remove.setPadding(pad, pad / 2, pad, pad / 2);
             remove.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+            android.widget.LinearLayout.LayoutParams removeParams =
+                    new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            removeParams.leftMargin = Math.round(8f * density);
+            remove.setLayoutParams(removeParams);
             remove.setOnClickListener(v -> {
                 prefs.removeLocalPath(path.id());
                 renderLocalPaths();
@@ -796,7 +835,8 @@ public class SettingsActivity extends BaseActivity {
                 if (service != null) service.rescanLibrary();
                 BukaNotice.show(this, getString(R.string.pref_path_removed, path.label()));
             });
-            row.addView(remove);
+            buttons.addView(remove);
+            row.addView(buttons);
             localPathsList.addView(row);
         }
         int netCount = prefs.getNetSources().size();

@@ -252,6 +252,9 @@
     <string name="net_path_test_ok">接続できました。フォルダを読み取れます</string>
     <string name="net_path_test_failed">接続に失敗しました：%1$s</string>
     <string name="pref_path_added">パス「%1$s」を追加しました</string>
+    <string name="pref_path_set_upload">アップロード先に設定</string>
+    <string name="pref_path_upload_current">アップロード先</string>
+    <string name="pref_path_upload_done">アップロード先に設定しました</string>
     <string name="pref_path_remove">削除</string>
     <string name="pref_path_removed">「%1$s」を削除しました</string>
 </resources>

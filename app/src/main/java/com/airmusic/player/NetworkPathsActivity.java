@@ -85,7 +85,7 @@ public class NetworkPathsActivity extends BaseActivity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setBackground(ColorTheme.dialogCard(this));
+        card.setBackground(ColorTheme.softBlock(this));
         int padding = Math.round(16f * getResources().getDisplayMetrics().density);
         card.setPadding(padding, padding, padding, padding);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
