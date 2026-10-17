@@ -117,6 +117,10 @@ public class LocalPlayer {
             player = new ExoPlayer.Builder(context, new BalanceRenderersFactory(context, all))
                     .setMediaSourceFactory(new DefaultMediaSourceFactory(
                             NetDataSource.wrap(context, base)))
+                    // 网络音乐（NAS）缓冲：起播 2.5 秒、最多攒 90 秒，网络抖动时不会立刻断。
+                    .setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                            .setBufferDurationsMs(2500, 90000, 2500, 5000)
+                            .build())
                     .build();
             player.setVolume(masterGain);
             player.addListener(new Player.Listener() {

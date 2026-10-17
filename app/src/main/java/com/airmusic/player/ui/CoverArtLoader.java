@@ -26,7 +26,15 @@ import java.util.concurrent.Executors;
 public final class CoverArtLoader {
 
     private static final int TARGET_PX = 512;
-    private static final int CACHE_BYTES = 32 * 1024 * 1024;
+    /**
+     * 全进程共享的封面缓存（不是每个页面一份）。
+     *
+     * <p>原来 32MB 且随页面销毁清空：337 张专辑一滑就全部被挤出去，滑回来只能重新
+     * 解码，看起来就是"滑到哪儿才加载哪儿"。现在 96MB、跨页面复用，仍是有上限的
+     * LRU，不会无限增长。单张 512px 位图约 1MB，大致能稳住上百张封面。
+     */
+    private static final int CACHE_BYTES = 96 * 1024 * 1024;
+    private static LruCache<String, Bitmap> sharedCache;
 
     private final Context context;
     private final LruCache<String, Bitmap> cache;
@@ -39,12 +47,19 @@ public final class CoverArtLoader {
 
     public CoverArtLoader(Context context) {
         this.context = context.getApplicationContext();
-        this.cache = new LruCache<String, Bitmap>(CACHE_BYTES) {
-            @Override
-            protected int sizeOf(String key, Bitmap value) {
-                return value == null ? 0 : value.getByteCount();
-            }
-        };
+        this.cache = sharedCache();
+    }
+
+    private static synchronized LruCache<String, Bitmap> sharedCache() {
+        if (sharedCache == null) {
+            sharedCache = new LruCache<String, Bitmap>(CACHE_BYTES) {
+                @Override
+                protected int sizeOf(String key, Bitmap value) {
+                    return value == null ? 0 : value.getByteCount();
+                }
+            };
+        }
+        return sharedCache;
     }
 
     /** Cache key for one album / artist group. */
@@ -66,7 +81,7 @@ public final class CoverArtLoader {
             pool.shutdownNow();
         } catch (Throwable ignored) {
         }
-        cache.evictAll();
+        // 缓存是跨页面共享的，这里不清空（有上限的 LRU，留着下次进曲库直接命中）。
     }
 
     /**
