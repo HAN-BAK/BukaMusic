@@ -4,6 +4,8 @@
 
 <p align="center">安卓音乐播放器：本地音乐 / AirPlay 接收 / 多房间同步 / 歌词动画 / 屏保时钟</p>
 
+<p align="center">配套 Windows 桌面控制台：<a href="https://github.com/HAN-BAK/BukaMusicDesktop">HAN-BAK/BukaMusicDesktop</a></p>
+
 <p align="center">下载：<a href="https://github.com/HAN-BAK/BukaMusic/releases">Releases</a>（Android 6.0+）</p>
 
 ## 功能
