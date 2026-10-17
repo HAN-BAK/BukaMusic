@@ -201,7 +201,8 @@ public class LibraryActivity extends BaseActivity {
             updateSelectionUi();
         });
 
-        loadTracks();
+        // onResume 紧随其后一定会再 loadTracks()，这里不再重复拉一次
+        // （重复调用会多排一轮扫描、多重建一次列表）。
     }
 
     /** Album / artist browsing uses a grid of tiles, the flat list stays a list. */
@@ -654,6 +655,8 @@ public class LibraryActivity extends BaseActivity {
     }
 
     private void loadTracks() {
+        // 服务还没起来时也先把上次的扫描结果读回来，界面不用等扫描
+        MusicLibrary.getInstance().loadFromDisk(this);
         PlaybackService service = PlaybackService.getInstance();
         List<Track> tracks = service != null
                 ? service.getLibraryTracks()
@@ -667,8 +670,11 @@ public class LibraryActivity extends BaseActivity {
                 locateCurrentInGroup(tracks);
             });
         }
-        // Always rescan so newly added files (USB, new downloads) show up;
-        // the cached list is shown immediately and replaced when ready.
+        // 新建的文件仍会出现：15 秒内的重复进入直接用上一轮结果，
+        // 更久的、手动「重新扫描」、上传完成都会走真正的扫描。
+        if (MusicLibrary.getInstance().scanIsFresh(15_000L)) {
+            return;
+        }
         MusicLibrary.getInstance().rescan(this, (result, error) -> {
             if (service != null && result != null) {
                 service.setTracks(result);

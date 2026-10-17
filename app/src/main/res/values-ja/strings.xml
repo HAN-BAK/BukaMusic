@@ -89,6 +89,7 @@
     <string name="settings_section_about">情報</string>
     <string name="about_title">情報</string>
     <string name="about_version">バージョン %1$s</string>
+    <string name="about_diagnostics_unlocked">診断を有効にしました</string>
     <string name="about_developer">開発者</string>
     <string name="about_developer_value">WeiFanchuan</string>
     <string name="about_developer_github">GitHub：WeiFanchuan</string>

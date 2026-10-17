@@ -37,6 +37,7 @@
     </LinearLayout>
 
     <ScrollView
+        android:id="@+id/about_scroll"
         android:overScrollMode="never"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -231,6 +232,51 @@
                 android:focusable="false"
                     android:text="@string/os_androidx"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+            <!-- 诊断：默认隐藏，连续点版本号 20 次才出现（从设置「存储与设备」移过来） -->
+            <LinearLayout
+                android:id="@+id/diagnostics_block"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:padding="10dp"
+                    android:text="@string/pref_diagnostic"
+                    android:textColor="@color/accent"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="10dp"
+                    android:text="@string/airplay_status_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/airplay_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="monospace"
+                    android:padding="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_export_logs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/export_logs"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

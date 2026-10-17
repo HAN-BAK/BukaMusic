@@ -1,7 +1,6 @@
 package com.airmusic.player;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
@@ -19,16 +18,13 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
 
 import com.airmusic.player.service.PlaybackService;
 import com.airmusic.player.util.BlurBackground;
-import com.airmusic.player.util.DiagnosticLog;
 import com.airmusic.player.util.Prefs;
 import com.airmusic.player.util.StorageHelper;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.io.File;
 import com.airmusic.player.ui.BukaNotice;
 import com.airmusic.player.ui.BukaDialog;
 import com.airmusic.player.ui.BukaTheme;
@@ -54,7 +50,6 @@ public class SettingsActivity extends BaseActivity {
     private com.airmusic.player.ui.BukaSwitch switchShowApps;
     private com.google.android.material.button.MaterialButton btnBlurMode;
     private com.google.android.material.slider.Slider seekBalance;
-    private TextView airplayStatus;
     private TextView txtStorageInfo;
     private com.google.android.material.button.MaterialButton btnTransfer;
     private View btnEqualizer;
@@ -103,7 +98,6 @@ public class SettingsActivity extends BaseActivity {
             return (delta < 0 ? getString(R.string.balance_left) : getString(R.string.balance_right))
                     + " " + Math.abs(delta) + "%";
         });
-        airplayStatus = findViewById(R.id.airplay_status);
         txtStorageInfo = findViewById(R.id.txt_storage_info);
         btnTransfer = findViewById(R.id.btn_transfer);
         btnEqualizer = findViewById(R.id.btn_equalizer);
@@ -211,7 +205,6 @@ public class SettingsActivity extends BaseActivity {
             }
             startActivity(new Intent(this, TransferActivity.class));
         });
-        findViewById(R.id.btn_export_logs).setOnClickListener(v -> exportLogs());
         setupLanguageButton();
         findViewById(R.id.btn_about).setOnClickListener(v ->
                 startActivity(new Intent(this, AboutActivity.class)));
@@ -229,7 +222,6 @@ public class SettingsActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         BlurBackground.apply(this, R.color.background);
-        refreshAirPlayStatus();
         refreshStorageInfo();
         // The equalizer now uses a dedicated instance for the multi-room
         // output, so it can stay enabled while multi-room is active.
@@ -417,8 +409,6 @@ public class SettingsActivity extends BaseActivity {
                 R.drawable.ic_row_blur, -1.4f);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_set_home),
                 R.drawable.ic_row_launcher);
-        com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_export_logs),
-                R.drawable.ic_row_logs);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_rescan),
                 R.drawable.ic_row_rescan);
         com.airmusic.player.ui.BukaIcons.row(findViewById(R.id.btn_about),
@@ -587,34 +577,6 @@ public class SettingsActivity extends BaseActivity {
             prefs.setScreensaverFont(com.airmusic.player.ui.ScreensaverFonts.RESOURCES[which]);
             updateFontButton();
         }).show();
-    }
-
-    private void refreshAirPlayStatus() {
-        PlaybackService service = PlaybackService.getInstance();
-        if (service != null) {
-            airplayStatus.setText(service.getAirPlayStatus());
-        } else {
-            airplayStatus.setText("service: not running");
-        }
-    }
-
-    private void exportLogs() {
-        File logFile = DiagnosticLog.getLogFile(this);
-        if (logFile == null) {
-            BukaNotice.show(this, R.string.logs_empty);
-            return;
-        }
-        try {
-            Uri uri = FileProvider.getUriForFile(this, "com.airmusic.player.fileprovider", logFile);
-            Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("text/plain");
-            share.putExtra(Intent.EXTRA_STREAM, uri);
-            share.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.export_logs_share));
-            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(share, getString(R.string.export_logs_share)));
-        } catch (Exception e) {
-            BukaNotice.show(this, R.string.export_logs_failed);
-        }
     }
 
     private void setupLanguageButton() {

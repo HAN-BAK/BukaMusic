@@ -101,6 +101,13 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private CoverArtLoader coverLoader;
 
     public void setTracks(List<Track> newTracks) {
+        // 扫描回调经常把"一模一样的一份列表"再塞回来；整表重建会重新分组、
+        // 重新加载封面，还会把"定位到正在播放"再执行一遍。内容没变就直接跳过。
+        if (sameTracks(newTracks)) {
+            android.util.Log.i("TrackAdapter", "setTracks: 内容未变化，跳过重建（"
+                    + source.size() + " 首）");
+            return;
+        }
         source.clear();
         if (newTracks != null) source.addAll(newTracks);
         selected.clear();
@@ -109,6 +116,15 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         android.util.Log.i("TrackAdapter", "setTracks: source=" + source.size()
                 + " rows=" + rows.size() + " group=" + groupBy
                 + " open=" + openGroup + " query='" + query + "'");
+    }
+
+    private boolean sameTracks(List<Track> other) {
+        int size = other == null ? 0 : other.size();
+        if (size != source.size()) return false;
+        for (int i = 0; i < size; i++) {
+            if (!key(source.get(i)).equals(key(other.get(i)))) return false;
+        }
+        return true;
     }
 
     /** Switches between flat / by-album / by-artist presentation. */

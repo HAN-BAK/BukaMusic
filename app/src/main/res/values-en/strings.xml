@@ -89,6 +89,7 @@
     <string name="settings_section_about">About</string>
     <string name="about_title">About</string>
     <string name="about_version">Version %1$s</string>
+    <string name="about_diagnostics_unlocked">Diagnostics enabled</string>
     <string name="about_developer">Developer</string>
     <string name="about_developer_value">WeiFanchuan</string>
     <string name="about_developer_github">GitHub: WeiFanchuan</string>

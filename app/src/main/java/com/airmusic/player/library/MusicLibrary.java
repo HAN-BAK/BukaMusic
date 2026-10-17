@@ -50,6 +50,10 @@ public final class MusicLibrary {
 
     private volatile List<Track> cachedTracks = new ArrayList<>();
     private volatile boolean scanning;
+    /** 本轮扫描排队的回调：扫描进行中再来的请求不再另起一轮，直接并入本次。 */
+    private final List<ScanCallback> pendingCallbacks = new ArrayList<>();
+    /** 上次扫描结束的时刻（elapsedRealtime），用于短时间内不重复全量扫描。 */
+    private volatile long lastScanFinishedAt;
 
     /** 网络音乐路径的扫描缓存时长：这段时间内不再重走 NAS（本地路径每次都扫，很快）。 */
     private static final long NET_SCAN_TTL_MS = 10 * 60 * 1000L;
@@ -148,6 +152,18 @@ public final class MusicLibrary {
         return scanning;
     }
 
+    /**
+     * 距上次扫描结束不到 maxAgeMs 且没有手动要求重扫时，返回 true。
+     *
+     * <p>曲库页每次 onResume 都会请求刷新；以前每次都排一轮完整扫描，
+     * 一进曲库就是 2~3 轮重复扫描 + 重复重建列表，看起来就是"曲库读取很慢"。
+     */
+    public boolean scanIsFresh(long maxAgeMs) {
+        long at = lastScanFinishedAt;
+        return !forceNetworkScan && at > 0
+                && android.os.SystemClock.elapsedRealtime() - at < maxAgeMs;
+    }
+
     /** 请求下一次扫描强制重走网络路径（手动重新扫描 / 增删改网络路径后调用）。 */
     public static void requestNetworkRefresh() {
         forceNetworkScan = true;
@@ -159,7 +175,14 @@ public final class MusicLibrary {
     }
 
     public void rescan(Context context, ScanCallback callback) {
-        scanning = true;
+        synchronized (this) {
+            if (scanning) {
+                // 已经有一轮在跑：只登记回调，等这一轮结束后一起通知
+                if (callback != null) pendingCallbacks.add(callback);
+                return;
+            }
+            scanning = true;
+        }
         final long scanStart = android.os.SystemClock.elapsedRealtime();
         final Context appContext = context.getApplicationContext();
         executor.execute(() -> {
@@ -178,12 +201,19 @@ public final class MusicLibrary {
             final List<Track> result = tracks;
             final String err = error;
             cachedTracks = result;
-            scanning = false;
             saveToDisk(appContext, result);
             Log.i(TAG, "scan finished in " + (android.os.SystemClock.elapsedRealtime() - scanStart)
                     + "ms, " + result.size() + " tracks");
             mainHandler.post(() -> {
+                List<ScanCallback> extra;
+                synchronized (MusicLibrary.this) {
+                    scanning = false;
+                    lastScanFinishedAt = android.os.SystemClock.elapsedRealtime();
+                    extra = new ArrayList<>(pendingCallbacks);
+                    pendingCallbacks.clear();
+                }
                 if (callback != null) callback.onScanFinished(result, err);
+                for (ScanCallback pending : extra) pending.onScanFinished(result, err);
             });
         });
     }
