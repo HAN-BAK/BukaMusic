@@ -789,17 +789,19 @@ public class SettingsActivity extends BaseActivity {
             row.addView(label);
 
             boolean isUpload = path.id().equals(uploadId);
-            TextView upload = new TextView(this);
+            // 两个按钮都用 MaterialButton：底色 / 描边 / 文字色与「选择文件夹」完全一致
+            com.google.android.material.button.MaterialButton upload =
+                    new com.google.android.material.button.MaterialButton(this);
             upload.setText(isUpload ? R.string.pref_path_upload_current
                     : R.string.pref_path_set_upload);
             upload.setTextSize(13f);
             int buttonPad = Math.round(10f * density);
+            upload.setAllCaps(false);
+            upload.setMinWidth(0);
+            upload.setMinimumWidth(0);
             upload.setPadding(buttonPad, Math.round(6f * density), buttonPad,
                     Math.round(6f * density));
             upload.setGravity(android.view.Gravity.CENTER);
-            // 两个按钮同一套配色（主色文字 + 同款胶囊底），当前上传目录只是文案不同
-            upload.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
-            upload.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
             if (!isUpload) {
                 upload.setOnClickListener(v -> {
                     prefs.setUploadPath(path.id());
@@ -815,15 +817,16 @@ public class SettingsActivity extends BaseActivity {
             upload.setLayoutParams(uploadParams);
             row.addView(upload);
 
-            TextView remove = new TextView(this);
+            com.google.android.material.button.MaterialButton remove =
+                    new com.google.android.material.button.MaterialButton(this);
             remove.setText(R.string.pref_path_remove);
             remove.setTextSize(13f);
-            remove.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
+            remove.setAllCaps(false);
+            remove.setMinWidth(0);
+            remove.setMinimumWidth(0);
             remove.setPadding(buttonPad, Math.round(6f * density), buttonPad,
                     Math.round(6f * density));
             remove.setGravity(android.view.Gravity.CENTER);
-            // 与「设置为上传目录」完全同一套胶囊配色
-            remove.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
             android.widget.LinearLayout.LayoutParams removeParams =
                     new android.widget.LinearLayout.LayoutParams(
                             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -838,6 +841,8 @@ public class SettingsActivity extends BaseActivity {
                 BukaNotice.show(this, getString(R.string.pref_path_removed, path.label()));
             });
             row.addView(remove);
+            // renderLocalPaths 可能在页面整体上色之后被再次调用，补一次动态配色
+            com.airmusic.player.ui.BukaTheme.tintView(this, row);
             localPathsList.addView(row);
         }
         int netCount = prefs.getNetSources().size();

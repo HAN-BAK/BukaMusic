@@ -79,6 +79,8 @@ public class NetworkPathsActivity extends BaseActivity {
         for (NetSource source : sources) {
             list.addView(row(source));
         }
+        // render() 在 onResume 里跑，晚于页面整体上色；新建的按钮要补一次动态配色
+        BukaTheme.tintView(this, list);
     }
 
     private View row(final NetSource source) {
@@ -111,13 +113,15 @@ public class NetworkPathsActivity extends BaseActivity {
         textBlock.addView(detail);
         card.addView(textBlock);
 
-        TextView delete = new TextView(this);
+        // 和「选择文件夹」等 MaterialButton 完全同一套外观（底色 / 描边 / 文字色）
+        com.google.android.material.button.MaterialButton delete =
+                new com.google.android.material.button.MaterialButton(this);
         delete.setText(R.string.net_path_delete);
         delete.setTextSize(13f);
-        delete.setTextColor(ColorTheme.textAccent());
+        delete.setAllCaps(false);
+        delete.setMinWidth(0);
+        delete.setMinimumWidth(0);
         delete.setPadding(padding, padding / 2, padding, padding / 2);
-        // 与设置页「设置为上传目录」同一套胶囊配色
-        delete.setBackground(ColorTheme.capsule(this));
         // 和左边两行文字居中对齐（不贴底）
         delete.setGravity(android.view.Gravity.CENTER);
         delete.setOnClickListener(v -> confirmDelete(source));
