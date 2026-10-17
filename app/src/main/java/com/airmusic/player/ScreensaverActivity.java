@@ -30,6 +30,9 @@ import java.util.Locale;
  */
 public class ScreensaverActivity extends BaseActivity {
 
+    /** 屏保是否正在前台（控制接口用它判断设备当前是不是屏保画面）。 */
+    public static volatile boolean visible;
+
     private static final String TAG = "Screensaver";
     private View clockRow;
     private TextView hourView;
@@ -209,6 +212,7 @@ public class ScreensaverActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        visible = true;
         BlurBackground.apply(this, R.color.background);
         applyColors();
         StateBus.get().addListener(stateListener);
@@ -222,6 +226,7 @@ public class ScreensaverActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        visible = false;
         StateBus.get().removeListener(stateListener);
         handler.removeCallbacks(ticker);
         handler.removeCallbacks(colonFade);

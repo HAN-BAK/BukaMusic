@@ -187,9 +187,11 @@ public final class ControlApi {
                     ? "SEQUENCE" : state.mode.key);
             json.put("statusText", state == null ? "" : nullToEmpty(state.statusText));
             json.put("clientName", state == null ? "" : nullToEmpty(state.clientName));
-            // Which screen the device is showing ("lyrics" / "main"), so the
-            // desktop console can offer the matching button.
-            json.put("screen", com.airmusic.player.LyricsActivity.visible ? "lyrics" : "main");
+            // Which screen the device is showing ("screensaver" / "lyrics" / "main"),
+            // so the desktop console can offer the matching button.
+            json.put("screen", com.airmusic.player.ScreensaverActivity.visible
+                    ? "screensaver"
+                    : (com.airmusic.player.LyricsActivity.visible ? "lyrics" : "main"));
             json.put("hasCover", state != null && state.art != null);
             // 当前播放范围：是否限定在某张专辑 / 某位歌手内，以及共几首。
             json.put("groupPlay", service != null && service.isGroupPlaylist());
@@ -709,14 +711,18 @@ public final class ControlApi {
                     break;
                 case "openLyrics":
                 case "openMain":
+                case "openScreensaver":
                     // Switch the device between the lyric screen and the main
                     // playback screen (the desktop console's button).
                     if (context != null) {
-                        final boolean lyrics = "openLyrics".equals(action);
+                        final Class<?> target = "openLyrics".equals(action)
+                                ? com.airmusic.player.LyricsActivity.class
+                                : "openScreensaver".equals(action)
+                                ? com.airmusic.player.ScreensaverActivity.class
+                                : com.airmusic.player.MainActivity.class;
                         runOnMain(() -> {
-                            android.content.Intent intent = new android.content.Intent(context,
-                                    lyrics ? com.airmusic.player.LyricsActivity.class
-                                           : com.airmusic.player.MainActivity.class);
+                            android.content.Intent intent =
+                                    new android.content.Intent(context, target);
                             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                     | android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                             context.startActivity(intent);
