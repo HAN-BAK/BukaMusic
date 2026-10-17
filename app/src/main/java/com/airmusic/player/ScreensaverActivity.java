@@ -110,10 +110,31 @@ public class ScreensaverActivity extends BaseActivity {
         // 字形（实测包围盒 -445~+89），会把中心压低，所以定位只用「0」。
         paint.getTextBounds("0", 0, 1, digits);
         paint.getTextBounds(":", 0, 1, colon);
+        android.widget.LinearLayout.LayoutParams lp = null;
+        if (colonView.getLayoutParams() instanceof android.widget.LinearLayout.LayoutParams) {
+            lp = (android.widget.LinearLayout.LayoutParams) colonView.getLayoutParams();
+        }
+        // 只看字体墨迹：两个文本框字体字号相同、基线自然对齐，所以"冒号墨迹中心
+        // 比数字墨迹中心低多少"就是要往上挪多少。不要用当前控件位置来算，
+        // 否则边距已经生效，再算一遍会把上一次的位移叠加进去（会来回抖）。
         float dy = (digits.top + digits.bottom) / 2f - (colon.top + colon.bottom) / 2f;
-        colonView.setTranslationY(dy);
+        // 用布局边距做竖直微调，而不是 translationY：这一行是
+        // LinearLayout(gravity=center)，实测 translationY 在这里不落到最终画面上
+        // （日志里位置变了、截图里冒号还在原处）。边距的位移在盒子上实测是 1:1，
+        // 所以 topMargin 直接取 dy。
+        if (lp != null) {
+            int top = Math.round(dy);
+            if (lp.topMargin != top || lp.bottomMargin != 0) {
+                lp.topMargin = top;
+                lp.bottomMargin = 0;
+                colonView.setLayoutParams(lp);
+            }
+        } else {
+            colonView.setTranslationY(dy);
+        }
         android.util.Log.i(TAG, "colon align: digits(" + digits.top + "," + digits.bottom
-                + ") colon(" + colon.top + "," + colon.bottom + ") dy=" + dy);
+                + ") colon(" + colon.top + "," + colon.bottom + ") hourTop=" + hourView.getTop()
+                + " colonTop=" + colonView.getTop() + " dy=" + dy);
     }
 
     /**
