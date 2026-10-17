@@ -121,7 +121,7 @@ public class ScreensaverActivity extends BaseActivity {
         // 实际渲染的墨迹中心和 getTextBounds 给出的中心差一点点（实测约 1.1%
         // 字号，1080p 上 8px），按字号补回去，换分辨率/字号也一致。
         // 再往下 0.8% 字号：纯几何居中看着略微偏高，按视觉重心压一点。
-        dy += hourView.getTextSize() * 0.019f;
+        dy += hourView.getTextSize() * 0.028f;
         // 用布局边距做竖直微调，而不是 translationY：这一行是
         // LinearLayout(gravity=center)，实测 translationY 在这里不落到最终画面上
         // （日志里位置变了、截图里冒号还在原处）。边距的位移在盒子上实测是 1:1，
