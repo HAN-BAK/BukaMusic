@@ -22,6 +22,11 @@ public final class UpdateUi {
     /** 启动时静默检查：24 小时内查过就跳过，发现新版本才弹窗。 */
     public static void checkAutomatically(Activity activity) {
         Prefs prefs = new Prefs(activity);
+        // 上次已经拉起过系统安装器：这里把下载的 apk 删掉（安装完成后进程是新的）
+        if (prefs.isPendingUpdateCleanup()) {
+            UpdateChecker.cleanDownloads(activity);
+            prefs.setPendingUpdateCleanup(false);
+        }
         long last = prefs.getLastUpdateCheck();
         if (System.currentTimeMillis() - last < AUTO_INTERVAL_MS) return;
         prefs.setLastUpdateCheck(System.currentTimeMillis());
@@ -84,6 +89,8 @@ public final class UpdateUi {
                 activity.runOnUiThread(() -> {
                     dialog.dismiss();
                     if (activity.isFinishing()) return;
+                    // 标记：下一次启动时删除这个安装包
+                    new Prefs(activity).setPendingUpdateCleanup(true);
                     int result = UpdateChecker.install(activity, apk);
                     if (result == UpdateChecker.INSTALL_NEED_PERMISSION) {
                         showPermissionDialog(activity);

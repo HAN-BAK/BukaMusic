@@ -34,6 +34,7 @@ public final class Prefs {
     /** 上次扫描网络音乐路径的时间（elapsedRealtime），用于缓存判断。 */
     private static final String KEY_NET_SCAN_AT = "net_music_scan_at";
     private static final String KEY_LAST_UPDATE_CHECK = "last_update_check";
+    private static final String KEY_PENDING_UPDATE_CLEANUP = "pending_update_cleanup";
     private static final String KEY_PLAY_MODE = "play_mode";
     private static final String KEY_AUTO_PLAY = "auto_play_on_start";
     private static final String KEY_BALANCE = "balance";
@@ -309,6 +310,15 @@ public final class Prefs {
 
     public void setLastUpdateCheck(long at) {
         sp.edit().putLong(KEY_LAST_UPDATE_CHECK, at).apply();
+    }
+
+    /** 已经拉起过系统安装器：下次启动时把下载的安装包删掉。 */
+    public boolean isPendingUpdateCleanup() {
+        return sp.getBoolean(KEY_PENDING_UPDATE_CLEANUP, false);
+    }
+
+    public void setPendingUpdateCleanup(boolean pending) {
+        sp.edit().putBoolean(KEY_PENDING_UPDATE_CLEANUP, pending).apply();
     }
 
     public void setMusicFolder(String uri, String display) {

@@ -121,6 +121,14 @@ public final class UpdateChecker {
         if (info == null || info.key.isEmpty()) throw new Exception("empty info");
         File dir = new File(context.getFilesDir(), "update");
         if (!dir.exists() && !dir.mkdirs()) throw new Exception("mkdir failed");
+        // 上一版下载的文件不再需要
+        File[] old = dir.listFiles();
+        if (old != null) {
+            for (File file : old) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
+        }
         File out = new File(dir, "BukaMusic-" + info.versionName + ".apk");
         File part = new File(dir, "update.part");
         HttpURLConnection conn = (HttpURLConnection) new URL(presign(info.key)).openConnection();
@@ -176,6 +184,23 @@ public final class UpdateChecker {
         if (out.exists() && !out.delete()) throw new Exception("delete old failed");
         if (!part.renameTo(out)) throw new Exception("rename failed");
         return out;
+    }
+
+    /**
+     * 清掉已经下载过的安装包。
+     *
+     * <p>系统安装器点完"安装"后应用会被替换、进程重启，收不到"安装完成"的回调；
+     * 所以拉起安装器前先置一个待清理标记，下一次启动时清空 update 目录。
+     */
+    public static void cleanDownloads(Context context) {
+        File dir = new File(context.getFilesDir(), "update");
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+        }
+        android.util.Log.i("UpdateChecker", "update dir cleaned");
     }
 
     /** install() 的结果。 */
