@@ -129,6 +129,7 @@ public class NetworkPathsActivity extends BaseActivity {
                 getString(android.R.string.ok),
                 () -> {
                     prefs.removeNetSource(source.id);
+                    com.airmusic.player.library.MusicLibrary.requestNetworkRefresh();
                     BukaNotice.show(this, getString(R.string.net_path_deleted,
                             source.displayName()));
                     render();

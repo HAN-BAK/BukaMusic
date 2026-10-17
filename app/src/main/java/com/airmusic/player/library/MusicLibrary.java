@@ -50,6 +50,11 @@ public final class MusicLibrary {
 
     private volatile List<Track> cachedTracks = new ArrayList<>();
     private volatile boolean scanning;
+
+    /** 网络音乐路径的扫描缓存时长：这段时间内不再重走 NAS（本地路径每次都扫，很快）。 */
+    private static final long NET_SCAN_TTL_MS = 10 * 60 * 1000L;
+    /** 置 true 后下一次扫描强制重扫网络（用户点「重新扫描」或改了网络路径时）。 */
+    private static volatile boolean forceNetworkScan;
     /** 批量查询得到的 MediaStore 元数据（路径 → 曲目），避免逐首打开文件读标签。 */
     private final Map<String, Track> mediaStoreByPath = new HashMap<>();
     /** 本次扫描里元数据来自 MediaStore 缓存 / 退回逐首读标签的文件数（只有扫描线程用）。 */
@@ -143,6 +148,11 @@ public final class MusicLibrary {
         return scanning;
     }
 
+    /** 请求下一次扫描强制重走网络路径（手动重新扫描 / 增删改网络路径后调用）。 */
+    public static void requestNetworkRefresh() {
+        forceNetworkScan = true;
+    }
+
     /** Drops the cached track list so the next rescan starts clean. */
     public void clearCache() {
         cachedTracks = new ArrayList<>();
@@ -206,8 +216,24 @@ public final class MusicLibrary {
                 if (scanSafTree(context, Uri.parse(path.uri), byUri, 0)) folderScanned = true;
             }
         }
-        // 网络音乐路径（WebDAV / SMB / FTP）：单个源连不上只记日志，不影响其它来源
-        int netTracks = scanNetSources(prefs, byUri);
+        // 网络音乐路径（WebDAV / SMB / FTP）：单个源连不上只记日志，不影响其它来源。
+        // 网速慢的 NAS 一次要十几秒，所以 10 分钟内直接用上次结果（磁盘缓存里带着这些
+        // buka-net 曲目），不再每次进曲库都重走一遍；点「重新扫描」或改网络路径会强制刷新。
+        final boolean forceNet = forceNetworkScan;
+        forceNetworkScan = false;
+        final long now = android.os.SystemClock.elapsedRealtime();
+        final boolean netFresh = !forceNet
+                && prefs.getNetScanAt() > 0
+                && now - prefs.getNetScanAt() < NET_SCAN_TTL_MS;
+        int netTracks;
+        if (netFresh) {
+            netTracks = carryOverCachedNetTracks(byUri);
+            Log.i(TAG, "网络路径沿用缓存：" + netTracks + " 首（"
+                    + ((now - prefs.getNetScanAt()) / 1000) + " 秒前扫过）");
+        } else {
+            netTracks = scanNetSources(prefs, byUri);
+            prefs.setNetScanAt(now);
+        }
 
         // When a folder is configured, the library is that folder only;
         // otherwise fall back to the system media library (including USB).
@@ -267,6 +293,19 @@ public final class MusicLibrary {
             } catch (Throwable t) {
                 Log.w(TAG, "网络路径扫描失败（" + source.label() + "）：" + t);
             }
+        }
+        return added;
+    }
+
+    /** 网络扫描被缓存跳过时，把上次结果里的 buka-net 曲目搬进本次列表。 */
+    private int carryOverCachedNetTracks(Map<String, Track> byUri) {
+        int added = 0;
+        for (Track track : cachedTracks) {
+            if (track == null || track.uri == null) continue;
+            if (!NetSource.SCHEME.equals(track.uri.getScheme())) continue;
+            if (byUri.containsKey(track.uri.toString())) continue;
+            byUri.put(track.uri.toString(), track);
+            added++;
         }
         return added;
     }

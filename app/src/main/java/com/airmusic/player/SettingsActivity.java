@@ -182,6 +182,7 @@ public class SettingsActivity extends BaseActivity {
                 startActivity(new Intent(this, NetworkPathsActivity.class)));
 
         findViewById(R.id.btn_rescan).setOnClickListener(v -> {
+            com.airmusic.player.library.MusicLibrary.requestNetworkRefresh();
             PlaybackService service = PlaybackService.getInstance();
             if (service != null) service.rescanLibrary();
             BukaNotice.show(this, R.string.rescanning);

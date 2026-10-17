@@ -31,6 +31,8 @@ public final class Prefs {
     private static final String KEY_LOCAL_PATHS = "local_music_paths";
     /** 网络音乐路径列表（JSON 数组）。 */
     private static final String KEY_NET_SOURCES = "net_music_sources";
+    /** 上次扫描网络音乐路径的时间（elapsedRealtime），用于缓存判断。 */
+    private static final String KEY_NET_SCAN_AT = "net_music_scan_at";
     private static final String KEY_PLAY_MODE = "play_mode";
     private static final String KEY_AUTO_PLAY = "auto_play_on_start";
     private static final String KEY_BALANCE = "balance";
@@ -257,6 +259,15 @@ public final class Prefs {
             }
         }
         sp.edit().putString(KEY_NET_SOURCES, array.toString()).apply();
+    }
+
+    /** 上次网络扫描的时刻（elapsedRealtime）；0 表示从未扫过。 */
+    public long getNetScanAt() {
+        return sp.getLong(KEY_NET_SCAN_AT, 0L);
+    }
+
+    public void setNetScanAt(long at) {
+        sp.edit().putLong(KEY_NET_SCAN_AT, at).apply();
     }
 
     public void setMusicFolder(String uri, String display) {

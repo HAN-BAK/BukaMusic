@@ -178,6 +178,7 @@ public class NetworkPathEditActivity extends BaseActivity {
         NetSource source = readForm();
         if (source == null) return;
         if (editing == null) prefs.addNetSource(source); else prefs.updateNetSource(source);
+        com.airmusic.player.library.MusicLibrary.requestNetworkRefresh();
         BukaNotice.show(this, getString(R.string.net_path_saved, source.displayName()));
         rescan();
         finish();
@@ -211,6 +212,7 @@ public class NetworkPathEditActivity extends BaseActivity {
                 getString(R.string.net_path_delete_confirm, editing.displayName()),
                 getString(android.R.string.ok), () -> {
                     prefs.removeNetSource(editing.id);
+                    com.airmusic.player.library.MusicLibrary.requestNetworkRefresh();
                     BukaNotice.show(this, getString(R.string.net_path_deleted,
                             editing.displayName()));
                     rescan();
