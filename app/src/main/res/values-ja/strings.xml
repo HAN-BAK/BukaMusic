@@ -21,7 +21,7 @@
     <string name="ss_title">スクリーンセーバー</string>
     <string name="pref_ss_idle">アイドル時に自動起動</string>
     <string name="pref_background_run">バックグラウンドで実行</string>
-    <string name="pref_background_run_hint">オフにすると起動時の自動開始をやめ、バックグラウンドに回ると再生サービスを停止します</string>
+    <string name="pref_background_run_hint">オフにすると起動時の自動開始をやめ、最近使ったタスクからスワイプして消すと動作を停止します（バックグラウンドに回っただけでは再生を続けます）</string>
     <string name="ss_idle_off">オフ</string>
     <string name="ss_idle_seconds">%1$d 秒</string>
     <string name="ss_idle_minutes">%1$d 分</string>

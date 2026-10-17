@@ -1262,6 +1262,27 @@ public class PlaybackService extends Service {
         return null;
     }
 
+    /**
+     * 应用被从"最近任务"里划掉时触发（服务本身要声明 stopWithTask="false" 才会收到，
+     * 见 AndroidManifest）。
+     *
+     * <p>「允许后台运行」的语义就是这一件事：**划掉之后**不再运行——关掉时停服务
+     * （通知一起消失，之后也不再自启）；开着（默认）时保持原样，作为背景音乐播放器
+     * 继续播放 / 继续接收 AirPlay。
+     *
+     * <p>注意：进入后台（按 HOME / 切到别的应用 / 熄屏）不算"划掉"，那两种情况都不停服务。
+     */
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        if (prefs != null && prefs.isBackgroundRun()) {
+            DiagnosticLog.i(TAG, "任务被划掉：已允许后台运行，保持服务");
+            return;
+        }
+        DiagnosticLog.i(TAG, "任务被划掉且未允许后台运行：停止播放服务");
+        stopSelf();
+    }
+
     @Override
     public void onDestroy() {
         // 这里的每一步都跑在主线程上，必须很快。AirPlay 的关闭（JmDNS 要等自己的

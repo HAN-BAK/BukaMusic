@@ -21,7 +21,7 @@
     <string name="ss_title">屏保</string>
     <string name="pref_ss_idle">闲置后自动进入屏保</string>
     <string name="pref_background_run">允许后台运行</string>
-    <string name="pref_background_run_hint">关闭后开机不再自启，退到后台会停止播放服务</string>
+    <string name="pref_background_run_hint">关闭后开机不再自启；把应用从最近任务里划掉后不再继续运行（退到后台仍会正常播放）</string>
     <string name="ss_idle_off">关闭</string>
     <string name="ss_idle_seconds">%1$d 秒</string>
     <string name="ss_idle_minutes">%1$d 分钟</string>
