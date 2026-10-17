@@ -117,9 +117,12 @@ public class LocalPlayer {
             player = new ExoPlayer.Builder(context, new BalanceRenderersFactory(context, all))
                     .setMediaSourceFactory(new DefaultMediaSourceFactory(
                             NetDataSource.wrap(context, base)))
-                    // 网络音乐（NAS）缓冲：起播 2.5 秒、最多攒 90 秒，网络抖动时不会立刻断。
+                    // 网络音乐（NAS）缓冲：起播 2.5 秒、最多攒 120 秒，网络抖动时不会立刻断。
+                    // 注意 DefaultLoadControl 的约束：minBufferMs(6000) 必须 >=
+                    // bufferForPlaybackAfterRebufferMs(6000)，否则会抛
+                    // IllegalArgumentException 直接闪退（之前 2500/5000 就是这么崩的）。
                     .setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder()
-                            .setBufferDurationsMs(2500, 90000, 2500, 5000)
+                            .setBufferDurationsMs(6000, 120000, 2500, 6000)
                             .build())
                     .build();
             player.setVolume(masterGain);
