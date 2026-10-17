@@ -55,7 +55,9 @@ public final class UpdateUi {
                 }
                 return;
             }
-            if (info.versionCode == lastPromptedVersion) return;
+            // 自动检查同一个版本只弹一次；手动点「检查更新」必须每次都给反馈，
+            // 否则刚启动时弹过一次，再去设置里点就什么都不出现了。
+            if (!manual && info.versionCode == lastPromptedVersion) return;
             lastPromptedVersion = info.versionCode;
             showAvailable(activity, info);
         });
