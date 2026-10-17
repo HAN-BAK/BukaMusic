@@ -1,5 +1,7 @@
 <h1 align="center">BukaMusic</h1>
 
+<p align="center"><img src="docs/screenshots/icon.png" width="112" alt="BukaMusic"></p>
+
 <p align="center">安卓音乐播放器：本地音乐 / AirPlay 接收 / 多房间同步 / 歌词动画 / 屏保时钟</p>
 
 <p align="center">下载：<a href="https://github.com/HAN-BAK/BukaMusic/releases">Releases</a>（Android 6.0+）</p>
