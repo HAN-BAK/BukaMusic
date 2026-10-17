@@ -118,6 +118,9 @@ public class ScreensaverActivity extends BaseActivity {
         // 比数字墨迹中心低多少"就是要往上挪多少。不要用当前控件位置来算，
         // 否则边距已经生效，再算一遍会把上一次的位移叠加进去（会来回抖）。
         float dy = (digits.top + digits.bottom) / 2f - (colon.top + colon.bottom) / 2f;
+        // 实际渲染的墨迹中心和 getTextBounds 给出的中心差一点点（实测约 1.1%
+        // 字号，1080p 上 8px），按字号补回去，换分辨率/字号也一致。
+        dy += hourView.getTextSize() * 0.011f;
         // 用布局边距做竖直微调，而不是 translationY：这一行是
         // LinearLayout(gravity=center)，实测 translationY 在这里不落到最终画面上
         // （日志里位置变了、截图里冒号还在原处）。边距的位移在盒子上实测是 1:1，
@@ -427,6 +430,12 @@ public class ScreensaverActivity extends BaseActivity {
             for (TextView view : clockViews()) {
                 view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
             }
+        }
+        // 冒号两侧留出一点呼吸空间：字体里冒号的墨迹几乎贴着字宽边缘，
+        // 只按墨迹对齐时两边只剩几像素，看起来像粘在数字上。
+        int colonGap = Math.round(size * 0.05f);
+        if (colonView.getPaddingLeft() != colonGap) {
+            colonView.setPadding(colonGap, 0, colonGap, 0);
         }
         // 时间在 16:9 屏上先顶到宽度上限，竖直方向还空着——像 Moven 那样把数字在
         // 竖直方向拉伸填满屏幕（有上限，避免过于夸张）。整行一起拉伸，冒号跟着走。
