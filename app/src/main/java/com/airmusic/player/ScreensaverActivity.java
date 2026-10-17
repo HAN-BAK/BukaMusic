@@ -117,7 +117,8 @@ public class ScreensaverActivity extends BaseActivity {
     }
 
     /**
-     * 冒号渐隐渐显：用余弦曲线在 1 → 0.12 → 1 之间来回（不是硬闪）。
+     * 冒号渐隐渐显：用余弦曲线在 1 → 0 → 1 之间来回（不是硬闪）。
+     * 最低点必须彻底透明，留一点底会看到"没隐干净"的残影。
      * 冒号是独立控件，改 alpha 只重绘这一小块，盒子上也顺。
      * 关掉「冒号闪烁」设置时常亮。
      */
@@ -129,8 +130,9 @@ public class ScreensaverActivity extends BaseActivity {
             if (fade) {
                 float phase = (android.os.SystemClock.uptimeMillis() % COLON_FADE_PERIOD_MS)
                         / (float) COLON_FADE_PERIOD_MS;
-                alpha = 0.12f + 0.88f
-                        * (0.5f + 0.5f * (float) Math.cos(phase * 2d * Math.PI));
+                alpha = 0.5f + 0.5f * (float) Math.cos(phase * 2d * Math.PI);
+                // 余弦在最低点会落到很近但不等于 0 的浮点值，直接压成真正透明
+                if (alpha < 0.02f) alpha = 0f;
             }
             if (colonView != null) colonView.setAlpha(alpha);
             if (fade) handler.postDelayed(this, COLON_FADE_STEP_MS);
