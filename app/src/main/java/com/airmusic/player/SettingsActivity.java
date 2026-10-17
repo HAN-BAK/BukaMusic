@@ -763,13 +763,15 @@ public class SettingsActivity extends BaseActivity {
                 : android.view.View.GONE);
         float density = getResources().getDisplayMetrics().density;
         for (final com.airmusic.player.library.MusicPath path : paths) {
-            // 一行一条路径：上面是路径文字，下面是按钮行——按钮单独占一层，
-            // 不会和路径文字重叠（路径很长时文字用中间省略号）。
+            // 一条路径占一行：左边是路径文字（weight=1 + 中间省略），右边是
+            // 「设为上传目录」「移除」两个按钮——同一行显示，长路径只会被省略，不会重叠。
             android.widget.LinearLayout row = new android.widget.LinearLayout(this);
-            row.setOrientation(android.widget.LinearLayout.VERTICAL);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             row.setBackground(com.airmusic.player.ui.ColorTheme.softBlock(this));
             int pad = Math.round(12f * density);
-            row.setPadding(pad, pad, pad, Math.round(8f * density));
+            row.setPadding(pad, Math.round(8f * density), Math.round(8f * density),
+                    Math.round(8f * density));
             android.widget.LinearLayout.LayoutParams params =
                     new android.widget.LinearLayout.LayoutParams(
                             android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -781,32 +783,24 @@ public class SettingsActivity extends BaseActivity {
             label.setText(path.label());
             label.setTextSize(14f);
             label.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
-            label.setMaxLines(2);
+            label.setMaxLines(1);
             label.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+            label.setGravity(android.view.Gravity.CENTER_VERTICAL);
             label.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             row.addView(label);
-
-            android.widget.LinearLayout buttons = new android.widget.LinearLayout(this);
-            buttons.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-            buttons.setGravity(android.view.Gravity.END);
-            android.widget.LinearLayout.LayoutParams buttonsParams =
-                    new android.widget.LinearLayout.LayoutParams(
-                            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
-            buttonsParams.topMargin = Math.round(6f * density);
-            buttons.setLayoutParams(buttonsParams);
 
             boolean isUpload = path.id().equals(uploadId);
             TextView upload = new TextView(this);
             upload.setText(isUpload ? R.string.pref_path_upload_current
                     : R.string.pref_path_set_upload);
             upload.setTextSize(13f);
-            upload.setPadding(pad, pad / 2, pad, pad / 2);
-            upload.setTextColor(isUpload
-                    ? com.airmusic.player.ui.ColorTheme.tooltipText()
-                    : com.airmusic.player.ui.ColorTheme.textAccent());
+            int buttonPad = Math.round(10f * density);
+            upload.setPadding(buttonPad, Math.round(6f * density), buttonPad,
+                    Math.round(6f * density));
+            upload.setGravity(android.view.Gravity.CENTER);
+            // 两个按钮同一套配色（主色文字 + 同款胶囊底），当前上传目录只是文案不同
+            upload.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
             upload.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
             if (!isUpload) {
                 upload.setOnClickListener(v -> {
@@ -815,14 +809,28 @@ public class SettingsActivity extends BaseActivity {
                     BukaNotice.show(this, R.string.pref_path_upload_done);
                 });
             }
-            buttons.addView(upload);
+            android.widget.LinearLayout.LayoutParams uploadParams =
+                    new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            uploadParams.leftMargin = Math.round(8f * density);
+            upload.setLayoutParams(uploadParams);
+            row.addView(upload);
 
             TextView remove = new TextView(this);
             remove.setText(R.string.pref_path_remove);
             remove.setTextSize(13f);
-            remove.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
-            remove.setPadding(pad, pad / 2, pad, pad / 2);
-            remove.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
+            remove.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+            remove.setPadding(buttonPad, Math.round(6f * density), buttonPad,
+                    Math.round(6f * density));
+            remove.setGravity(android.view.Gravity.CENTER);
+            // 移除是"减项"：不透明的深主色胶囊 + 近白文字，压在浅色行底上才分得清
+            android.graphics.drawable.GradientDrawable removePill =
+                    new android.graphics.drawable.GradientDrawable();
+            removePill.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+            removePill.setColor(com.airmusic.player.ui.ColorTheme.tooltipFill());
+            removePill.setCornerRadius(20f * density);
+            remove.setBackground(removePill);
             android.widget.LinearLayout.LayoutParams removeParams =
                     new android.widget.LinearLayout.LayoutParams(
                             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -836,8 +844,7 @@ public class SettingsActivity extends BaseActivity {
                 if (service != null) service.rescanLibrary();
                 BukaNotice.show(this, getString(R.string.pref_path_removed, path.label()));
             });
-            buttons.addView(remove);
-            row.addView(buttons);
+            row.addView(remove);
             localPathsList.addView(row);
         }
         int netCount = prefs.getNetSources().size();

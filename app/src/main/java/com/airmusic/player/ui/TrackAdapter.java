@@ -386,10 +386,12 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         int picked = 0;
         for (Object row : rows) {
             if (row instanceof Track) {
+                if (!isSelectable((Track) row)) continue;
                 total++;
                 if (selected.contains(key((Track) row))) picked++;
             } else if (row instanceof GroupCard) {
                 for (Track track : ((GroupCard) row).tracks) {
+                    if (!isSelectable(track)) continue;
                     total++;
                     if (selected.contains(key(track))) picked++;
                 }
@@ -398,13 +400,15 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         return total > 0 && picked == total;
     }
 
-    /** 全选当前视图（分组视图 = 每个分组里的全部歌曲）。 */
+    /** 全选当前视图（分组视图 = 每个分组里的全部歌曲；网络存储的歌不参与）。 */
     public void selectAll() {
         for (Object row : rows) {
             if (row instanceof Track) {
+                if (!isSelectable((Track) row)) continue;
                 selected.add(key((Track) row));
             } else if (row instanceof GroupCard) {
                 for (Track track : ((GroupCard) row).tracks) {
+                    if (!isSelectable(track)) continue;
                     selected.add(key(track));
                 }
             }
@@ -428,19 +432,40 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /** 一个分组是否整组选中（用于卡片上的勾选框）。 */
     private boolean isGroupSelected(GroupCard card) {
         if (card == null || card.tracks.isEmpty()) return false;
+        boolean anyLocal = false;
         for (Track track : card.tracks) {
+            // 网络存储的曲子不可选；只要组里有本地歌，就算"所有本地歌都选中"
+            if (!isSelectable(track)) continue;
+            anyLocal = true;
             if (!selected.contains(key(track))) return false;
         }
-        return true;
+        return anyLocal;
     }
 
     /** Returns the selected tracks in library order (groups included). */
     public List<Track> getSelectedTracks() {
         List<Track> out = new ArrayList<>();
         for (Track track : source) {
-            if (selected.contains(key(track))) out.add(track);
+            if (isSelectable(track) && selected.contains(key(track))) out.add(track);
         }
         return out;
+    }
+
+    /**
+     * 网络存储（WebDAV / SMB / FTP）的歌不支持多选删除：
+     * 不显示勾选框、长按不进多选、全选也跳过。
+     */
+    private static boolean isSelectable(Track track) {
+        return track != null && !track.isNetwork();
+    }
+
+    /** 专辑 / 歌手卡片：组里至少有一首本地歌才可多选。 */
+    private static boolean isSelectable(GroupCard card) {
+        if (card == null) return false;
+        for (Track track : card.tracks) {
+            if (isSelectable(track)) return true;
+        }
+        return false;
     }
 
     private static String key(Track track) {
@@ -538,8 +563,10 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             });
             // 长按整张卡片 = 选中这个专辑 / 歌手的全部歌曲（多选里也能整组取消）
             h.itemView.setOnLongClickListener(v -> {
-                if (selectionMode) return false;
+                // 纯网络存储的专辑 / 歌手不参与多选删除
+                if (selectionMode || !isSelectable(card)) return false;
                 for (Track track : card.tracks) {
+                    if (!isSelectable(track)) continue;
                     selected.add(key(track));
                 }
                 setSelectionMode(true);
@@ -549,7 +576,8 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 }
                 return true;
             });
-            h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
+            h.check.setVisibility(selectionMode && isSelectable(card)
+                    ? View.VISIBLE : View.GONE);
             h.check.setChecked(isGroupSelected(card));
             h.check.setAccentColor(ColorTheme.accent());
             // 选中只靠勾选框表示，行/卡片不再套淡色框
@@ -599,15 +627,18 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         + (Track.UNKNOWN_ALBUM.equals(album)
                         ? ctx.getString(R.string.unknown_album) : album));
         boolean isSelected = selected.contains(key(track));
+        boolean selectable = isSelectable(track);
         // 曲目列表每次绑定都会重设颜色：这里也必须用动态配色，否则换歌 / 滚动
         // 回来后正在播放的那首又变回固定的天蓝，其余行回到纯白。
         h.title.setTextColor(isCurrent(track)
                 ? ColorTheme.textAccent() : ColorTheme.tooltipText());
-        h.check.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
+        // 网络存储的歌不可多选，勾选框始终不出现
+        h.check.setVisibility(selectionMode && selectable ? View.VISIBLE : View.GONE);
         h.check.setChecked(isSelected);
         h.check.setAccentColor(ColorTheme.accent());
         h.itemView.setBackground(null);
         h.itemView.setOnLongClickListener(v -> {
+            if (!selectable) return false;
             if (!selectionMode) {
                 setSelectionMode(true);
                 selected.add(key(track));
@@ -645,6 +676,8 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (!selectionMode || position < 0 || position >= rows.size()) return;
         Object row = rows.get(position);
         if (row instanceof Track) {
+            // 网络存储的歌无法选中
+            if (!isSelectable((Track) row)) return;
             String trackKey = key((Track) row);
             if (!selected.remove(trackKey)) {
                 selected.add(trackKey);
@@ -652,8 +685,10 @@ public class TrackAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         } else if (row instanceof GroupCard) {
             // 整张卡片：整组选中 / 整组取消
             GroupCard card = (GroupCard) row;
+            if (!isSelectable(card)) return;
             boolean select = !isGroupSelected(card);
             for (Track track : card.tracks) {
+                if (!isSelectable(track)) continue;
                 if (select) {
                     selected.add(key(track));
                 } else {

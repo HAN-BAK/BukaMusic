@@ -54,6 +54,14 @@ public class Track {
         return album == null || album.trim().length() == 0 ? UNKNOWN_ALBUM : album;
     }
 
+    /**
+     * 网络存储（WebDAV / SMB / FTP）里的曲目。这些文件不在本机，
+     * 曲库不提供多选删除，避免误删远端文件。
+     */
+    public boolean isNetwork() {
+        return uri != null && NetSource.SCHEME.equals(uri.getScheme());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
