@@ -1,5 +1,14 @@
 # 更新日志
 
+## v3.2.5（2026-10-17）
+
+### 新增
+
+- 控制接口新增 `openScreensaver`，`/api/state` 的 `screen` 支持 `screensaver`；
+  电脑端播放控制页可以远程开启 / 关闭设备的屏保时钟。
+
+安装包：`BukaMusic-v3.2.5-release.apk`（Android 6.0 及以上，覆盖安装即可）。
+
 ## v3.2.4（2026-10-17）
 
 ### 改进
