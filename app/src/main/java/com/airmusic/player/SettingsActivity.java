@@ -820,17 +820,12 @@ public class SettingsActivity extends BaseActivity {
             TextView remove = new TextView(this);
             remove.setText(R.string.pref_path_remove);
             remove.setTextSize(13f);
-            remove.setTextColor(com.airmusic.player.ui.ColorTheme.tooltipText());
+            remove.setTextColor(com.airmusic.player.ui.ColorTheme.textAccent());
             remove.setPadding(buttonPad, Math.round(6f * density), buttonPad,
                     Math.round(6f * density));
             remove.setGravity(android.view.Gravity.CENTER);
-            // 移除是"减项"：不透明的深主色胶囊 + 近白文字，压在浅色行底上才分得清
-            android.graphics.drawable.GradientDrawable removePill =
-                    new android.graphics.drawable.GradientDrawable();
-            removePill.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            removePill.setColor(com.airmusic.player.ui.ColorTheme.tooltipFill());
-            removePill.setCornerRadius(20f * density);
-            remove.setBackground(removePill);
+            // 与「设置为上传目录」完全同一套胶囊配色
+            remove.setBackground(com.airmusic.player.ui.ColorTheme.capsule(this));
             android.widget.LinearLayout.LayoutParams removeParams =
                     new android.widget.LinearLayout.LayoutParams(
                             android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,

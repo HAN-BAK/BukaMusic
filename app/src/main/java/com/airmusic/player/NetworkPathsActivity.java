@@ -114,15 +114,10 @@ public class NetworkPathsActivity extends BaseActivity {
         TextView delete = new TextView(this);
         delete.setText(R.string.net_path_delete);
         delete.setTextSize(13f);
-        delete.setTextColor(ColorTheme.tooltipText());
+        delete.setTextColor(ColorTheme.textAccent());
         delete.setPadding(padding, padding / 2, padding, padding / 2);
-        // 同设置页：不透明深主色胶囊 + 近白文字，避免和浅色卡片融在一起
-        android.graphics.drawable.GradientDrawable deletePill =
-                new android.graphics.drawable.GradientDrawable();
-        deletePill.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        deletePill.setColor(ColorTheme.tooltipFill());
-        deletePill.setCornerRadius(20f * getResources().getDisplayMetrics().density);
-        delete.setBackground(deletePill);
+        // 与设置页「设置为上传目录」同一套胶囊配色
+        delete.setBackground(ColorTheme.capsule(this));
         // 和左边两行文字居中对齐（不贴底）
         delete.setGravity(android.view.Gravity.CENTER);
         delete.setOnClickListener(v -> confirmDelete(source));
